@@ -532,9 +532,9 @@ select:disabled,input:disabled{background:#f8fafc;color:#475467;cursor:not-allow
           <div class="loginMode">Desktop Login</div>
         </div>
       </div>
-      <div class="loginMode">Admin-Testzugang ist vorbereitet</div>
-      <div class="field"><label>Benutzer</label><input id="loginName" autocomplete="username" value="admin" readonly required></div>
-      <div class="field"><label>Passwort</label><input id="loginPassword" type="password" autocomplete="current-password" value="admin" readonly required></div>
+      <div class="loginMode">Bitte mit Benutzername und Passwort anmelden</div>
+      <div class="field"><label>Benutzer</label><input id="loginName" autocomplete="username" required></div>
+      <div class="field"><label>Passwort</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
       <div class="loginError" id="loginError"></div>
       <button class="submit" type="submit" id="loginSubmit">Einloggen</button>
     </div>
@@ -1992,13 +1992,18 @@ function fieldModeUrl(id){
 function storedSessionEmployee(){
   try{return JSON.parse(localStorage.getItem('fm360EmployeeSession')||'null')}catch(e){return null}
 }
-function setSessionEmployee(employee){
+function storedSessionToken(){
+  return localStorage.getItem('fm360AuthToken')||''
+}
+function setSessionEmployee(employee,token=''){
   if(employee){
     localStorage.setItem('fm360EmployeeSession',JSON.stringify(employee));
     localStorage.setItem('fm360EmployeeId',employee.id);
+    if(token)localStorage.setItem('fm360AuthToken',token);
   }else{
     localStorage.removeItem('fm360EmployeeSession');
     localStorage.removeItem('fm360EmployeeId');
+    localStorage.removeItem('fm360AuthToken');
   }
 }
 function showLoginScreen(){
@@ -2017,26 +2022,26 @@ async function login(event){
   if(err){err.textContent='';err.classList.remove('show')}
   if(btn){btn.disabled=true;btn.textContent='Login wird geprüft...'}
   try{
-    let result=await api('POST',{action:'testingLogin',role:'admin'});
-    setSessionEmployee(result.employee);
+    let result=await api('POST',{action:'login',loginName:$('loginName')?.value||'',password:$('loginPassword')?.value||''});
+    setSessionEmployee(result.employee,result.token);
     showDesktopApp();
     await loadState();
   }catch(e){
-    if(err){err.textContent='Test-Login konnte nicht gestartet werden.';err.classList.add('show')}
+    if(err){err.textContent='Login fehlgeschlagen. Bitte Benutzername und Passwort prüfen.';err.classList.add('show')}
   }finally{
     if(btn){btn.disabled=false;btn.textContent='Einloggen'}
   }
 }
 async function startTestingSession(role){
   try{
-    let result=await api('POST',{action:'testingLogin',role});
-    setSessionEmployee(result.employee);
+    let result=await api('POST',{action:'login',loginName:role==='admin'?'admin':'worker',password:role==='admin'?'admin':'worker'});
+    setSessionEmployee(result.employee,result.token);
     showDesktopApp();
     await loadState();
   }catch(e){
     showLoginScreen();
     let err=$('loginError');
-    if(err){err.textContent='Test-Login konnte nicht gestartet werden.';err.classList.add('show')}
+    if(err){err.textContent='Login fehlgeschlagen.';err.classList.add('show')}
   }
 }
 function logout(){
@@ -2438,7 +2443,7 @@ function formatPiketWeek(weekVal) {
   const startStr = `${String(dates[0].getDate()).padStart(2, '0')}.${String(dates[0].getMonth() + 1).padStart(2, '0')}.`;
   const endStr = `${String(dates[6].getDate()).padStart(2, '0')}.${String(dates[6].getMonth() + 1).padStart(2, '0')}.${dates[6].getFullYear()}`;
   return `KW ${week} (${startStr} - ${endStr})`;
-}async function api(method='GET',body){let res=await fetch(API,{method,headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined});if(!res.ok)throw new Error('Speichern fehlgeschlagen');return res.json()}
+}async function api(method='GET',body){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;let res=await fetch(API,{method,headers,body:body?JSON.stringify(body):undefined});if(!res.ok)throw new Error('Speichern fehlgeschlagen');return res.json()}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function loadApiWithRetry(attempts=3){
   let lastError;

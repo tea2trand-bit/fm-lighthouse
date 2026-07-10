@@ -203,6 +203,7 @@ const SEED_NODES = [
 ];
 
 const jsonHeaders = { "content-type": "application/json" };
+const TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 const LOGIN_SEEDS = [
   {
     id: "emp-roland",
@@ -245,6 +246,87 @@ function publicEmployee(employee: any) {
     ...rest,
     passwordSet: Boolean(passwordHash || password_hash),
   };
+}
+
+function authSecret(req: Request) {
+  const env = ((globalThis as any).process?.env || {}) as Record<string, string | undefined>;
+  const configured = String(env.FM360_AUTH_SECRET || "").trim();
+  if (configured) return configured;
+
+  const host = new URL(req.url).hostname;
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    return "fm360-local-dev-secret";
+  }
+  return "";
+}
+
+function base64UrlEncode(value: string) {
+  return btoa(unescape(encodeURIComponent(value))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecode(value: string) {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  return decodeURIComponent(escape(atob(padded)));
+}
+
+function bytesToBase64Url(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function constantTimeEqual(left: string, right: string) {
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i++) diff |= left.charCodeAt(i) ^ right.charCodeAt(i);
+  return diff === 0;
+}
+
+async function signTokenPayload(payload: string, secret: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  return bytesToBase64Url(new Uint8Array(signature));
+}
+
+async function createSessionToken(employee: any, secret: string) {
+  const payload = base64UrlEncode(JSON.stringify({
+    sub: String(employee.id || ""),
+    loginName: String(employee.loginName || employee.login_name || ""),
+    role: String(employee.role || ""),
+    exp: Date.now() + TOKEN_TTL_MS,
+  }));
+  return `${payload}.${await signTokenPayload(payload, secret)}`;
+}
+
+async function verifySessionToken(req: Request) {
+  const secret = authSecret(req);
+  if (!secret) return false;
+
+  const header = req.headers.get("authorization") || "";
+  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature) return false;
+
+  const expected = await signTokenPayload(payload, secret);
+  if (!constantTimeEqual(signature, expected)) return false;
+
+  try {
+    const parsed = JSON.parse(base64UrlDecode(payload));
+    return Boolean(parsed?.sub && Number(parsed.exp) > Date.now());
+  } catch {
+    return false;
+  }
+}
+
+async function requireWriteAuth(req: Request) {
+  if (await verifySessionToken(req)) return null;
+  return json({ error: "Unauthorized" }, { status: 401 });
 }
 
 async function findEmployeeForLoginSeed(seed: (typeof LOGIN_SEEDS)[number]) {
@@ -301,16 +383,6 @@ async function loginEmployee(loginName: string, password: string) {
   if (!employee?.loginEnabled || !employee.passwordHash) return null;
   const candidate = await hashPassword(password);
   if (candidate !== employee.passwordHash) return null;
-  return publicEmployee(employee);
-}
-
-async function testingEmployee(role: string) {
-  await ensureLoginEmployees();
-  const seed = role === "admin" ? LOGIN_SEEDS.find((item) => item.loginName === "admin") : LOGIN_SEEDS.find((item) => item.loginName === "worker");
-  if (!seed) return null;
-  const db = getDb();
-  const [employee] = await db.select().from(fm360Employees).where(eq(fm360Employees.loginName, seed.loginName)).limit(1);
-  if (!employee?.loginEnabled) return null;
   return publicEmployee(employee);
 }
 
@@ -1442,6 +1514,8 @@ export default async (req: Request) => {
     if (req.method === "POST") {
       const url = new URL(req.url);
       if (url.searchParams.get("seed") === "true") {
+        const unauthorized = await requireWriteAuth(req);
+        if (unauthorized) return unauthorized;
         await seedDemoData();
         await ensureLoginEmployees();
         return json(await readState());
@@ -1450,22 +1524,23 @@ export default async (req: Request) => {
       if (body?.action === "login") {
         const employee = await loginEmployee(String(body.loginName || body.login || ""), String(body.password || ""));
         if (!employee) return json({ error: "Invalid login" }, { status: 401 });
-        return json({ employee });
-      }
-      if (body?.action === "testingLogin") {
-        const employee = await testingEmployee(String(body.role || ""));
-        if (!employee) return json({ error: "Invalid testing login" }, { status: 401 });
-        return json({ employee });
+        const secret = authSecret(req);
+        if (!secret) return json({ error: "Auth secret is not configured" }, { status: 500 });
+        return json({ employee, token: await createSessionToken(employee, secret) });
       }
       return json({ error: "Action not supported" }, { status: 400 });
     }
 
     if (req.method === "PUT") {
+      const unauthorized = await requireWriteAuth(req);
+      if (unauthorized) return unauthorized;
       await replaceAll(await req.json());
       return json(await readState());
     }
 
     if (req.method === "PATCH") {
+      const unauthorized = await requireWriteAuth(req);
+      if (unauthorized) return unauthorized;
       const body = await req.json();
       const { collection, item, action } = body;
       if (action === "reorderNodes") {
@@ -1535,6 +1610,8 @@ export default async (req: Request) => {
     }
 
     if (req.method === "DELETE") {
+      const unauthorized = await requireWriteAuth(req);
+      if (unauthorized) return unauthorized;
       const { collection, ids } = await req.json();
       if (!collection || !Array.isArray(ids)) return json({ error: "Missing collection or ids" }, { status: 400 });
       for (const id of ids) await remove(collection, String(id));
