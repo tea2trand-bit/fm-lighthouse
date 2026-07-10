@@ -1,0 +1,1 @@
+ALTER TABLE "fm360_emergency_contacts" ADD COLUMN "category" text DEFAULT 'Externe Notfallkontakte' NOT NULL;

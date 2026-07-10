@@ -1,0 +1,1 @@
+ALTER TABLE "fm360_employees" ADD COLUMN "piket_eligible" boolean DEFAULT false NOT NULL;
