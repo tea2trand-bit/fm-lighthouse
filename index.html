@@ -604,6 +604,30 @@ input:focus,select:focus,textarea:focus{border-color:var(--td-petrol);box-shadow
 .brand{grid-template-columns:1fr;padding:12px 13px}
 .brandKicker{display:block;font-family:var(--font-nav);font-size:10px;font-weight:600;letter-spacing:.16em;color:#9fb0c2;margin-bottom:4px}
 .brand .brandTitle{font-family:system-ui,sans-serif;font-size:16px;font-weight:600;letter-spacing:0;color:#fff;white-space:normal}
+
+/* TD-Feinschliff für alle Module */
+.main{min-width:0}
+.main .card{min-width:0}
+h1{font-size:24px;font-weight:650}
+.card h2{font-size:17px;color:var(--td-ink)}
+h3{font-size:15px;color:var(--td-ink-2)}
+.smallText{color:#5f7380}
+.main button{font-size:13px}
+.main button:not(.btn):not(.kpi):not(.infraKpi):not(.walkCard):not(.appHeaderIcon):not(.backBtn){font-family:var(--font-button)}
+.tab,.projectTab{font-weight:600;color:var(--td-btn-ink);border-color:var(--td-line-2);padding:7px 14px}
+.tab.active,.projectTab.active{color:var(--td-petrol-dark)}
+input,select,textarea{font-size:13.5px;border-color:var(--td-line-2);color:var(--text)}
+input::placeholder,textarea::placeholder{color:#8a9aa8}
+label,.field label{color:#4d6474;font-weight:600}
+.backBtn{font-size:13px;color:var(--td-btn-ink);border-color:var(--td-line-2)}
+.item strong,.walkCard strong{color:var(--td-ink)}
+.badge{font-family:var(--font-button)}
+/* Piket-Banner */
+.piketBanner{background:linear-gradient(135deg,#2f4a5c 0%,#1f3442 55%,#16262f 100%);color:#fff;margin-bottom:16px;border-color:#2f4a5c}
+.piketBanner::before{background:linear-gradient(90deg,var(--td-sky),var(--td-sky) 60%,transparent)}
+.piketBanner h3{color:var(--td-sky)}
+.piketBanner h2{color:#fff}
+.piketBannerBadge{padding:8px 14px;border-radius:999px;font-family:var(--font-button);font-weight:700;font-size:12.5px;color:#dff0fb;background:rgba(142,192,230,.16);border:1px solid rgba(142,192,230,.55)}
 </style>
 </head>
 <body>
@@ -864,14 +888,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--td-petrol);box-shadow
 
   <section id="piketdienst" class="section">
     <!-- Active On-Call Member Prominent Banner -->
-    <div class="card" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; margin-bottom:16px;">
-      <h3 id="activePiketTodayLabel" style="color: var(--orange); text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; margin: 0 0 6px 0;">Aktueller Piketdienst Heute</h3>
+    <div class="card piketBanner">
+      <h3 id="activePiketTodayLabel" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; margin: 0 0 6px 0;">Aktueller Piketdienst Heute</h3>
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div>
           <h2 id="activePiketName" style="color:white; font-size:24px; margin:0 0 4px 0;">Hans Müller</h2>
-          <span style="font-size:13px; color:#94a3b8;">Bereitschaft: <b id="activePiketTime">17:00 - 08:00 Uhr</b> · Tel: <b id="activePiketPhone">+41 79 123 45 67</b></span>
+          <span style="font-size:13px; color:#c9d8e3;">Bereitschaft: <b id="activePiketTime">17:00 - 08:00 Uhr</b> · Tel: <b id="activePiketPhone">+41 79 123 45 67</b></span>
         </div>
-        <div class="badge orange" style="padding:8px 14px; font-weight:700; font-size:13px; background: rgba(63,118,146,0.18); border: 1px solid var(--orange);">AKTIV IM EINSATZ</div>
+        <div class="piketBannerBadge">AKTIV IM EINSATZ</div>
       </div>
     </div>
 
@@ -1193,9 +1217,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--td-petrol);box-shadow
       <div class="card">
         <h2>Alarmhistorie & Sicherheitsvorfälle</h2>
         <p class="smallText">Protokollieren Sie Einbrüche, Sabotage, Vandalismus oder Fehlalarme zur Nachverfolgung.</p>
-        <div style="background:#fffbeb; border:1px solid #fed7aa; border-radius:12px; padding:12px; margin-bottom:12px;">
-          <h3 style="margin-top:0; color:#b45309;">Sicherheits-Status</h3>
-          <p class="smallText" style="margin:0; font-size:13px; line-height:1.4; color:#78350f;">
+        <div style="background:#e9f1f9; border:1px solid #c6d8e8; border-radius:12px; padding:12px; margin-bottom:12px;">
+          <h3 style="margin-top:0; color:#2f5f78;">Sicherheits-Status</h3>
+          <p class="smallText" style="margin:0; font-size:13px; line-height:1.4; color:#28566e;">
             Alle zentralen Einbruchmelde- und Zutrittssysteme laufen stabil. Das Videoübertragungsnetz ist zu 100% online. Keine ungelösten Einbrüche gemeldet.
           </p>
         </div>
@@ -2747,7 +2771,7 @@ function hasDesktopBackDepth(activeSection,n){
 }
 function renderBreadcrumb(n){
   let root=`<button onclick="setSelectedSection('uebersicht','Übersicht',null,true)">Fust Oberbüren</button>`;
-  if(!n)return `FM Lighthouse 360 <span class="separator">&gt;</span> ${root} <span class="separator">&gt;</span> Übersicht`;
+  if(!n)return `FM Lighthouse 360 <span class="separator">&gt;</span> ${root} <span class="separator">&gt;</span> ${esc($('pageTitle')?.textContent||'Übersicht')}`;
   let chain = nodeChain(n.id).map(x=>`<button data-id="${esc(x.id)}" onclick="setSelectedSection('uebersicht','Übersicht',this.dataset.id,true)">${esc(label(x))}</button>`).join(' <span class="separator">&gt;</span> ');
   return `FM Lighthouse 360 <span class="separator">&gt;</span> ${root} <span class="separator">&gt;</span> ${chain}`;
 }
@@ -5809,7 +5833,7 @@ function renderCalendar() {
       let headerContent = `${d}<br><span style="font-size:10px;font-weight:normal;color:var(--muted);">${dName}</span>`;
       if (dateObj.getDay() === 1) { // Monday column
         const kwNum = getISOWeekAndYear(dateObj).week;
-        headerContent = `<span style="font-size:9px;font-weight:bold;color:#f97316;display:block;margin-bottom:2px;" class="month-kw-label">KW ${kwNum}</span>` + headerContent;
+        headerContent = `<span style="font-size:9px;font-weight:bold;color:#3f7692;display:block;margin-bottom:2px;" class="month-kw-label">KW ${kwNum}</span>` + headerContent;
       }
       
       html += `<th style="${colStyle}" title="${esc(holName)}">${headerContent}</th>`;
