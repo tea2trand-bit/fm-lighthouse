@@ -59,6 +59,28 @@ button,.action{font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Helv
 .moduleNav button[data-module="tasks"]{background:#456b80}.moduleNav button[data-module="portal"]{background:#1f3442}.action.blue{background:linear-gradient(135deg,#557f96,#456b80);box-shadow:0 8px 18px -10px rgba(69,107,128,.7)}
 /* Weichere Schriftfarbe statt Schwarz, auch für Knöpfe und Felder (niedrige Priorität) */
 :where(button,input,select,textarea){color:var(--ink)}
+
+/* Feld-App: TD-Feinschliff */
+.loginBrandPane h2,.loginBrandCopy h2{color:#fff!important}
+.quick{grid-template-columns:1fr 1fr!important;gap:8px}
+.quick>.navTiles,.quick>.empty{grid-column:1/-1}
+.navTiles{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.navTile{border-radius:12px;border-top:3px solid #3f7692;box-shadow:0 1px 2px rgba(37,78,104,.05),0 8px 18px -14px rgba(37,78,104,.35)}
+.navTile strong{color:#28566e;font-weight:600}
+.action{min-height:52px;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center}
+#quickActions .action{background:#fff!important;color:#28566e!important;border:1px solid var(--line)!important;box-shadow:0 1px 2px rgba(37,78,104,.05),0 8px 18px -14px rgba(37,78,104,.35)!important}
+#quickActions .action:nth-child(2){background:linear-gradient(135deg,#3f7692,#2f5f78)!important;color:#fff!important;border-color:transparent!important}
+/* Modulleiste wie TD-Tabs: weiss, aktiver Reiter petrol */
+.moduleTitleGroup{display:none}
+.moduleHeader:not(:has(.startBack.show)){display:none}
+.moduleHeader{margin-top:8px}
+.moduleNav button,.moduleNav button[data-module]{background:#fff;color:#28566e;border:1px solid var(--line);border-radius:10px;font-weight:600;box-shadow:0 1px 2px rgba(37,78,104,.05)}
+.moduleNav button.active,.moduleNav button[data-module].active{background:linear-gradient(135deg,#3f7692,#2f5f78);color:#fff;border-color:transparent;outline:0;box-shadow:0 6px 14px -8px rgba(47,95,120,.7)}
+.moduleIntro{padding:12px 14px;border-top:3px solid #3f7692}.moduleIntro h2{margin:0 0 2px;font-size:20px}.moduleIntro .path{margin:0}
+/* Aufgaben-Reiter: 2 pro Zeile statt seitlich scrollen */
+.taskTabs{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+.taskTabs button{white-space:normal;text-align:left;font-weight:600;border-radius:12px;justify-content:flex-start}
+.taskTabs button .taskCount{margin-left:auto}
 </style>
 </head>
 <body>
@@ -390,7 +412,7 @@ function renderHierarchyHeader(){
   let tickets=state.tickets.filter(t=>ids.has(t.parent)).length;
   $('pageTitle').textContent=current.name;
   $('objectName').textContent=`${current.type}: ${current.name}`;
-  $('objectPath').innerHTML=`<div>${esc(path(current.id))}</div><div class="navSummary"><div class="fact"><span>Untereinträge</span><b>${kids.length}</b></div><div class="fact"><span>Anlagen im Bereich</span><b>${assets}</b></div><div class="fact"><span>Tickets im Bereich</span><b>${tickets}</b></div><div class="fact"><span>Typ</span><b>${esc(nodeKind(current))}</b></div></div>`;
+  $('objectPath').innerHTML=`<div>${esc(path(current.id))}</div><div class="navSummary"><div class="fact"><span>Untereinträge</span><b>${kids.length}</b></div><div class="fact"><span>Anlagen im Bereich</span><b>${assets}</b></div><div class="fact"><span>Tickets im Bereich</span><b>${tickets}</b></div><div class="fact"><span>Typ</span><b>${esc(current.type||nodeKind(current))}</b></div></div>`;
   $('assetFacts').classList.remove('open');
   $('assetFacts').innerHTML='';
 }
@@ -428,7 +450,7 @@ function renderTasks(){
   let visible=assignments.filter(a=>assignmentBucket(a)===activeTaskBucket);
   let tabs=[['new','Neue Aufgaben / neue Tickets','+'],['week','Diese Woche','7'],['month','Dieser Monat','30'],['done','Erledigt','✓']];
   root.innerHTML=`<div class="moduleGrid">
-    <div class="panel"><h2>Meine Aufgaben</h2><p class="path">${esc(emp.name)} · nur direkt zugewiesene Tickets und Aufgaben</p></div>
+    <div class="panel moduleIntro"><h2>Meine Aufgaben</h2><p class="path">${esc(emp.name)} · nur direkt zugewiesene Tickets und Aufgaben</p></div>
     <div class="taskTabs">${tabs.map(([key,label,icon])=>`<button class="${activeTaskBucket===key?'active':''}" data-bucket="${key}" onclick="setTaskBucket('${key}')" aria-pressed="${activeTaskBucket===key?'true':'false'}"><span class="taskIcon" aria-hidden="true">${esc(icon)}</span><span>${esc(label)}</span><span class="taskCount" aria-label="${counts[key]} Aufgaben">${counts[key]}</span></button>`).join('')}</div>
     <div class="moduleGrid">${visible.map(a=>{
       let t=taskTicket(a)||{};
@@ -456,7 +478,7 @@ function renderPortal(){
   let personalPiket=(state.piket||[]).filter(p=>piketMatchesEmployee(p,emp)).sort((a,b)=>String(a.startDate||a.start_date||a.date).localeCompare(String(b.startDate||b.start_date||b.date)));
   let rotation=personalPiket.length?personalPiket.map(p=>piketPortalRow(p,emp)):(isAdminEmployee(emp)?piketRotationOverview():[]);
   root.innerHTML=`<div class="moduleGrid">
-    <div class="panel"><h2>Mitarbeiterportal</h2><p class="path">${esc(emp.name)}</p></div>
+    <div class="panel moduleIntro"><h2>Mitarbeiterportal</h2><p class="path">${esc(emp.name)}</p></div>
     <div class="portalItem"><strong>Mein Urlaub / Ferien</strong>${vacations.map(v=>`<span>${esc(dateLabel(v.startDate||v.start_date))} - ${esc(dateLabel(v.endDate||v.end_date))} · ${esc(v.status||'geplant')}</span>`).join('')||'<span>Keine Ferien eingetragen.</span>'}</div>
     <div class="portalItem"><strong>Mein Dienstplan</strong>${shifts.map(s=>`<span>${esc(dateLabel(s.date))} · ${esc(s.shiftType||s.shift_type)}${s.taskAssignment||s.task_assignment?` · ${esc(s.taskAssignment||s.task_assignment)}`:''}</span>`).join('')||'<span>Keine Dienste eingetragen.</span>'}</div>
     <div class="portalItem"><strong>${personalPiket.length?'Mein Pikettdienst':'Pikettdienst Übersicht'}</strong>${rotation.map(r=>`<span>${esc(r.label)}: <b>${esc(r.name)}</b>${r.detail?` · ${esc(r.detail)}`:''}</span>`).join('')||'<span>Keine Pikettdaten eingetragen.</span>'}</div>
