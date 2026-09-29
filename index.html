@@ -660,6 +660,37 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .piketBanner span[style]{color:#5f7380!important}
 .piketBanner b{color:var(--td-ink-2)}
 .piketBannerBadge{color:#fff;background:linear-gradient(135deg,var(--td-petrol),var(--td-petrol-dark));border:0;box-shadow:0 8px 18px -10px rgba(47,95,120,.7)}
+
+/* KPI-Zähler im TD-Stil: weisse Kacheln, Farblinie oben, Zahl in der Tonfarbe */
+.globalMetrics,.infraRail{padding:14px 16px 16px}
+.globalMetrics h2,.infraRail h2{font-family:var(--font-nav);font-size:11px;font-weight:600;letter-spacing:.14em;color:#5f7380;margin:0 0 10px}
+.kpis{gap:8px}
+.kpi,.infraKpi{position:relative;overflow:hidden;background:#fff;border:1px solid #e1eaf1;border-radius:12px;padding:14px 12px 11px;text-align:left;min-height:0;box-shadow:0 1px 2px rgba(37,78,104,.04),0 10px 22px -18px rgba(37,78,104,.35);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;--tone:#3f7692;--tone-dark:#2f6494}
+.kpi::before,.infraKpi::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--tone),var(--tone) 60%,transparent)}
+.kpi:hover,.infraKpi:hover{transform:translateY(-2px);border-color:#cfdde7;box-shadow:0 2px 6px rgba(37,78,104,.05),0 18px 34px -22px rgba(37,78,104,.42)}
+.kpi b,.infraKpi b{display:block;font-family:var(--font-ui);font-size:25px;line-height:1.05;font-weight:700;letter-spacing:-.02em;color:var(--tone-dark);font-variant-numeric:tabular-nums}
+.kpi span,.infraKpi span{display:block;margin-top:5px;font-family:var(--font-button);font-size:12px;font-weight:500;color:#6b8393;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.infraKpi.danger{--tone:#d23c47;--tone-dark:#a92d36;background:#fff;border-color:#e1eaf1}
+.infraKpi.warn{--tone:#d97a1f;--tone-dark:#b4621a;background:#fff;border-color:#e1eaf1}
+.infraKpi.ok{--tone:#1f8a5b;--tone-dark:#176b47;background:#fff;border-color:#e1eaf1}
+.infraKpi.info{--tone:#3b7bb5;--tone-dark:#2f6494;background:#fff;border-color:#e1eaf1}
+.infraKpi.danger b,.infraKpi.warn b,.infraKpi.ok b,.infraKpi.info b{color:var(--tone-dark)}
+.infraGroups{display:grid;grid-template-columns:3fr 4fr;gap:18px}
+.infraGroup{display:grid;gap:8px;min-width:0;align-content:start}
+.infraGroupLabel{font-family:var(--font-button);font-size:12px;font-weight:600;color:#28566e}
+.infraKpis.infraKpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.infraKpis.infraKpis4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1100px){.infraGroups{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.infraKpis.infraKpis3,.infraKpis.infraKpis4{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* Piketdienst: zwei gestapelte Spalten statt Reihen mit ungleichen Höhen */
+.piketLayout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(340px,1fr);gap:16px;align-items:start}
+.piketColumn{display:flex;flex-direction:column;gap:16px;min-width:0}
+.piketLayout .piket-operative-card,.piketLayout .piket-calendar-card,.piketLayout .piket-management-card{margin:0;height:auto!important;min-height:0!important;background:#fff;border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--shadow);position:relative}
+.piketLayout .piket-operative-card::before,.piketLayout .piket-calendar-card::before,.piketLayout .piket-management-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--td-petrol),var(--td-petrol) 60%,transparent)}
+.piketLayout #piketInterventionsList,.piketLayout #emergencyContactsList{flex:none!important}
+@media(max-width:1100px){.piketLayout{grid-template-columns:1fr}}
+.kpi span,.infraKpi span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
 </style>
 </head>
 <body>
@@ -773,14 +804,18 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 
     <div class="infraRail" id="infraStatusWidget">
       <h2>Infrastruktur Status</h2>
-      <div class="infraKpis" id="infraStatusMain">
-        <button class="infraKpi danger" onclick="filterInfraStatus('docs_missing')"><b id="cDocMissing">0</b><span>Fehlende Unterlagen</span></button>
-        <button class="infraKpi warn" onclick="filterInfraStatus('docs_partial')"><b id="cDocPartial">0</b><span>Teilweise dokumentiert</span></button>
-        <button class="infraKpi ok" onclick="filterInfraStatus('docs_complete')"><b id="cDocComplete">0</b><span>Vollständig dokumentiert</span></button>
-        <button class="infraKpi danger" onclick="filterInfraStatus('tickets_open')"><b id="cTicketOpen">0</b><span>Offen</span></button>
-        <button class="infraKpi warn" onclick="filterInfraStatus('tickets_progress')"><b id="cTicketProgress">0</b><span>In Arbeit</span></button>
-        <button class="infraKpi info" onclick="filterInfraStatus('tickets_spare')"><b id="cTicketSpare">0</b><span>Ersatzteil</span></button>
-        <button class="infraKpi ok" onclick="filterInfraStatus('tickets_closed')"><b id="cTicketClosed">0</b><span>Erledigt</span></button>
+      <div class="infraGroups" id="infraStatusMain">
+        <div class="infraGroup"><span class="infraGroupLabel">Dokumentation</span><div class="infraKpis infraKpis3">
+          <button class="infraKpi danger" onclick="filterInfraStatus('docs_missing')"><b id="cDocMissing">0</b><span>Fehlende Unterlagen</span></button>
+          <button class="infraKpi warn" onclick="filterInfraStatus('docs_partial')"><b id="cDocPartial">0</b><span>Teilweise dokumentiert</span></button>
+          <button class="infraKpi ok" onclick="filterInfraStatus('docs_complete')"><b id="cDocComplete">0</b><span>Vollständig dokumentiert</span></button>
+        </div></div>
+        <div class="infraGroup"><span class="infraGroupLabel">Tickets / Aufträge</span><div class="infraKpis infraKpis4">
+          <button class="infraKpi danger" onclick="filterInfraStatus('tickets_open')"><b id="cTicketOpen">0</b><span>Offen</span></button>
+          <button class="infraKpi warn" onclick="filterInfraStatus('tickets_progress')"><b id="cTicketProgress">0</b><span>In Arbeit</span></button>
+          <button class="infraKpi info" onclick="filterInfraStatus('tickets_spare')"><b id="cTicketSpare">0</b><span>Ersatzteil</span></button>
+          <button class="infraKpi ok" onclick="filterInfraStatus('tickets_closed')"><b id="cTicketClosed">0</b><span>Erledigt</span></button>
+        </div></div>
       </div>
       <div id="infraFilterDetail" style="margin-top:10px; display:none; border-top:1px solid var(--line); padding-top:10px">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
@@ -932,9 +967,40 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 
     <!-- Piket Dashboard Grid: Two main rows (Upper Row = 3 Cols, Lower Row = 2 Columns) -->
     
-    <!-- UPPER ROW: Operativer Alltag der Techniker (3 Karten nebeneinander, gleiche Höhe, weiche grüne Hintergrundfarbe) -->
-    <div class="piket-top-row">
-      
+    <!-- Zwei Spalten, Karten stapeln sich ohne Lücken: links Plan und Einsätze, rechts Planung und Kontakte -->
+    <div class="piketLayout">
+      <div class="piketColumn piketColumnMain">
+      <!-- 1. Links: Kalender (piket-calendar-card) -->
+      <div class="piket-calendar-card" style="display:flex; flex-direction:column;">
+        <div class="piket-cal-header">
+          <div>
+            <h2 style="margin:0;">Piket-Einsatzplan &amp; Kalender</h2>
+            <p class="smallText" style="margin:2px 0 0 0;">Visualisierung aller Bereitschaftsdienste. Klicken oder ziehen Sie über Tage, um eine neue Bereitschaft zu planen.</p>
+          </div>
+          <div class="piket-cal-nav">
+            <div class="piket-cal-view-selector">
+              <button class="piket-cal-view-btn" id="piketCalViewWeek" onclick="setPiketCalendarView('week')">Woche</button>
+              <button class="piket-cal-view-btn active" id="piketCalViewMonth" onclick="setPiketCalendarView('month')">Monat</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:10px; background:white; padding:4px;">
+              <button class="btn small secondary" onclick="navigatePiketCalendar(-1)" style="border-radius:6px; padding:4px 8px;">&larr;</button>
+              <span id="piketCalPeriodLabel" style="font-weight:700; font-size:13px; padding:0 8px; min-width:140px; text-align:center;">Juni 2026</span>
+              <button class="btn small secondary" onclick="navigatePiketCalendar(1)" style="border-radius:6px; padding:4px 8px;">&rarr;</button>
+            </div>
+          </div>
+        </div>
+        <div id="piketCalendarBoard" style="flex: 1;">
+          <!-- Calendar view (Week / Month) rendered dynamically -->
+        </div>
+      </div>
+      <!-- 2. Mitte: Einsatz-Protokolle -->
+      <div class="piket-operative-card" style="display:flex; flex-direction:column;">
+        <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
+          <span>📋</span> Einsatz-Protokolle
+        </h2>
+        <p class="smallText" style="color:#465a6b; margin-bottom:12px;">Übersicht der geleisteten Piketeinsätze, Reaktionszeiten und Eskalationsstufen.</p>
+        <div id="piketInterventionsList" class="list" style="display:flex; flex-direction:column; gap:12px; flex: 1; max-height: 700px; overflow-y: auto;"></div>
+      </div>
       <!-- 1. Links: Piket-Protokoll erfassen -->
       <div class="piket-operative-card">
         <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
@@ -1017,57 +1083,8 @@ label.btn{font-size:13px;font-family:var(--font-button)}
           <button class="btn full" onclick="saveIntervention()">+ Protokoll speichern</button>
         </div>
       </div>
-
-      <!-- 2. Mitte: Einsatz-Protokolle -->
-      <div class="piket-operative-card" style="display:flex; flex-direction:column;">
-        <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
-          <span>📋</span> Einsatz-Protokolle
-        </h2>
-        <p class="smallText" style="color:#465a6b; margin-bottom:12px;">Übersicht der geleisteten Piketeinsätze, Reaktionszeiten und Eskalationsstufen.</p>
-        <div id="piketInterventionsList" class="list" style="display:flex; flex-direction:column; gap:12px; flex: 1; max-height: 700px; overflow-y: auto;"></div>
       </div>
-
-      <!-- 3. Rechts: Notfallkontakte -->
-      <div class="piket-operative-card" style="display:flex; flex-direction:column;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <h2 style="margin:0; display:flex; align-items:center; gap:8px;">
-            <span>🚨</span> Notfallkontakte
-          </h2>
-          <button class="btn small" onclick="openContactModal()">+ Hinzufügen</button>
-        </div>
-        <p class="smallText" style="color:#465a6b; margin-bottom:12px;">Wichtige Telefonnummern für Notfälle, unterteilt in interne und externe Kontakte.</p>
-        <div id="emergencyContactsList" style="display:flex; flex-direction:column; gap:12px; flex: 1; max-height: 700px; overflow-y: auto;"></div>
-      </div>
-
-    </div>
-
-    <!-- LOWER ROW: Planung und Verwaltung (Kalender links, Planung + erfasste Bereitschaften rechts) -->
-    <div class="piket-bottom-row">
-      
-      <!-- 1. Links: Kalender (piket-calendar-card) -->
-      <div class="piket-calendar-card" style="display:flex; flex-direction:column;">
-        <div class="piket-cal-header">
-          <div>
-            <h2 style="margin:0;">Piket-Einsatzplan &amp; Kalender</h2>
-            <p class="smallText" style="margin:2px 0 0 0;">Visualisierung aller Bereitschaftsdienste. Klicken oder ziehen Sie über Tage, um eine neue Bereitschaft zu planen.</p>
-          </div>
-          <div class="piket-cal-nav">
-            <div class="piket-cal-view-selector">
-              <button class="piket-cal-view-btn" id="piketCalViewWeek" onclick="setPiketCalendarView('week')">Woche</button>
-              <button class="piket-cal-view-btn active" id="piketCalViewMonth" onclick="setPiketCalendarView('month')">Monat</button>
-            </div>
-            <div style="display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:10px; background:white; padding:4px;">
-              <button class="btn small secondary" onclick="navigatePiketCalendar(-1)" style="border-radius:6px; padding:4px 8px;">&larr;</button>
-              <span id="piketCalPeriodLabel" style="font-weight:700; font-size:13px; padding:0 8px; min-width:140px; text-align:center;">Juni 2026</span>
-              <button class="btn small secondary" onclick="navigatePiketCalendar(1)" style="border-radius:6px; padding:4px 8px;">&rarr;</button>
-            </div>
-          </div>
-        </div>
-        <div id="piketCalendarBoard" style="flex: 1;">
-          <!-- Calendar view (Week / Month) rendered dynamically -->
-        </div>
-      </div>
-
+      <div class="piketColumn piketColumnSide">
       <!-- 2. Rechts: Piketdienst-Planung + Erfasste Bereitschaften (Admin-Bereich, slate / neutral grau) -->
       <div class="piket-management-card" style="display:flex; flex-direction:column;">
         <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
@@ -1119,7 +1136,18 @@ label.btn{font-size:13px;font-family:var(--font-button)}
           <div id="piketTableList" class="list" style="max-height: 350px; overflow-y: auto;"></div>
         </div>
       </div>
-
+      <!-- 3. Rechts: Notfallkontakte -->
+      <div class="piket-operative-card" style="display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h2 style="margin:0; display:flex; align-items:center; gap:8px;">
+            <span>🚨</span> Notfallkontakte
+          </h2>
+          <button class="btn small" onclick="openContactModal()">+ Hinzufügen</button>
+        </div>
+        <p class="smallText" style="color:#465a6b; margin-bottom:12px;">Wichtige Telefonnummern für Notfälle, unterteilt in interne und externe Kontakte.</p>
+        <div id="emergencyContactsList" style="display:flex; flex-direction:column; gap:12px; flex: 1; max-height: 700px; overflow-y: auto;"></div>
+      </div>
+      </div>
     </div>
   </section>
 
