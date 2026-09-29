@@ -729,6 +729,43 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .warnCard .itemActions{margin-top:auto!important;padding-top:8px;justify-content:flex-start;flex-wrap:wrap}
 .warnCard > div:nth-child(2){color:#5f7380!important}
 #dynamicWarningsList{max-height:none!important;overflow:visible!important}
+
+/* Kompakte Zähler: Zahl und Bezeichnung in einer Zeile */
+.globalMetrics,.infraRail{padding:10px 14px 12px;margin-bottom:8px}
+.globalMetrics h2,.infraRail h2{margin:0 0 7px}
+.kpi,.infraKpi{display:flex;align-items:baseline;gap:8px;padding:9px 12px 8px;min-height:0}
+.kpi::before,.infraKpi::before{height:2px}
+.kpi b,.infraKpi b{display:inline;font-size:20px;line-height:1}
+.kpi span,.infraKpi span{display:inline;margin-top:0;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.infraGroups{gap:14px}
+.infraGroup{gap:5px}
+.infraGroupLabel{font-size:11.5px}
+.stickyHeader{position:relative;top:auto;backdrop-filter:none;background:transparent}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.infraKpis.infraKpis3,.infraKpis.infraKpis4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+@media(max-width:1500px){.infraGroups{grid-template-columns:1fr}}
+.kpis{grid-template-columns:repeat(9,minmax(0,1fr))}
+.infraKpis.infraKpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.infraKpis.infraKpis4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1500px){.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.infraKpis.infraKpis3,.infraKpis.infraKpis4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.warnGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:900px){.warnGrid{grid-template-columns:1fr}}
+
+/* Piketdienst mit Reitern statt vieler Karten gleichzeitig */
+.piketTabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.piketPanel{display:none}
+.piketPanel.active{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);gap:16px;align-items:start}
+.piketPanel[data-piket-panel="kontakte"].active{grid-template-columns:minmax(0,860px)}
+.piketPanel .piket-operative-card,.piketPanel .piket-calendar-card,.piketPanel .piket-management-card{margin:0;height:auto!important;min-height:0!important;background:#fff;border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--shadow);position:relative}
+.piketPanel .piket-operative-card::before,.piketPanel .piket-calendar-card::before,.piketPanel .piket-management-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--td-petrol),var(--td-petrol) 60%,transparent)}
+.piketPanel #piketInterventionsList,.piketPanel #emergencyContactsList{flex:none!important;max-height:none!important}
+@media(max-width:1100px){.piketPanel.active{grid-template-columns:1fr}}
+
+.vacationPanel{border:1px solid var(--td-line);border-radius:12px;background:#f7fafc;padding:14px;margin:0 0 12px}
+.vacationPanel[hidden]{display:none}
+.vacationCount{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:#e9f1f9;color:#2f5f78;font-size:11px;font-weight:700}
+.vacationToggle.hasPending .vacationCount{background:#d97a1f;color:#fff}
 </style>
 </head>
 <body>
@@ -926,11 +963,26 @@ label.btn{font-size:13px;font-family:var(--font-button)}
               <button class="tab" id="viewQuarterBtn" onclick="setCalendarView('quarter')">Quartal</button>
               <button class="tab" id="viewYearBtn" onclick="setCalendarView('year')">Jahr</button>
             </div>
+            <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferien-Anträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
             <div style="display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:10px; background:white; padding:4px;">
               <button class="btn small secondary" onclick="navigateCalendar(-1)" style="border-radius:6px; padding:4px 8px;">&larr;</button>
               <span id="calendarPeriodLabel" style="font-weight:700; font-size:13px; padding:0 8px; min-width:120px; text-align:center;">Heute</span>
               <button class="btn small secondary" onclick="navigateCalendar(1)" style="border-radius:6px; padding:4px 8px;">&rarr;</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Vacation Request Workflow Panel -->
+        <div id="vacationPanel" class="vacationPanel" hidden>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+              <span>Ausstehende Ferien-Anträge</span>
+            </h3>
+            <div style="display:flex;gap:8px"><button class="btn small" onclick="openRequestVacationModal()">+ Neuen Ferienantrag erfassen</button><button class="btn small secondary" onclick="toggleVacationPanel(false)">Schließen</button></div>
+          </div>
+          <p class="smallText" style="margin-top:0; margin-bottom:12px;">Anträge müssen vom Betriebsleiter genehmigt werden, bevor sie als feste Ferien im Kalender eingetragen werden.</p>
+          <div id="pendingVacationsList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px;">
+            <!-- Will be rendered dynamically -->
           </div>
         </div>
 
@@ -972,20 +1024,6 @@ label.btn{font-size:13px;font-family:var(--font-button)}
           <!-- Will be rendered dynamically -->
         </div>
 
-        <!-- Vacation Request Workflow Panel -->
-        <div style="border-top:1px solid var(--line); padding-top:16px; margin-top:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
-              <span>Ausstehende Ferien-Anträge</span>
-              <span class="badge orange" id="pendingVacationCount">0</span>
-            </h3>
-            <button class="btn small secondary" onclick="openRequestVacationModal()">+ Neuen Ferienantrag erfassen</button>
-          </div>
-          <p class="smallText" style="margin-top:0; margin-bottom:12px;">Anträge müssen vom Betriebsleiter genehmigt werden, bevor sie als feste Ferien im Kalender eingetragen werden.</p>
-          <div id="pendingVacationsList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px;">
-            <!-- Will be rendered dynamically -->
-          </div>
-        </div>
     </div>
   </section>
 
@@ -1005,8 +1043,12 @@ label.btn{font-size:13px;font-family:var(--font-button)}
     <!-- Piket Dashboard Grid: Two main rows (Upper Row = 3 Cols, Lower Row = 2 Columns) -->
     
     <!-- Zwei Spalten, Karten stapeln sich ohne Lücken: links Plan und Einsätze, rechts Planung und Kontakte -->
-    <div class="piketLayout">
-      <div class="piketColumn piketColumnMain">
+    <div class="piketTabs" role="tablist">
+      <button type="button" class="tab active" data-piket-tab="plan" onclick="setPiketTab('plan')">Einsatzplan</button>
+      <button type="button" class="tab" data-piket-tab="einsaetze" onclick="setPiketTab('einsaetze')">Einsätze</button>
+      <button type="button" class="tab" data-piket-tab="kontakte" onclick="setPiketTab('kontakte')">Notfallkontakte</button>
+    </div>
+    <div class="piketPanel active" data-piket-panel="plan">
       <!-- 1. Links: Kalender (piket-calendar-card) -->
       <div class="piket-calendar-card" style="display:flex; flex-direction:column;">
         <div class="piket-cal-header">
@@ -1030,6 +1072,59 @@ label.btn{font-size:13px;font-family:var(--font-button)}
           <!-- Calendar view (Week / Month) rendered dynamically -->
         </div>
       </div>
+      <!-- 2. Rechts: Piketdienst-Planung + Erfasste Bereitschaften (Admin-Bereich, slate / neutral grau) -->
+      <div class="piket-management-card" style="display:flex; flex-direction:column;">
+        <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
+          Piketdienst-Planung
+        </h2>
+        <p class="smallText" style="color:#475569; margin-bottom:12px;">Planen Sie Bereitschaften, Vertretungen und Bereitschaftszeiten.</p>
+        <div class="formGrid" style="gap:8px; margin-bottom:14px;">
+          <div class="field full">
+            <label>Mitarbeiter</label>
+            <select id="pkName"></select>
+          </div>
+          <div class="field">
+            <label>Von (Startzeitpunkt)</label>
+            <input type="datetime-local" id="pkStart" onchange="onPiketDateChange()">
+          </div>
+          <div class="field">
+            <label>Bis (Endzeitpunkt)</label>
+            <input type="datetime-local" id="pkEnd" onchange="onPiketDateChange()">
+          </div>
+          <div class="field full" style="margin-top: 2px;">
+            <span style="font-size:12px; color:var(--muted); font-weight:700;">Berechnete Woche:</span>
+            <strong id="pkWeekCalcDisplay" style="color:var(--orange);">—</strong>
+          </div>
+          <div class="field full">
+            <label>Vertretung für / Übernommen von (optional)</label>
+            <select id="pkHandoverFrom"></select>
+          </div>
+          <div class="field">
+            <label>Bereitschaftszeit (optional)</label>
+            <input id="pkTime" placeholder="z.B. 17:00 - 08:00" value="">
+          </div>
+          <div class="field">
+            <label>Notfallkontakt / Telefon (optional)</label>
+            <input id="pkPhone" placeholder="z.B. +41 79 123 45 67" value="">
+          </div>
+          <div class="field full">
+            <label>Status</label>
+            <select id="pkStatus">
+              <option>Aktiv</option>
+              <option>Geplant</option>
+              <option>Beendet</option>
+            </select>
+          </div>
+          <button class="btn full" onclick="addPiket()">+ Piketeintrag speichern</button>
+        </div>
+        
+        <div style="border-top:1px dashed #cbd5e1; padding-top:12px; margin-top:12px; flex: 1;">
+          <h3 style="font-size:13px; color:#2c3e4c; margin:0 0 8px 0; font-weight:700;">Erfasste Bereitschaften</h3>
+          <div id="piketTableList" class="list" style="max-height: 350px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="piketPanel" data-piket-panel="einsaetze">
       <!-- 2. Mitte: Einsatz-Protokolle -->
       <div class="piket-operative-card" style="display:flex; flex-direction:column;">
         <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
@@ -1120,59 +1215,8 @@ label.btn{font-size:13px;font-family:var(--font-button)}
           <button class="btn full" onclick="saveIntervention()">+ Protokoll speichern</button>
         </div>
       </div>
-      </div>
-      <div class="piketColumn piketColumnSide">
-      <!-- 2. Rechts: Piketdienst-Planung + Erfasste Bereitschaften (Admin-Bereich, slate / neutral grau) -->
-      <div class="piket-management-card" style="display:flex; flex-direction:column;">
-        <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
-          Piketdienst-Planung
-        </h2>
-        <p class="smallText" style="color:#475569; margin-bottom:12px;">Planen Sie Bereitschaften, Vertretungen und Bereitschaftszeiten.</p>
-        <div class="formGrid" style="gap:8px; margin-bottom:14px;">
-          <div class="field full">
-            <label>Mitarbeiter</label>
-            <select id="pkName"></select>
-          </div>
-          <div class="field">
-            <label>Von (Startzeitpunkt)</label>
-            <input type="datetime-local" id="pkStart" onchange="onPiketDateChange()">
-          </div>
-          <div class="field">
-            <label>Bis (Endzeitpunkt)</label>
-            <input type="datetime-local" id="pkEnd" onchange="onPiketDateChange()">
-          </div>
-          <div class="field full" style="margin-top: 2px;">
-            <span style="font-size:12px; color:var(--muted); font-weight:700;">Berechnete Woche:</span>
-            <strong id="pkWeekCalcDisplay" style="color:var(--orange);">—</strong>
-          </div>
-          <div class="field full">
-            <label>Vertretung für / Übernommen von (optional)</label>
-            <select id="pkHandoverFrom"></select>
-          </div>
-          <div class="field">
-            <label>Bereitschaftszeit (optional)</label>
-            <input id="pkTime" placeholder="z.B. 17:00 - 08:00" value="">
-          </div>
-          <div class="field">
-            <label>Notfallkontakt / Telefon (optional)</label>
-            <input id="pkPhone" placeholder="z.B. +41 79 123 45 67" value="">
-          </div>
-          <div class="field full">
-            <label>Status</label>
-            <select id="pkStatus">
-              <option>Aktiv</option>
-              <option>Geplant</option>
-              <option>Beendet</option>
-            </select>
-          </div>
-          <button class="btn full" onclick="addPiket()">+ Piketeintrag speichern</button>
-        </div>
-        
-        <div style="border-top:1px dashed #cbd5e1; padding-top:12px; margin-top:12px; flex: 1;">
-          <h3 style="font-size:13px; color:#2c3e4c; margin:0 0 8px 0; font-weight:700;">Erfasste Bereitschaften</h3>
-          <div id="piketTableList" class="list" style="max-height: 350px; overflow-y: auto;"></div>
-        </div>
-      </div>
+    </div>
+    <div class="piketPanel" data-piket-panel="kontakte">
       <!-- 3. Rechts: Notfallkontakte -->
       <div class="piket-operative-card" style="display:flex; flex-direction:column;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -1183,7 +1227,6 @@ label.btn{font-size:13px;font-family:var(--font-button)}
         </div>
         <p class="smallText" style="color:#465a6b; margin-bottom:12px;">Wichtige Telefonnummern für Notfälle, unterteilt in interne und externe Kontakte.</p>
         <div id="emergencyContactsList" style="display:flex; flex-direction:column; gap:12px; flex: 1; max-height: 700px; overflow-y: auto;"></div>
-      </div>
       </div>
     </div>
   </section>
@@ -5349,6 +5392,8 @@ function openSearchDialog(){let d=$('searchDialog');if(!d)return;d.hidden=false;
 function closeSearchDialog(){let d=$('searchDialog');if(d)d.hidden=true}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSearchDialog()});
 document.addEventListener('click',e=>{if(e.target.closest('#searchResults')&&e.target.closest('button,a,[onclick]'))setTimeout(closeSearchDialog,0)},true);
+function toggleVacationPanel(force){let p=$('vacationPanel');if(!p)return;let show=typeof force==='boolean'?force:p.hidden;p.hidden=!show;$('vacationToggleBtn')?.classList.toggle('active',show)}
+function setPiketTab(tab){document.querySelectorAll('[data-piket-tab]').forEach(b=>b.classList.toggle('active',b.dataset.piketTab===tab));document.querySelectorAll('[data-piket-panel]').forEach(p=>p.classList.toggle('active',p.dataset.piketPanel===tab))}
 function focusGlobalSearch(){openSearchDialog()}
 // TD-style header: logged-in user, date and open ticket count.
 function renderAppHeader(){
@@ -6304,11 +6349,7 @@ function renderPendingVacations() {
   const emps = state.employees || [];
 
   countBadge.textContent = groups.length;
-  if (groups.length > 0) {
-    countBadge.style.display = 'inline-flex';
-  } else {
-    countBadge.style.display = 'none';
-  }
+  $('vacationToggleBtn')?.classList.toggle('hasPending', groups.length > 0);
 
   listContainer.innerHTML = groups.map(group => {
     const first = group[0];
