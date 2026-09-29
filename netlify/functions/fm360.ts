@@ -26,6 +26,10 @@ import {
   fm360Notifications
 } from "../../db/schema.js";
 import { getStore } from "@netlify/blobs";
+import { hashPassword, needsRehash, verifyPassword } from "../../server/password.js";
+
+type Db = ReturnType<typeof getDb>;
+type DbClient = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 type Collection = "nodes" | "docs" | "floorRecords" | "roomRecords" | "tickets" | "templates" | "photos" | "employees" | "shifts" | "piket" | "brandschutz" | "security" | "emergencyContacts" | "projects" | "costs" | "roles" | "permissions" | "rolePermissions" | "employeeRoles" | "taskAssignments" | "vacationEntries" | "notifications";
 
@@ -234,12 +238,6 @@ function json(data: unknown, init: ResponseInit = {}) {
   });
 }
 
-async function hashPassword(password: string) {
-  const bytes = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return `sha256:${Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-}
-
 function publicEmployee(employee: any) {
   const { createdAt: _createdAt, updatedAt: _updatedAt, passwordHash, password_hash, ...rest } = employee;
   return {
@@ -304,12 +302,33 @@ async function createSessionToken(employee: any, secret: string) {
   return `${payload}.${await signTokenPayload(payload, secret)}`;
 }
 
-async function verifySessionToken(req: Request) {
+const SESSION_COOKIE = "fm360_session";
+
+// <img> and <a> requests for photos and documents cannot send an Authorization header, so the
+// login also sets an HttpOnly cookie. The cookie is only accepted for those read-only file
+// requests; everything that changes data still needs the Bearer header, which blocks CSRF.
+function sessionCookie(token: string, maxAgeSeconds = TOKEN_TTL_MS / 1000) {
+  return `${SESSION_COOKIE}=${token}; Path=/api/fm360; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+}
+
+function bearerToken(req: Request) {
+  const header = req.headers.get("authorization") || "";
+  return header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+}
+
+function cookieToken(req: Request) {
+  for (const part of (req.headers.get("cookie") || "").split(";")) {
+    const [name, ...value] = part.trim().split("=");
+    if (name === SESSION_COOKIE) return value.join("=");
+  }
+  return "";
+}
+
+async function verifySessionToken(req: Request, { allowCookie = false } = {}) {
   const secret = authSecret(req);
   if (!secret) return false;
 
-  const header = req.headers.get("authorization") || "";
-  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  const token = bearerToken(req) || (allowCookie ? cookieToken(req) : "");
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return false;
 
@@ -324,8 +343,8 @@ async function verifySessionToken(req: Request) {
   }
 }
 
-async function requireWriteAuth(req: Request) {
-  if (await verifySessionToken(req)) return null;
+async function requireAuth(req: Request, options: { allowCookie?: boolean } = {}) {
+  if (await verifySessionToken(req, options)) return null;
   return json({ error: "Unauthorized" }, { status: 401 });
 }
 
@@ -341,8 +360,18 @@ async function findEmployeeForLoginSeed(seed: (typeof LOGIN_SEEDS)[number]) {
   return existingByName || null;
 }
 
+// Bootstrap only: creates or repairs the default logins while nobody can log in at all, so a fresh
+// database is usable. Once any account has a working login, renamed, disabled or deleted default
+// accounts stay that way and their passwords are never reset.
 async function ensureLoginEmployees() {
   const db = getDb();
+  const [workingLogin] = await db
+    .select({ id: fm360Employees.id })
+    .from(fm360Employees)
+    .where(sql`${fm360Employees.loginEnabled} and ${fm360Employees.loginName} <> '' and ${fm360Employees.passwordHash} <> ''`)
+    .limit(1);
+  if (workingLogin) return;
+
   for (const seed of LOGIN_SEEDS) {
     const existing = await findEmployeeForLoginSeed(seed);
     const passwordHash = existing?.passwordHash || await hashPassword(seed.password);
@@ -381,8 +410,12 @@ async function loginEmployee(loginName: string, password: string) {
   const db = getDb();
   const [employee] = await db.select().from(fm360Employees).where(eq(fm360Employees.loginName, loginName.trim())).limit(1);
   if (!employee?.loginEnabled || !employee.passwordHash) return null;
-  const candidate = await hashPassword(password);
-  if (candidate !== employee.passwordHash) return null;
+  if (!(await verifyPassword(password, employee.passwordHash))) return null;
+  if (needsRehash(employee.passwordHash)) {
+    const passwordHash = await hashPassword(password);
+    await db.update(fm360Employees).set({ passwordHash, updatedAt: new Date() }).where(eq(fm360Employees.id, employee.id));
+    return publicEmployee({ ...employee, passwordHash });
+  }
   return publicEmployee(employee);
 }
 
@@ -581,8 +614,7 @@ function enrichObjectCodes(items: any[]) {
   return items;
 }
 
-async function upsertNode(item: any) {
-  const db = getDb();
+async function upsertNode(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: item.parent || null,
@@ -641,8 +673,7 @@ async function reorderSiblingNodes(parentId: string | null, orderedIds: string[]
   }
 }
 
-async function upsertDocument(item: any) {
-  const db = getDb();
+async function upsertDocument(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: String(item.parent || ""),
@@ -668,8 +699,7 @@ async function upsertDocument(item: any) {
   return row;
 }
 
-async function upsertFloorRecord(item: any) {
-  const db = getDb();
+async function upsertFloorRecord(item: any, db: DbClient = getDb()) {
   const data = item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data : {};
   const values = {
     id: String(item.id),
@@ -693,8 +723,7 @@ async function upsertFloorRecord(item: any) {
   return row;
 }
 
-async function upsertRoomRecord(item: any) {
-  const db = getDb();
+async function upsertRoomRecord(item: any, db: DbClient = getDb()) {
   const data = item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data : {};
   const values = {
     id: String(item.id),
@@ -718,8 +747,7 @@ async function upsertRoomRecord(item: any) {
   return row;
 }
 
-async function upsertTicket(item: any) {
-  const db = getDb();
+async function upsertTicket(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: String(item.parent || ""),
@@ -775,7 +803,7 @@ async function upsertTicket(item: any) {
       eventType: "ticket_assigned",
       title: values.title || "Ticket zugewiesen",
       body: values.prio ? `Priorität: ${values.prio}` : "",
-    });
+    }, db);
   } else if (values.assignedEmployeeId && existingById && existingById.prio !== values.prio) {
     await upsertNotification({
       id: `notif-priority-${values.id}-${values.assignedEmployeeId}-${Date.now()}`,
@@ -784,7 +812,7 @@ async function upsertTicket(item: any) {
       eventType: "priority_changed",
       title: values.title || "Priorität geändert",
       body: `Neue Priorität: ${values.prio}`,
-    });
+    }, db);
   } else if (values.assignedEmployeeId && existingById) {
     await upsertNotification({
       id: `notif-task-updated-${values.id}-${values.assignedEmployeeId}-${Date.now()}`,
@@ -793,13 +821,12 @@ async function upsertTicket(item: any) {
       eventType: "task_updated",
       title: values.title || "Aufgabe aktualisiert",
       body: values.status ? `Status: ${values.status}` : "",
-    });
+    }, db);
   }
   return row;
 }
 
-async function upsertTemplate(item: any) {
-  const db = getDb();
+async function upsertTemplate(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     type: String(item.type || "FM-Vorlage"),
@@ -819,8 +846,7 @@ async function upsertTemplate(item: any) {
   return row;
 }
 
-async function upsertPhoto(item: any) {
-  const db = getDb();
+async function upsertPhoto(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: String(item.parent || ""),
@@ -842,13 +868,14 @@ async function upsertPhoto(item: any) {
   return row;
 }
 
-async function upsertEmployee(item: any) {
-  const db = getDb();
+// previousPasswordHash lets replaceAll keep a password across its delete-and-reinsert cycle.
+// Hashes sent by the client are ignored: a password can only be set as plain text and is hashed here.
+async function upsertEmployee(item: any, db: DbClient = getDb(), previousPasswordHash = "") {
   const [existing] = item.id ? await db.select().from(fm360Employees).where(eq(fm360Employees.id, String(item.id))).limit(1) : [];
   const rawPassword = String(item.password || item.newPassword || "");
   const passwordHash = rawPassword
     ? await hashPassword(rawPassword)
-    : String(item.passwordHash || item.password_hash || existing?.passwordHash || "");
+    : String(existing?.passwordHash || previousPasswordHash || "");
   const values = {
     id: String(item.id),
     name: String(item.name || ""),
@@ -874,8 +901,7 @@ async function upsertEmployee(item: any) {
   return row;
 }
 
-async function upsertShift(item: any) {
-  const db = getDb();
+async function upsertShift(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     employeeId: String(item.employeeId || ""),
@@ -898,8 +924,7 @@ async function upsertShift(item: any) {
   return row;
 }
 
-async function upsertPiket(item: any) {
-  const db = getDb();
+async function upsertPiket(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     employeeId: item.employeeId || item.employee_id || null,
@@ -937,8 +962,7 @@ async function upsertPiket(item: any) {
   return row;
 }
 
-async function upsertBrandschutz(item: any) {
-  const db = getDb();
+async function upsertBrandschutz(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     systemType: String(item.systemType || ""),
@@ -963,8 +987,7 @@ async function upsertBrandschutz(item: any) {
   return row;
 }
 
-async function upsertSecurity(item: any) {
-  const db = getDb();
+async function upsertSecurity(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     systemType: String(item.systemType || ""),
@@ -987,8 +1010,7 @@ async function upsertSecurity(item: any) {
   return row;
 }
 
-async function upsertEmergencyContact(item: any) {
-  const db = getDb();
+async function upsertEmergencyContact(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     name: String(item.name || ""),
@@ -1009,8 +1031,7 @@ async function upsertEmergencyContact(item: any) {
   return row;
 }
 
-async function upsertProject(item: any) {
-  const db = getDb();
+async function upsertProject(item: any, db: DbClient = getDb()) {
   const data = item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data : {};
   const values = {
     id: String(item.id),
@@ -1035,8 +1056,7 @@ async function upsertProject(item: any) {
   return row;
 }
 
-async function upsertCost(item: any) {
-  const db = getDb();
+async function upsertCost(item: any, db: DbClient = getDb()) {
   const category = String(item.category || "budget");
   if (!["budget", "adjustment"].includes(category)) {
     throw new Error("fm360_costs only accepts budget planning and manual adjustment records");
@@ -1067,8 +1087,7 @@ async function upsertCost(item: any) {
   return row;
 }
 
-async function upsertRole(item: any) {
-  const db = getDb();
+async function upsertRole(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     name: String(item.name || ""),
@@ -1079,8 +1098,7 @@ async function upsertRole(item: any) {
   return row;
 }
 
-async function upsertPermission(item: any) {
-  const db = getDb();
+async function upsertPermission(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     module: String(item.module || ""),
@@ -1092,8 +1110,7 @@ async function upsertPermission(item: any) {
   return row;
 }
 
-async function upsertRolePermission(item: any) {
-  const db = getDb();
+async function upsertRolePermission(item: any, db: DbClient = getDb()) {
   const values = {
     roleId: String(item.roleId || item.role_id || ""),
     permissionId: String(item.permissionId || item.permission_id || ""),
@@ -1102,8 +1119,7 @@ async function upsertRolePermission(item: any) {
   return row || values;
 }
 
-async function upsertEmployeeRole(item: any) {
-  const db = getDb();
+async function upsertEmployeeRole(item: any, db: DbClient = getDb()) {
   const values = {
     employeeId: String(item.employeeId || item.employee_id || ""),
     roleId: String(item.roleId || item.role_id || ""),
@@ -1116,8 +1132,7 @@ async function upsertEmployeeRole(item: any) {
   return row;
 }
 
-async function upsertTaskAssignment(item: any) {
-  const db = getDb();
+async function upsertTaskAssignment(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     ticketId: String(item.ticketId || item.ticket_id || ""),
@@ -1144,8 +1159,7 @@ async function upsertTaskAssignment(item: any) {
   return row;
 }
 
-async function upsertVacationEntry(item: any) {
-  const db = getDb();
+async function upsertVacationEntry(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     employeeId: String(item.employeeId || item.employee_id || ""),
@@ -1161,8 +1175,7 @@ async function upsertVacationEntry(item: any) {
   return row;
 }
 
-async function upsertNotification(item: any) {
-  const db = getDb();
+async function upsertNotification(item: any, db: DbClient = getDb()) {
   const allowedEvents = new Set(["new_ticket", "ticket_assigned", "priority_changed", "task_updated"]);
   const eventType = String(item.eventType || item.event_type || "");
   if (!allowedEvents.has(eventType)) throw new Error("Unsupported notification event type");
@@ -1251,80 +1264,97 @@ async function remove(collection: Collection, id: string) {
 
 async function replaceAll(state: any) {
   const db = getDb();
-  
-  // Clean up removed file blobs from Netlify Blobs
-  const currentPhotos = await db.select().from(fm360Photos);
-  const nextPhotoIds = new Set((state.photos || []).map((p: any) => String(p.id)));
-  const photosToDelete = currentPhotos.filter(p => !nextPhotoIds.has(p.id));
+
+  // Everything runs in one transaction: if any insert fails, the previous data stays intact
+  // instead of being left half-deleted.
+  const { photoBlobsToDelete, docBlobsToDelete } = await db.transaction(async (tx) => {
+    const currentPhotos = await tx.select().from(fm360Photos);
+    const nextPhotoIds = new Set((state.photos || []).map((p: any) => String(p.id)));
+    const currentDocs = await tx.select().from(fm360Documents);
+    const nextDocIds = new Set((state.docs || []).map((d: any) => String(d.id)));
+
+    // The client never receives password hashes, so remember them before the employees are deleted.
+    const currentEmployees = await tx.select({ id: fm360Employees.id, passwordHash: fm360Employees.passwordHash }).from(fm360Employees);
+    const previousPasswordHashes = new Map(currentEmployees.map((employee) => [employee.id, employee.passwordHash]));
+
+    await tx.execute(sql`delete from ${fm360Notifications}`);
+    await tx.execute(sql`delete from ${fm360VacationEntries}`);
+    await tx.execute(sql`delete from ${fm360TaskAssignments}`);
+    await tx.execute(sql`delete from ${fm360EmployeeRoles}`);
+    await tx.execute(sql`delete from ${fm360RolePermissions}`);
+    await tx.execute(sql`delete from ${fm360Photos}`);
+    await tx.execute(sql`delete from ${fm360RoomRecords}`);
+    await tx.execute(sql`delete from ${fm360FloorRecords}`);
+    await tx.execute(sql`delete from ${fm360Documents}`);
+    await tx.execute(sql`delete from ${fm360Tickets}`);
+    await tx.execute(sql`delete from ${fm360Templates}`);
+    await tx.execute(sql`delete from ${fm360Nodes}`);
+    await tx.execute(sql`delete from ${fm360Shifts}`);
+    await tx.execute(sql`delete from ${fm360Piket}`);
+    await tx.execute(sql`delete from ${fm360Brandschutz}`);
+    await tx.execute(sql`delete from ${fm360Security}`);
+    await tx.execute(sql`delete from ${fm360EmergencyContacts}`);
+    await tx.execute(sql`delete from ${fm360Projects}`);
+    await tx.execute(sql`delete from ${fm360Costs}`);
+    await tx.execute(sql`delete from ${fm360Employees}`);
+    await tx.execute(sql`delete from ${fm360Permissions}`);
+    await tx.execute(sql`delete from ${fm360Roles}`);
+
+    // Referenced tables first: tickets create notifications that point at employees.
+    for (const item of state.employees || []) {
+      await upsertEmployee(item, tx, previousPasswordHashes.get(String(item.id)) || "");
+    }
+    for (const item of state.roles || []) await upsertRole(item, tx);
+    for (const item of state.permissions || []) await upsertPermission(item, tx);
+
+    const nodes = enrichObjectCodes(state.nodes || []);
+    for (const [index, item] of nodes.entries()) {
+      await upsertNode({ ...item, sortOrder: index }, tx);
+    }
+    for (const item of state.docs || []) await upsertDocument(item, tx);
+    for (const item of state.floorRecords || []) await upsertFloorRecord(item, tx);
+    for (const item of state.roomRecords || []) await upsertRoomRecord(item, tx);
+    for (const item of state.tickets || []) await upsertTicket(item, tx);
+    for (const item of state.templates || []) await upsertTemplate(item, tx);
+    for (const item of state.photos || []) await upsertPhoto(item, tx);
+    for (const item of state.shifts || []) await upsertShift(item, tx);
+    for (const item of state.piket || []) await upsertPiket(item, tx);
+    for (const item of state.brandschutz || []) await upsertBrandschutz(item, tx);
+    for (const item of state.security || []) await upsertSecurity(item, tx);
+    for (const item of state.emergencyContacts || []) await upsertEmergencyContact(item, tx);
+    for (const item of state.projects || []) await upsertProject(item, tx);
+    for (const item of state.costs || []) {
+      if (["budget", "adjustment"].includes(String(item.category || ""))) await upsertCost(item, tx);
+    }
+    for (const item of state.rolePermissions || []) await upsertRolePermission(item, tx);
+    for (const item of state.employeeRoles || []) await upsertEmployeeRole(item, tx);
+    for (const item of state.taskAssignments || []) await upsertTaskAssignment(item, tx);
+    for (const item of state.vacationEntries || []) await upsertVacationEntry(item, tx);
+    for (const item of state.notifications || []) await upsertNotification(item, tx);
+
+    return {
+      photoBlobsToDelete: currentPhotos.filter((p) => !nextPhotoIds.has(p.id)).map((p) => p.blobKey),
+      docBlobsToDelete: currentDocs.filter((d) => d.blobKey && !nextDocIds.has(d.id)).map((d) => d.blobKey!),
+    };
+  });
+
+  // Only remove files once the database no longer references them.
   const photoStore = getStore("fm360-photos");
-  for (const p of photosToDelete) {
+  for (const blobKey of photoBlobsToDelete) {
     try {
-      await photoStore.delete(p.blobKey);
+      await photoStore.delete(blobKey);
     } catch (err) {
       console.error("Failed to delete blob during replaceAll:", err);
     }
   }
-  const currentDocs = await db.select().from(fm360Documents);
-  const nextDocIds = new Set((state.docs || []).map((d: any) => String(d.id)));
   const docStore = getStore("fm360-documents");
-  for (const d of currentDocs.filter(d => d.blobKey && !nextDocIds.has(d.id))) {
+  for (const blobKey of docBlobsToDelete) {
     try {
-      await docStore.delete(d.blobKey!);
+      await docStore.delete(blobKey);
     } catch (err) {
       console.error("Failed to delete document blob during replaceAll:", err);
     }
   }
-
-  await db.execute(sql`delete from ${fm360Notifications}`);
-  await db.execute(sql`delete from ${fm360VacationEntries}`);
-  await db.execute(sql`delete from ${fm360TaskAssignments}`);
-  await db.execute(sql`delete from ${fm360EmployeeRoles}`);
-  await db.execute(sql`delete from ${fm360RolePermissions}`);
-  await db.execute(sql`delete from ${fm360Photos}`);
-  await db.execute(sql`delete from ${fm360RoomRecords}`);
-  await db.execute(sql`delete from ${fm360FloorRecords}`);
-  await db.execute(sql`delete from ${fm360Documents}`);
-  await db.execute(sql`delete from ${fm360Tickets}`);
-  await db.execute(sql`delete from ${fm360Templates}`);
-  await db.execute(sql`delete from ${fm360Nodes}`);
-  await db.execute(sql`delete from ${fm360Shifts}`);
-  await db.execute(sql`delete from ${fm360Piket}`);
-  await db.execute(sql`delete from ${fm360Brandschutz}`);
-  await db.execute(sql`delete from ${fm360Security}`);
-  await db.execute(sql`delete from ${fm360EmergencyContacts}`);
-  await db.execute(sql`delete from ${fm360Projects}`);
-  await db.execute(sql`delete from ${fm360Costs}`);
-  await db.execute(sql`delete from ${fm360Employees}`);
-  await db.execute(sql`delete from ${fm360Permissions}`);
-  await db.execute(sql`delete from ${fm360Roles}`);
-
-  const nodes = enrichObjectCodes(state.nodes || []);
-  for (const [index, item] of nodes.entries()) {
-    await upsertNode({ ...item, sortOrder: index });
-  }
-  for (const item of state.docs || []) await upsertDocument(item);
-  for (const item of state.floorRecords || []) await upsertFloorRecord(item);
-  for (const item of state.roomRecords || []) await upsertRoomRecord(item);
-  for (const item of state.tickets || []) await upsertTicket(item);
-  for (const item of state.templates || []) await upsertTemplate(item);
-  for (const item of state.photos || []) await upsertPhoto(item);
-  for (const item of state.employees || []) await upsertEmployee(item);
-  for (const item of state.shifts || []) await upsertShift(item);
-  for (const item of state.piket || []) await upsertPiket(item);
-  for (const item of state.brandschutz || []) await upsertBrandschutz(item);
-  for (const item of state.security || []) await upsertSecurity(item);
-  for (const item of state.emergencyContacts || []) await upsertEmergencyContact(item);
-  for (const item of state.projects || []) await upsertProject(item);
-  for (const item of state.costs || []) {
-    if (["budget", "adjustment"].includes(String(item.category || ""))) await upsertCost(item);
-  }
-  for (const item of state.roles || []) await upsertRole(item);
-  for (const item of state.permissions || []) await upsertPermission(item);
-  for (const item of state.rolePermissions || []) await upsertRolePermission(item);
-  for (const item of state.employeeRoles || []) await upsertEmployeeRole(item);
-  for (const item of state.taskAssignments || []) await upsertTaskAssignment(item);
-  for (const item of state.vacationEntries || []) await upsertVacationEntry(item);
-  for (const item of state.notifications || []) await upsertNotification(item);
 }
 
 async function seedDemoData() {
@@ -1460,6 +1490,9 @@ export default async (req: Request) => {
   try {
     if (req.method === "GET") {
       const url = new URL(req.url);
+      const isFileRequest = url.searchParams.has("docId") || url.searchParams.has("photoId");
+      const unauthorized = await requireAuth(req, { allowCookie: isFileRequest });
+      if (unauthorized) return unauthorized;
       if (url.searchParams.get("debugTickets") === "true") {
         return json(await readTicketDebugState());
       }
@@ -1500,7 +1533,7 @@ export default async (req: Request) => {
           return new Response(blob, {
             headers: {
               "content-type": photo.contentType || "image/jpeg",
-              "cache-control": "public, max-age=31536000",
+              "cache-control": "private, max-age=31536000",
             },
           });
         } catch (err) {
@@ -1514,7 +1547,7 @@ export default async (req: Request) => {
     if (req.method === "POST") {
       const url = new URL(req.url);
       if (url.searchParams.get("seed") === "true") {
-        const unauthorized = await requireWriteAuth(req);
+        const unauthorized = await requireAuth(req);
         if (unauthorized) return unauthorized;
         await seedDemoData();
         await ensureLoginEmployees();
@@ -1526,20 +1559,24 @@ export default async (req: Request) => {
         if (!employee) return json({ error: "Invalid login" }, { status: 401 });
         const secret = authSecret(req);
         if (!secret) return json({ error: "Auth secret is not configured" }, { status: 500 });
-        return json({ employee, token: await createSessionToken(employee, secret) });
+        const token = await createSessionToken(employee, secret);
+        return json({ employee, token }, { headers: { "set-cookie": sessionCookie(token) } });
+      }
+      if (body?.action === "logout") {
+        return json({ ok: true }, { headers: { "set-cookie": sessionCookie("", 0) } });
       }
       return json({ error: "Action not supported" }, { status: 400 });
     }
 
     if (req.method === "PUT") {
-      const unauthorized = await requireWriteAuth(req);
+      const unauthorized = await requireAuth(req);
       if (unauthorized) return unauthorized;
       await replaceAll(await req.json());
       return json(await readState());
     }
 
     if (req.method === "PATCH") {
-      const unauthorized = await requireWriteAuth(req);
+      const unauthorized = await requireAuth(req);
       if (unauthorized) return unauthorized;
       const body = await req.json();
       const { collection, item, action } = body;
@@ -1610,7 +1647,7 @@ export default async (req: Request) => {
     }
 
     if (req.method === "DELETE") {
-      const unauthorized = await requireWriteAuth(req);
+      const unauthorized = await requireAuth(req);
       if (unauthorized) return unauthorized;
       const { collection, ids } = await req.json();
       if (!collection || !Array.isArray(ids)) return json({ error: "Missing collection or ids" }, { status: 400 });

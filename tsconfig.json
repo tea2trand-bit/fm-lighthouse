@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["db/**/*.ts", "netlify/functions/**/*.ts", "drizzle.config.ts"]
+  "include": ["db/**/*.ts", "server/**/*.ts", "netlify/functions/**/*.ts", "drizzle.config.ts"]
 }

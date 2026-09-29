@@ -2032,19 +2032,11 @@ async function login(event){
     if(btn){btn.disabled=false;btn.textContent='Einloggen'}
   }
 }
-async function startTestingSession(role){
-  try{
-    let result=await api('POST',{action:'login',loginName:role==='admin'?'admin':'worker',password:role==='admin'?'admin':'worker'});
-    setSessionEmployee(result.employee,result.token);
-    showDesktopApp();
-    await loadState();
-  }catch(e){
-    showLoginScreen();
-    let err=$('loginError');
-    if(err){err.textContent='Login fehlgeschlagen.';err.classList.add('show')}
-  }
+function clearServerSession(){
+  fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{});
 }
 function logout(){
+  clearServerSession();
   setSessionEmployee(null);
   showLoginScreen();
 }
@@ -2443,13 +2435,15 @@ function formatPiketWeek(weekVal) {
   const startStr = `${String(dates[0].getDate()).padStart(2, '0')}.${String(dates[0].getMonth() + 1).padStart(2, '0')}.`;
   const endStr = `${String(dates[6].getDate()).padStart(2, '0')}.${String(dates[6].getMonth() + 1).padStart(2, '0')}.${dates[6].getFullYear()}`;
   return `KW ${week} (${startStr} - ${endStr})`;
-}async function api(method='GET',body){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;let res=await fetch(API,{method,headers,body:body?JSON.stringify(body):undefined});if(!res.ok)throw new Error('Speichern fehlgeschlagen');return res.json()}
+}function authHeaders(){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;return headers}
+function handleExpiredSession(){setSessionEmployee(null);showLoginScreen();let err=$('loginError');if(err){err.textContent='Sitzung abgelaufen. Bitte erneut einloggen.';err.classList.add('show')}}
+async function api(method='GET',body,url=API){let res=await fetch(url,{method,headers:authHeaders(),body:body?JSON.stringify(body):undefined});if(res.status===401&&body?.action!=='login'){handleExpiredSession();let err=new Error('Sitzung abgelaufen');err.sessionExpired=true;throw err}if(!res.ok)throw new Error('Speichern fehlgeschlagen');return res.json()}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function loadApiWithRetry(attempts=3){
   let lastError;
   for(let i=0;i<attempts;i++){
     try{return await api()}
-    catch(e){lastError=e;if(i<attempts-1)await wait(450*(i+1))}
+    catch(e){lastError=e;if(e.sessionExpired)break;if(i<attempts-1)await wait(450*(i+1))}
   }
   throw lastError;
 }
@@ -2504,7 +2498,7 @@ function clearTreeSearch() {
   if (input) input.value = '';
   render();
 }
-async function loadState(){try{clearStartupNotice();state=await loadApiWithRetry();state.floorRecords=state.floorRecords||[];state.roomRecords=state.roomRecords||[];let targetId=fieldEntryNodeId();if(targetId&&state.nodes.some(n=>n.id===targetId)){selected=targetId;if(isFieldDevice()&&supportsQrNode(state.nodes.find(n=>n.id===targetId))){location.replace(fieldModeUrl(targetId));return;}}autoExpandTopLevels();render()}catch(e){showStartupNotice('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}async function save(){try{state.floorRecords=state.floorRecords||[];state.roomRecords=state.roomRecords||[];state=await api('PUT',state);render()}catch(e){alert('Daten konnten nicht gespeichert werden.')}}function node(id){return state.nodes.find(n=>n.id===id)}function childSortValue(n,idx){return Number.isFinite(Number(n?.sortOrder))?Number(n.sortOrder):idx}function children(id){return state.nodes.filter(n=>(n.parent||'')===(id||'')).sort((a,b)=>childSortValue(a,state.nodes.indexOf(a))-childSortValue(b,state.nodes.indexOf(b))||state.nodes.indexOf(a)-state.nodes.indexOf(b))}function label(n){return n?.name||''}function displayCode(n){return n?.objectCode||n?.code||''}function codeLine(n){let parts=[];if(n?.objectCode)parts.push('FM-Code '+n.objectCode);if(n?.code)parts.push('ID '+n.code);return parts.length?`<span class="systemCode">${parts.join(' · ')}</span>`:''}function nodeChain(id){let a=[],n=node(id);while(n){a.unshift(n);n=node(n.parent)}return a}function path(id){return nodeChain(id).map(label).join(' → ')}function descendants(id){let s=new Set();function walk(x){if(!x)return;s.add(x);children(x).forEach(c=>walk(c.id))}walk(id);return s}
+async function loadState(){try{clearStartupNotice();state=await loadApiWithRetry();state.floorRecords=state.floorRecords||[];state.roomRecords=state.roomRecords||[];let targetId=fieldEntryNodeId();if(targetId&&state.nodes.some(n=>n.id===targetId)){selected=targetId;if(isFieldDevice()&&supportsQrNode(state.nodes.find(n=>n.id===targetId))){location.replace(fieldModeUrl(targetId));return;}}autoExpandTopLevels();render()}catch(e){if(e.sessionExpired)return;showStartupNotice('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}async function save(){try{state.floorRecords=state.floorRecords||[];state.roomRecords=state.roomRecords||[];state=await api('PUT',state);render()}catch(e){if(!e.sessionExpired)alert('Daten konnten nicht gespeichert werden.')}}function node(id){return state.nodes.find(n=>n.id===id)}function childSortValue(n,idx){return Number.isFinite(Number(n?.sortOrder))?Number(n.sortOrder):idx}function children(id){return state.nodes.filter(n=>(n.parent||'')===(id||'')).sort((a,b)=>childSortValue(a,state.nodes.indexOf(a))-childSortValue(b,state.nodes.indexOf(b))||state.nodes.indexOf(a)-state.nodes.indexOf(b))}function label(n){return n?.name||''}function displayCode(n){return n?.objectCode||n?.code||''}function codeLine(n){let parts=[];if(n?.objectCode)parts.push('FM-Code '+n.objectCode);if(n?.code)parts.push('ID '+n.code);return parts.length?`<span class="systemCode">${parts.join(' · ')}</span>`:''}function nodeChain(id){let a=[],n=node(id);while(n){a.unshift(n);n=node(n.parent)}return a}function path(id){return nodeChain(id).map(label).join(' → ')}function descendants(id){let s=new Set();function walk(x){if(!x)return;s.add(x);children(x).forEach(c=>walk(c.id))}walk(id);return s}
 const branchAccents=[
   {accent:'#8fb4e8',border:'#d7e4f7',bg:'#f6f9fe'},
   {accent:'#8fc9a8',border:'#d8eadf',bg:'#f7fbf8'},
@@ -7388,7 +7382,7 @@ function deleteSecurity(id) {
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>setSelectedSection(b.dataset.section,b.dataset.title||b.textContent.trim(),null,true));document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab],.tabSection').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')});document.querySelectorAll('[data-project-tab]').forEach(b=>b.onclick=()=>setProjectTab(b.dataset.projectTab))
 function exportData(){let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='fm-lighthouse360-v6-data.json';a.click()}function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save()}catch{alert('Import fehlgeschlagen')}};r.readAsText(f)}
 function resetAll(){if(confirm('Alle Daten in der Datenbank löschen?')){state={nodes:[],docs:[],tickets:[],templates:[],photos:[],employees:[],shifts:[],piket:[],brandschutz:[],security:[],emergencyContacts:[],projects:[]};selected=null;save()}}
-async function loadDemoData(){if(confirm('Möchten Sie die "Fust Haslen" Demo-Struktur in die Datenbank laden? Dadurch werden alle aktuellen Daten überschrieben.')){try{let res=await fetch(API+'?seed=true',{method:'POST'});if(!res.ok)throw new Error();state=await res.json();selected=null;render()}catch(e){alert('Demo-Daten konnten nicht geladen werden.')}}}
+async function loadDemoData(){if(confirm('Möchten Sie die "Fust Haslen" Demo-Struktur in die Datenbank laden? Dadurch werden alle aktuellen Daten überschrieben.')){try{state=await api('POST',undefined,API+'?seed=true');selected=null;render()}catch(e){alert('Demo-Daten konnten nicht geladen werden.')}}}
 async function loadPDF(e){let file=e.target.files[0];if(!file)return;$('planName').textContent=file.name;if(!window.pdfjsLib){alert('PDF.js konnte nicht geladen werden.');return}let buf=await file.arrayBuffer();pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;pdfPage=await pdfDoc.getPage(1);await renderPdf(1);fitToScreen()}async function renderPdf(s){if(!pdfPage)return;let vp=pdfPage.getViewport({scale:s});let c=$('pdfCanvas'),ctx=c.getContext('2d');c.width=vp.width;c.height=vp.height;await pdfPage.render({canvasContext:ctx,viewport:vp}).promise;c.style.display='block';$('placeholder').style.display='none';applyTransform()}function applyTransform(){let c=$('pdfCanvas');c.style.transform=`translate(${pan.x}px,${pan.y}px) scale(${scale})`;$('zoomLabel').textContent=Math.round(scale*100)+'%'}function centerPlan(){let c=$('pdfCanvas'),v=$('viewport');if(!c.width)return;pan={x:(v.clientWidth-c.width*scale)/2,y:(v.clientHeight-c.height*scale)/2};applyTransform()}function zoomBy(f){scale=Math.max(.15,Math.min(6,scale*f));applyTransform()}function resetView(){scale=1;centerPlan()}function fitToScreen(){let c=$('pdfCanvas'),v=$('viewport');if(!c.width)return;scale=Math.min(v.clientWidth/c.width,v.clientHeight/c.height)*.96;centerPlan()}const vp=$('viewport');vp.addEventListener('wheel',e=>{if(!$('pdfCanvas').width)return;e.preventDefault();zoomBy(e.deltaY<0?1.1:.9)},{passive:false});vp.addEventListener('pointerdown',e=>{dragging=true;vp.classList.add('dragging');last={x:e.clientX,y:e.clientY};vp.setPointerCapture(e.pointerId)});vp.addEventListener('pointermove',e=>{if(!dragging)return;pan.x+=e.clientX-last.x;pan.y+=e.clientY-last.y;last={x:e.clientX,y:e.clientY};applyTransform()});vp.addEventListener('pointerup',()=>{dragging=false;vp.classList.remove('dragging')});
 
 // --- PHOTOS HELPERS ---
@@ -7466,13 +7460,7 @@ async function savePhoto() {
   };
   
   try {
-    let res = await fetch(API, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ collection: 'photos', item: item })
-    });
-    if (!res.ok) throw new Error();
-    state = await res.json();
+    state = await api('PATCH', { collection: 'photos', item: item });
     render();
     closeModals();
   } catch (err) {
@@ -7513,13 +7501,7 @@ async function deletePhoto(id) {
   let parentId = p?.parent || selected || null;
   
   try {
-    let res = await fetch(API, {
-      method: 'DELETE',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ collection: 'photos', ids: [id] })
-    });
-    if (!res.ok) throw new Error();
-    state = await res.json();
+    state = await api('DELETE', { collection: 'photos', ids: [id] });
     selected = parentId;
     render();
   } catch (err) {
