@@ -28,6 +28,7 @@ import {
 } from "../../db/schema.js";
 import { getStore } from "@netlify/blobs";
 import { hashPassword, needsRehash, verifyPassword } from "../../server/password.js";
+import { addInterval, isClosedStatus, isIsoDate, normalizeRecurrence, RecurrenceError, reminderDate, sameRecurrence, todayInZurich } from "../../server/recurrence.js";
 
 type Db = ReturnType<typeof getDb>;
 type DbClient = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -524,6 +525,12 @@ async function loginEmployee(loginName: string, password: string) {
 async function readState() {
   await ensureLoginEmployees();
   const db = getDb();
+  try {
+    await createDueReminders(db);
+  } catch (error) {
+    // Erinnerungen dürfen das Laden nie verhindern.
+    console.error("Erinnerungen konnten nicht erstellt werden", error);
+  }
   let nodes = await db.select().from(fm360Nodes).orderBy(fm360Nodes.sortOrder, fm360Nodes.createdAt);
 
   const docs = await db.select().from(fm360Documents).orderBy(fm360Documents.createdAt);
@@ -852,6 +859,7 @@ async function upsertRoomRecord(item: any, db: DbClient = getDb()) {
 function ticketUnchanged(existing: Record<string, unknown>, values: Record<string, unknown>) {
   return Object.entries(values).every(([key, value]) => {
     if (key === "updatedAt") return true;
+    if (key === "recurrence") return sameRecurrence(existing.recurrence, value);
     const current = existing[key];
     if (value instanceof Date || current instanceof Date) {
       return (value ? new Date(value as Date).getTime() : null) === (current ? new Date(current as Date).getTime() : null);
@@ -860,16 +868,59 @@ function ticketUnchanged(existing: Record<string, unknown>, values: Record<strin
   });
 }
 
-async function upsertTicket(item: any, db: DbClient = getDb()) {
+const hasOwn = (item: any, ...keys: string[]) => keys.some((key) => Object.prototype.hasOwnProperty.call(item || {}, key));
+
+// Tickets können wiederkehrende Arbeitsaufträge sein (recurrence). Felder, die ein älterer Client
+// nicht mitschickt (recurrence, materialNeeded), bleiben erhalten; Serie, Vorgänger/Nachfolger und
+// Abschlusszeitpunkt verwaltet nur der Server (ausser beim Wiederherstellen eines Gesamtstands).
+async function upsertTicket(item: any, db: DbClient = getDb(), { restore = false } = {}) {
+  const id = String(item.id);
+  const [existingById] = await db.select().from(fm360Tickets).where(eq(fm360Tickets.id, id)).limit(1);
+
+  let recurrence: any;
+  try {
+    recurrence = hasOwn(item, "recurrence") ? normalizeRecurrence(item.recurrence) : (existingById?.recurrence ?? null);
+  } catch (error) {
+    if (error instanceof RecurrenceError) throw new HttpError(400, error.message);
+    throw error;
+  }
+  if (recurrence && !recurrence.managerId) recurrence = { ...recurrence, managerId: existingById?.recurrence ? String((existingById.recurrence as any).managerId || "") : "" };
+  if (recurrence && recurrence.managerId) {
+    const [manager] = await db.select({ id: fm360Employees.id }).from(fm360Employees).where(eq(fm360Employees.id, recurrence.managerId)).limit(1);
+    if (!manager) throw new HttpError(400, `Unbekannter Verantwortlicher "${recurrence.managerId}" für die Erinnerung.`);
+  }
+
+  // Arbeitsaufträge sind einmalig; nur Inspektionen / Kontrollen dürfen ein Intervall haben.
+  // Fehlt planningKind (älterer Client), bleibt die gespeicherte Art; neue Aufträge mit Intervall sind Inspektionen.
+  const explicitKind = hasOwn(item, "planningKind", "planning_kind");
+  let planningKind = explicitKind
+    ? String(item.planningKind ?? item.planning_kind ?? "")
+    : String(existingById?.planningKind ?? (recurrence ? "inspection" : "work_order"));
+  if (!["work_order", "inspection"].includes(planningKind)) throw new HttpError(400, 'planningKind muss "work_order" oder "inspection" sein.');
+  if (recurrence && planningKind === "work_order") {
+    if (explicitKind) throw new HttpError(400, "Ein Arbeitsauftrag ist einmalig und kann kein Intervall haben. Dafür eine Inspektion / Kontrolle anlegen.");
+    planningKind = "inspection";
+  }
+
+  const status = String(item.status || "Offen");
+  // Fehlt "due" im Request (älterer Client), bleibt der gespeicherte Termin erhalten.
+  let due = hasOwn(item, "due") ? String(item.due || "") : String(existingById?.due ?? "");
+  // Der geplante Termin eines abgeschlossenen wiederkehrenden Auftrags bleibt als Historie erhalten.
+  if ((recurrence || existingById?.recurrence) && existingById?.due && (isClosedStatus(existingById.status) || isClosedStatus(status))) {
+    due = existingById.due;
+  }
+  if (recurrence && !isIsoDate(due)) throw new HttpError(400, "Wiederkehrende Aufträge brauchen einen gültigen Termin (due, JJJJ-MM-TT).");
+
+  const closed = isClosedStatus(status);
   const values = {
-    id: String(item.id),
+    id,
     parent: String(item.parent || ""),
     type: String(item.type || "Ticket"),
-    status: String(item.status || "Offen"),
+    status,
     prio: String(item.prio || "Mittel"),
     title: String(item.title || ""),
     resp: String(item.resp || ""),
-    due: String(item.due || ""),
+    due,
     text: String(item.text || ""),
     executionBy: String(item.executionBy || item.execution_by || ""),
     costChf: String(item.costChf || item.cost_chf || ""),
@@ -879,10 +930,21 @@ async function upsertTicket(item: any, db: DbClient = getDb()) {
     assignedEmployeeId: item.assignedEmployeeId || item.assigned_employee_id || null,
     assignedByEmployeeId: item.assignedByEmployeeId || item.assigned_by_employee_id || null,
     assignedAt: item.assignedAt || item.assigned_at ? new Date(item.assignedAt || item.assigned_at) : null,
+    recurrence,
+    planningKind,
+    materialNeeded: hasOwn(item, "materialNeeded", "material_needed")
+      ? String(item.materialNeeded ?? item.material_needed ?? "")
+      : String(existingById?.materialNeeded ?? ""),
+    completionNote: hasOwn(item, "completionNote", "completion_note")
+      ? String(item.completionNote ?? item.completion_note ?? "")
+      : String(existingById?.completionNote ?? ""),
+    seriesId: existingById?.seriesId ?? (restore && item.seriesId ? String(item.seriesId) : recurrence ? id : null),
+    previousTicketId: existingById ? existingById.previousTicketId : restore && item.previousTicketId ? String(item.previousTicketId) : null,
+    nextTicketId: existingById ? existingById.nextTicketId : restore && item.nextTicketId ? String(item.nextTicketId) : null,
+    completedAt: closed ? (existingById?.completedAt ?? (restore && item.completedAt ? new Date(item.completedAt) : new Date())) : null,
     updatedAt: new Date(),
   };
 
-  const [existingById] = await db.select().from(fm360Tickets).where(eq(fm360Tickets.id, values.id)).limit(1);
   // Saving an unchanged ticket must not touch it, otherwise every save would notify the assignee.
   if (existingById && ticketUnchanged(existingById, values)) return existingById;
   if (!existingById) {
@@ -897,6 +959,8 @@ async function upsertTicket(item: any, db: DbClient = getDb()) {
         and ${fm360Tickets.text} = ${values.text}
         and ${fm360Tickets.status} = ${values.status}
         and ${fm360Tickets.prio} = ${values.prio}
+        and ${fm360Tickets.due} = ${values.due}
+        and ${fm360Tickets.assignedEmployeeId} is not distinct from ${values.assignedEmployeeId}
       `)
       .limit(1);
     if (existingDuplicate) return existingDuplicate;
@@ -938,7 +1002,77 @@ async function upsertTicket(item: any, db: DbClient = getDb()) {
       body: values.status ? `Status: ${values.status}` : "",
     }, db);
   }
+  if (!restore && row.recurrence && isClosedStatus(row.status)) return await ensureNextOccurrence(row, db);
   return row;
+}
+
+// Legt nach Abschluss eines wiederkehrenden Auftrags genau einen Folgeauftrag an. Der Termin richtet
+// sich nach dem geplanten Termin (due), nicht nach dem Abschlussdatum. Der eindeutige Index auf
+// previous_ticket_id verhindert Duplikate, auch wenn zwei Speichervorgänge gleichzeitig laufen.
+async function ensureNextOccurrence(row: typeof fm360Tickets.$inferSelect, db: DbClient) {
+  const recurrence = row.recurrence as any;
+  if (!recurrence || !isIsoDate(row.due)) return row;
+  const nextDue = addInterval(row.due, recurrence.every, recurrence.unit);
+  const [created] = await db
+    .insert(fm360Tickets)
+    .values({
+      id: `rt-${crypto.randomUUID()}`,
+      parent: row.parent,
+      type: row.type,
+      status: "Offen",
+      prio: row.prio,
+      title: row.title,
+      resp: row.resp,
+      due: nextDue,
+      text: row.text,
+      executionBy: row.executionBy,
+      created: todayInZurich(),
+      assignedEmployeeId: row.assignedEmployeeId,
+      assignedByEmployeeId: row.assignedByEmployeeId,
+      assignedAt: row.assignedEmployeeId ? new Date() : null,
+      recurrence,
+      planningKind: "inspection",
+      materialNeeded: row.materialNeeded,
+      seriesId: row.seriesId || row.id,
+      previousTicketId: row.id,
+    })
+    .onConflictDoNothing()
+    .returning();
+  const next = created || (await db.select().from(fm360Tickets).where(eq(fm360Tickets.previousTicketId, row.id)).limit(1))[0];
+  if (created?.assignedEmployeeId) {
+    await upsertNotification({
+      id: `notif-ticket-assigned-${created.id}-${created.assignedEmployeeId}`,
+      employeeId: created.assignedEmployeeId,
+      ticketId: created.id,
+      eventType: "ticket_assigned",
+      title: created.title || "Wiederkehrender Auftrag",
+      body: `Nächster Termin: ${nextDue}`,
+    }, db);
+  }
+  if (!next || row.nextTicketId === next.id) return row;
+  const [updated] = await db.update(fm360Tickets).set({ nextTicketId: next.id }).where(eq(fm360Tickets.id, row.id)).returning();
+  return updated || row;
+}
+
+// Erinnerung in der App (Glocke): sobald der Erinnerungstag eines offenen wiederkehrenden Auftrags
+// erreicht ist, erhält der Verantwortliche genau eine Benachrichtigung je Termin.
+async function createDueReminders(db: DbClient = getDb()) {
+  const today = todayInZurich();
+  const open = await db.select().from(fm360Tickets).where(sql`${fm360Tickets.recurrence} is not null and ${fm360Tickets.due} <> ''`);
+  const employees = new Set((await db.select({ id: fm360Employees.id }).from(fm360Employees)).map((employee) => employee.id));
+  for (const ticket of open) {
+    const recurrence = ticket.recurrence as any;
+    if (isClosedStatus(ticket.status) || !isIsoDate(ticket.due) || !employees.has(String(recurrence?.managerId || ""))) continue;
+    if (reminderDate(ticket.due, recurrence) > today) continue;
+    await db.insert(fm360Notifications).values({
+      id: `notif-reminder-${ticket.id}-${ticket.due}-${recurrence.managerId}`,
+      employeeId: recurrence.managerId,
+      ticketId: ticket.id,
+      eventType: "maintenance_reminder",
+      title: `Fällig am ${ticket.due.split("-").reverse().join(".")}: ${ticket.title || "Auftrag"}`,
+      body: ticket.materialNeeded ? `Material: ${ticket.materialNeeded}` : "",
+    }).onConflictDoNothing();
+  }
 }
 
 async function upsertTemplate(item: any, db: DbClient = getDb()) {
@@ -1024,6 +1158,7 @@ async function upsertShift(item: any, db: DbClient = getDb()) {
     date: String(item.date || ""),
     shiftType: String(item.shiftType || ""),
     taskAssignment: String(item.taskAssignment || ""),
+    workLocation: String(item.workLocation || ""),
     workload: String(item.workload || "Normal"),
     updatedAt: new Date(),
   };
@@ -1291,7 +1426,7 @@ async function upsertVacationEntry(item: any, db: DbClient = getDb()) {
 }
 
 async function upsertNotification(item: any, db: DbClient = getDb()) {
-  const allowedEvents = new Set(["new_ticket", "ticket_assigned", "priority_changed", "task_updated"]);
+  const allowedEvents = new Set(["new_ticket", "ticket_assigned", "priority_changed", "task_updated", "maintenance_reminder"]);
   const eventType = String(item.eventType || item.event_type || "");
   if (!allowedEvents.has(eventType)) throw new Error("Unsupported notification event type");
   const values = {
@@ -1529,6 +1664,11 @@ async function applyChanges(actor: Actor, rawChanges: any, { strictCosts = false
       if (collection === "nodes") items = await prepareNodes(items, tx);
       for (let item of items) {
         if (collection === "costs" && !["budget", "adjustment"].includes(String(item.category || ""))) continue;
+        // Ohne ausdrücklichen Verantwortlichen erhält die Person die Erinnerung, die den Auftrag plant.
+        if (collection === "tickets" && item.recurrence && typeof item.recurrence === "object" && !item.recurrence.managerId) {
+          const [existing] = await tx.select({ recurrence: fm360Tickets.recurrence }).from(fm360Tickets).where(eq(fm360Tickets.id, String(item.id))).limit(1);
+          item = { ...item, recurrence: { ...item.recurrence, managerId: (existing?.recurrence as any)?.managerId || actor.id } };
+        }
         if (collection === "employees") item = await restrictEmployeeChange(actor, item, tx);
         item = await storeUpload(collection, item);
         await UPSERTS[collection](item, tx);
@@ -1605,7 +1745,7 @@ async function replaceAll(state: any) {
     for (const item of state.docs || []) await upsertDocument(item, tx);
     for (const item of state.floorRecords || []) await upsertFloorRecord(item, tx);
     for (const item of state.roomRecords || []) await upsertRoomRecord(item, tx);
-    for (const item of state.tickets || []) await upsertTicket(item, tx);
+    for (const item of state.tickets || []) await upsertTicket(item, tx, { restore: true });
     for (const item of state.templates || []) await upsertTemplate(item, tx);
     for (const item of state.photos || []) await upsertPhoto(item, tx);
     for (const item of state.shifts || []) await upsertShift(item, tx);

@@ -138,6 +138,65 @@ select:disabled,input:disabled{background:#f8fafc;color:#475467;cursor:not-allow
 .pY-sick { background: var(--color-sick-bg); color: var(--color-sick-text); }
 .pY-piket { background: var(--color-piket-bg); color: var(--color-piket-text); border: 1px solid rgba(249,115,22,0.2); }
 
+/* The weekly plan puts the actual employee, place and task in readable rows. */
+.planningToolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.planningViewTabs{display:flex;gap:4px;margin:0;padding:3px;border:1px solid var(--line);border-radius:10px;background:#f5f8fb}
+.planningViewTabs .tab{margin:0;padding:6px 13px;font-size:12px}
+.planningPeriod{display:flex;align-items:center;gap:12px}
+.planningPeriod strong{min-width:245px;text-align:center;font-size:14px}
+#planningSummary{margin-left:auto}
+.planningOptions{border-top:1px solid var(--line);padding-top:12px}
+.planningOptions summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600}
+.planningOptions[open]>div{margin-top:14px}
+.planningOptions select{width:auto;min-width:130px}
+.planningFilterNotice{display:flex;align-items:center;gap:12px;font-size:13px;color:#975500}
+.planningFilterNotice[hidden],#planningOptions[hidden]{display:none}
+.weeklyPlan{width:100%;min-width:740px;border-collapse:collapse;table-layout:fixed;font-size:13px}
+.weeklyPlan caption{text-align:left;padding:12px 16px;background:#f7fafc;font-size:12px;color:var(--muted)}
+.weeklyPlan th,.weeklyPlan td{padding:13px 16px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.weeklyPlan thead th{background:#f4f8fb;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.weeklyPlan .weekDay{width:140px;background:#fafcfd;font-weight:400}
+.weekDay strong,.weekDay span{display:block}
+.weekDay span{font-size:12px;color:var(--muted);margin-top:4px}
+.weekDay .todayTag{display:inline-block;color:#1a5d91;font-weight:700;margin-left:6px;font-size:10px}
+.weeklyPlan .weekToday{background:#eef6fc;box-shadow:inset 3px 0 #337daf}
+.weeklyPlan .weekPerson{font-weight:700}
+.weeklyPlan .weekAction{width:115px;text-align:right}
+.weeklyPlan tr:last-child>*{border-bottom:0}
+.weekStatus{display:inline-block;border-radius:5px;padding:3px 7px;font-size:11px;font-weight:600;margin-bottom:5px;background:#edf3f8;color:#315978}
+.weekStatus.away{background:#fff4e5;color:#855416}
+.weekMissing{color:var(--muted);font-size:12px;font-weight:400}
+.weeklyCalendar{width:100%;min-width:920px;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:12px}
+.weeklyCalendar caption{text-align:left;padding:10px 14px;color:var(--muted);font-size:12px}
+.weeklyCalendar th,.weeklyCalendar td{padding:8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.weeklyCalendar th:last-child,.weeklyCalendar td:last-child{border-right:0}
+.weeklyCalendar tr:last-child>td,.weeklyCalendar tr:last-child>th{border-bottom:0}
+.weeklyCalendar thead th{background:#f2f7fb;text-align:center;padding:12px 6px;font-weight:600}
+.weeklyCalendar thead span{display:block;margin-top:4px;font-size:11px;color:var(--muted);font-weight:400}
+.weeklyCalendar .weekEmployee{position:sticky;left:0;z-index:1;width:150px;background:white;padding:16px 12px}
+.weeklyCalendar thead .weekEmployee{background:#f2f7fb;padding:12px}
+.weekEmployee strong{font-size:13px}
+.weekEmployee span{display:block;margin-top:7px;color:var(--muted);font-weight:400;font-size:11px}
+.weeklyCalendar .weekend{background:#fafbfc}
+.weeklyCalendar .calendarToday{background:#eef6fc}
+.weeklyCalendar thead .calendarToday{box-shadow:inset 0 3px #377da7;color:#1d5d87}
+.calendarEntry{display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;min-height:115px;border:1px solid #c8deec;border-left:3px solid #3984ad;border-radius:8px;padding:10px;background:#f5faff;color:var(--text);font:inherit;cursor:pointer;box-shadow:none;margin-bottom:6px;overflow-wrap:anywhere}
+.calendarEntry:hover,.calendarEntry:focus-visible{background:#e8f4fc;outline:2px solid #82b5d5;outline-offset:1px}
+.calendarEntry .weekPlace{color:#4a6c83;font-size:11px;line-height:1.5}
+.calendarEntry .weekTask{font-size:12px;line-height:1.45;font-weight:650}
+.calendarEntry.empty{border:1px dashed #d7e1e9;background:transparent;color:var(--muted);justify-content:center;align-items:center;font-weight:400}
+.calendarEntry.away{background:#fff8ec;border-color:#ead5aa;border-left-color:#c79436;justify-content:center}
+.planningEmpty{padding:28px;max-width:820px;margin:auto}
+.planningEmpty h3{margin:0 0 8px;font-size:19px}
+.planningEmpty p{color:var(--muted);line-height:1.6;margin:0 0 18px}
+.planningExample{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;border:1px dashed var(--line);border-radius:10px;padding:16px;margin:20px 0;background:#f9fbfd}
+.planningExample span{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.planningExample strong{font-size:13px}
+.planningEmpty .exampleLabel{font-size:11px;margin-bottom:0}
+#planFormError{margin:0;padding:10px;border-radius:8px;background:#fff1f1;color:#a32929;font-size:13px}
+#planFormError[hidden],#planRangeHint[hidden]{display:none}
+@media(max-width:800px){.planningPeriod strong{min-width:0;font-size:12px}.planningToolbar{gap:8px}#planningSummary{margin-left:0;width:100%}.planningEmpty{padding:20px}.planningExample{grid-template-columns:1fr;gap:12px}}
+
 /* Legend classes */
 .legend-box {
   width: 12px;
@@ -581,17 +640,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--td-petrol);box-shadow
 .loginLogo360::before,.loginLogo360::after{display:none}
 
 /* TD-Kopfbereich */
-.appHeader{display:grid;grid-template-columns:minmax(200px,1fr) auto minmax(200px,1fr);align-items:center;gap:16px;min-height:74px;padding:0 16px;margin:8px 0 10px;background:#f7f8f9;border:1px solid #dce4e9;border-radius:8px;font-family:var(--font-button)}
+.appHeader{display:grid;grid-template-columns:minmax(200px,1fr) auto minmax(200px,1fr);align-items:center;gap:16px;min-height:62.9px;padding:0 16px;margin:8px 0 10px;background:#f7f8f9;border:1px solid #dce4e9;border-radius:8px;font-family:var(--font-button)}
 .appHeaderUser{display:grid;gap:2px;min-width:0;color:#182d3a}
 .appHeaderUser strong{font-size:15px;font-weight:700;color:#193b50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .appHeaderUser small{font-size:12.8px;font-weight:500;color:#182d3a;padding-left:6px}
-.appHeaderBrand{display:flex;align-items:center;gap:8px;justify-self:center}
-.appHeaderBrand img{width:63px;height:61px;display:block}
-.appHeaderBrandCopy{display:grid;gap:3px}
-.appHeaderBrandName{font-size:22.95px;font-weight:700;line-height:1;color:#315771;white-space:nowrap}
+.appHeaderBrand{display:flex;align-items:center;gap:6.4px;justify-self:center}
+.appHeaderBrand img{width:50.4px;height:48.8px;display:block}
+.appHeaderBrandCopy{display:grid;gap:2.4px}
+.appHeaderBrandName{font-size:18.36px;font-weight:700;line-height:1;color:#315771;white-space:nowrap}
 .appHeaderBrandName b{color:#3c7ed2;font-weight:820}
 .appHeaderBrandDegree{color:#2165c7}
-.appHeaderBrandServices{font-size:12px;font-weight:500;color:#5f7380;letter-spacing:.02em;white-space:nowrap}
+.appHeaderBrandServices{font-size:9.6px;font-weight:500;color:#5f7380;letter-spacing:.02em;white-space:nowrap}
 .appHeaderTools{display:flex;align-items:center;justify-content:flex-end;gap:10px}
 .appHeaderDate{font-size:12.5px;color:#4d6474;white-space:nowrap}
 .appHeaderIcon{position:relative;width:38px;height:38px;display:grid;place-items:center;border:1px solid #dbe6eb;border-radius:6px;background:#f5f9fa;color:#31586b;cursor:pointer}
@@ -760,6 +819,7 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .adminPanel::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--td-petrol),var(--td-petrol) 60%,transparent)}
 .adminPanel.active{display:block}.adminPanel>h3{margin:0 0 6px}.adminPanel .adminActions{margin-top:12px}
 .piketPanel.active{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);gap:16px;align-items:start}
+.piketPanel[data-piket-panel="plan"].active{grid-template-columns:minmax(0,1fr)}
 .piketPanel[data-piket-panel="kontakte"].active{grid-template-columns:minmax(0,860px)}
 .piketPanel .piket-operative-card,.piketPanel .piket-calendar-card,.piketPanel .piket-management-card{margin:0;height:auto!important;min-height:0!important;background:#fff;border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--shadow);position:relative}
 .piketPanel .piket-operative-card::before,.piketPanel .piket-calendar-card::before,.piketPanel .piket-management-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--td-petrol),var(--td-petrol) 60%,transparent)}
@@ -864,7 +924,44 @@ button.walkLocalKpi{cursor:pointer}
 /* Kennzahlen in schmalen Rundgang-Kacheln immer in einer Zeile */
 .walkStats{grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column}
 .walkStats span{font-size:10.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* Dokumentenpool im Stil TD Lighthouse: Struktur links, Ort + Suche + Liste rechts */
+.docxLayout{display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.docxLayout{grid-template-columns:1fr}.docxTreePane{position:static;max-height:38vh}}
+.docxTreePane{border:1px solid var(--td-line);border-radius:12px;background:#f8fbfd;max-height:70vh;overflow:auto;position:sticky;top:12px}
+.docxPaneHead{padding:10px 12px;font-family:var(--font-nav);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#5f7380;border-bottom:1px solid var(--td-line)}
+.docxTree{display:flex;flex-direction:column;padding:6px}
+.docxNode{display:flex;align-items:center;gap:6px;width:100%;border:0;border-radius:8px;background:transparent;padding:6px 8px;text-align:left;cursor:pointer;color:#2c3e4c;font:inherit}
+.docxNode:hover{background:#eaf2f8}
+.docxNode.active{background:#dfeaf3;box-shadow:inset 3px 0 0 #3f7692}
+.docxCaret{width:16px;flex:0 0 16px;color:#5f7380;text-align:center;font-size:12px}
+.docxNodeLabel{flex:1;min-width:0;display:grid}
+.docxNodeLabel span{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docxNodeLabel small{font-size:10.5px;color:#6b8393}
+.docxCount{flex:0 0 auto;min-width:22px;padding:1px 7px;border-radius:999px;background:#e9f1f9;color:#2f5f78;font-size:11px;font-weight:600;text-align:center}
+.docxCount.zero{background:transparent;color:#9fb3c2}
+.docxHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.docxWhere h3{margin:4px 0 2px}
+.docxWhere p{margin:0}
+.docxActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.docxFilterBar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.docxFilterBar input[type=search]{flex:1;min-width:220px}
+.docxSubLabel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#2c3e4c;white-space:nowrap;cursor:pointer}
+.docxSubLabel input{width:auto;margin:0}
+.docxTypes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.docxTypes .tab{margin:0}
+.docxTypeCount{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#e9f1f9;color:#2f5f78;font-size:11px}
+.docxListHead{font-size:12px;color:#5f7380;margin:0 0 6px}
+.docxRow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--td-line);border-radius:10px;background:#fff;margin-bottom:6px}
+.docxKind{display:grid;place-items:center;height:38px;border-radius:8px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:#fff;background:#8aa0b0}
+.docxKind.pdf{background:#c0392b}.docxKind.word{background:#2b5797}.docxKind.excel{background:#1f7a52}.docxKind.image{background:#7b5ea7}.docxKind.none{background:#e9f1f9;color:#5f7380}
+.docxIdent{min-width:0;display:grid;gap:2px}
+.docxIdent strong{color:#28566e;font-size:14px;overflow-wrap:anywhere}
+.docxIdent span{font-size:12px;color:#5f7380;overflow-wrap:anywhere}
+.docxIdent .docxPath{color:#3f7692}
+.docxRowActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:600px){.docxRow{grid-template-columns:40px minmax(0,1fr)}.docxRowActions{grid-column:1/-1;justify-content:flex-start}}
 </style>
+<link rel="stylesheet" href="assets/work-orders.css">
 </head>
 <body>
 <div class="startupNotice" id="startupNotice" role="status" aria-live="polite"></div>
@@ -918,7 +1015,7 @@ button.walkLocalKpi{cursor:pointer}
     <div class="navGroup">
       <div class="navLabel">Dokumentation</div>
       <button data-section="dokumente" data-title="Dokumentenpool"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M3 11h18"/></svg><span>Dokumentenpool</span></button>
-      <button data-section="plan" data-title="Planübersicht"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg><span>Planübersicht</span></button>
+      <button data-section="plan" data-title="Gebäudepläne"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg><span>Gebäudepläne</span></button>
     </div>
     <div class="navGroup">
       <div class="navLabel">Controlling</div>
@@ -946,7 +1043,7 @@ button.walkLocalKpi{cursor:pointer}
       </div>
       <div class="appHeaderTools">
         <span class="appHeaderDate" id="headerDate"></span>
-        <button class="appHeaderIcon" type="button" onclick="openTicketsOverview('active')" title="Offene Tickets" aria-label="Offene Tickets"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="appHeaderBadge" id="headerOpenTickets" hidden></span></button>
+        <button class="appHeaderIcon" type="button" onclick="openWorkOrderReminders()" title="Benachrichtigungen" aria-label="Benachrichtigungen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="appHeaderBadge" id="headerOpenTickets" hidden></span></button>
         <button class="appHeaderIcon" type="button" onclick="openSearchDialog()" title="Suche öffnen" aria-label="Suche öffnen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.2 4.2"/></svg></button>
       </div>
     </header>
@@ -1031,7 +1128,8 @@ button.walkLocalKpi{cursor:pointer}
       <div class="contextActions" id="contextActions">
         <button class="btn" id="addEntryBtn" onclick="openChildNodeModal()">+ Eintrag hinzufügen</button>
         <button class="btn ghost" id="addDocBtn" onclick="openDocModal()">+ Dokument hinzufügen</button>
-        <button class="btn ghost" id="addTicketBtn" onclick="openTicketModal()">+ Ticket erstellen</button>
+        <button class="btn ghost" id="addTicketBtn" onclick="openTicketModal()">+ Arbeitsauftrag</button>
+        <button class="btn" id="addInspectionBtn" hidden onclick="openNewInspection(selected)">+ Kontrollticket</button>
         <button class="btn secondary" id="editSelectedBtn" onclick="editContext()">Bearbeiten</button>
       </div>
       <div class="summary" id="localSummary"></div>
@@ -1044,33 +1142,34 @@ button.walkLocalKpi{cursor:pointer}
     <div id="tabAnlagen" class="tabSection section"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>Anlagen an diesem Eintrag</h2><button class="btn" id="createAnlageBtn" onclick="openAnlageModal()">+ Anlage-Datenbank</button></div><p class="smallText">Anlagen werden mit Stammdaten geführt. Aus einer Anlage können Dokumente und Tickets erstellt werden.</p><div id="localAnlagen" class="list"></div></div></div>
     <div id="tabDocs" class="tabSection section"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Dokumente an diesem Eintrag</h2><button class="btn" id="tabDocBtn" onclick="openDocModal()">+ Dokument hinzufügen</button></div><p class="smallText">Diese Dokumente erscheinen automatisch im globalen Dokumentenpool.</p><div id="localDocs" class="list"></div></div></div>
     <div id="tabPhotos" class="tabSection section"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Fotos an diesem Eintrag</h2><button class="btn" id="tabPhotoBtn" onclick="openPhotoModal()">+ Foto hinzufügen</button></div><p class="smallText">Fotos zur visuellen Dokumentation, Mängeln oder Vorher-/Nachher-Zuständen.</p><div id="localPhotos" class="list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:16px;margin-top:10px"></div></div></div>
-    <div id="tabTickets" class="tabSection section"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Tickets / Aufträge an diesem Eintrag</h2><button class="btn" id="tabTicketBtn" onclick="openTicketModal()">+ Ticket erstellen</button></div><div id="localTicketFilters" class="tabs" style="margin-top:12px"></div><div id="localTickets" class="list"></div></div></div>
+    <div id="tabTickets" class="tabSection section"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Tickets / Aufträge an diesem Eintrag</h2><button class="btn" id="tabTicketBtn" onclick="openTicketModal()">+ Arbeitsauftrag</button></div><div id="localTicketFilters" class="tabs" style="margin-top:12px"></div><div id="localTickets" class="list"></div></div></div>
   </section>
 
   <section id="mitarbeiter" class="section">
-    <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div>
-            <h2>Arbeitsplanung &amp; Kalender</h2>
-            <p class="smallText" style="margin:0;">Verwalten Sie die Schichtplanung, Abwesenheiten und Feiertage für das Team.</p>
-          </div>
-          <!-- View switcher & Nav -->
-          <div style="display:flex; align-items:center; gap:10px;">
-            <select id="calendarViewSelect" class="calendarViewSelect" aria-label="Ansicht" onchange="setCalendarView(this.value)">
-              <option value="week">Woche</option>
-              <option value="month" selected>Monat</option>
-              <option value="quarter">Quartal</option>
-              <option value="year">Jahr</option>
-            </select>
-            <button class="btn planNewBtn" type="button" onclick="openNewPlanModal()">+ Einsatz planen</button>
-            <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferien-Anträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
-            <div style="display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:10px; background:white; padding:4px;">
-              <button class="btn small secondary" onclick="navigateCalendar(-1)" style="border-radius:6px; padding:4px 8px;">&larr;</button>
-              <span id="calendarPeriodLabel" style="font-weight:700; font-size:13px; padding:0 8px; min-width:120px; text-align:center;">Heute</span>
-              <button class="btn small secondary" onclick="navigateCalendar(1)" style="border-radius:6px; padding:4px 8px;">&rarr;</button>
-            </div>
-          </div>
+    <div class="card planningCard">
+        <div class="planningCompactBar">
+          <h2 id="planningViewTitle">Wochenplan</h2>
+          <div class="planningViewTabs" role="group" aria-label="Kalenderansicht"><button class="tab active" id="planningWeekBtn" onclick="setCalendarView('week')">Woche</button><button class="tab" id="planningMonthBtn" onclick="setCalendarView('month')">Monat</button></div>
+          <div class="planningPeriod"><button class="btn small secondary" aria-label="Vorheriger Zeitraum" onclick="navigateCalendar(-1)">←</button><strong id="calendarPeriodLabel" aria-live="polite"></strong><button class="btn small secondary" aria-label="Nächster Zeitraum" onclick="navigateCalendar(1)">→</button></div>
+          <button class="btn small secondary" onclick="showCurrentPlanningWeek()">Heute</button>
+          <span id="planningSummary" class="smallText" aria-live="polite"></span>
+          <span id="planningReminders" class="workReminder" hidden></span>
+          <button class="btn" id="planNewBtn" onclick="openNewWorkOrder()">+ Arbeitsauftrag</button>
         </div>
+
+        <div id="planningFilterNotice" class="planningFilterNotice" hidden>Filter aktiv <button class="btn small secondary" onclick="clearCalendarFilters()">Alle Mitarbeiter anzeigen</button></div>
+        <div id="calendarContainer" style="overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:white;"></div>
+
+        <details class="planningOptions" id="planningOptions">
+          <summary>Dienste, Abwesenheiten &amp; Filter</summary><button class="btn small secondary" onclick="openNewWorkPlan()">+ Dienst / Abwesenheit</button>
+          <div class="planningToolbar">
+            <label for="planningViewSelect">Ansicht</label>
+            <select id="planningViewSelect" onchange="setCalendarView(this.value)">
+              <option value="week">Woche</option><option value="month">Monat</option><option value="quarter">Quartal</option><option value="year">Jahr</option>
+            </select>
+            <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferien-Anträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
+            <button class="btn small secondary" onclick="openPlanningTeam()">Mitarbeiter verwalten</button>
+          </div>
 
         <!-- Vacation Request Workflow Panel -->
         <div id="vacationPanel" class="vacationPanel" hidden>
@@ -1087,7 +1186,7 @@ button.walkLocalKpi{cursor:pointer}
         </div>
 
         <!-- Color Legend -->
-        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:12px; padding:8px 12px; background:#f8fafc; border-radius:10px; border:1px solid var(--line);">
+        <div id="planningLegend" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:12px; padding:8px 12px; background:#f8fafc; border-radius:10px; border:1px solid var(--line);">
           <span style="font-weight:700; color:var(--muted)">Legende:</span>
           <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-normal"></span> Normaldienst</span>
           <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-vacation-approved"></span> Ferien genehmigt</span>
@@ -1114,34 +1213,17 @@ button.walkLocalKpi{cursor:pointer}
           <span style="font-weight:700; color:var(--muted)">Mitarbeiter filtern:</span>
           <button class="tab" id="filterPiketBtn" onclick="toggleCalendarFilter('piketEligible')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Piketfähig</button>
           <button class="tab" id="filterAbsentBtn" onclick="toggleCalendarFilter('absent')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Abwesend</button>
-          <button class="tab" id="filterVacationBtn" onclick="toggleCalendarFilter('vacation')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Urlaub</button>
-          <button class="tab" id="filterTasksBtn" onclick="toggleCalendarFilter('assignedTasks')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Mit Aufgaben</button>
+          <button class="tab" id="filterVacationBtn" onclick="toggleCalendarFilter('vacation')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Ferien</button>
+          <button class="tab" id="filterTasksBtn" onclick="toggleCalendarFilter('assignedTasks')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Mit Aufgabe</button>
           <button class="btn small secondary" onclick="clearCalendarFilters()" style="padding: 5px 10px; font-size: 12px; border-radius: 999px; margin-left: auto;">Zurücksetzen</button>
         </div>
 
-        <p class="planHint">Tipp: Auf ein Feld im Kalender klicken, um einen Tag zu planen oder zu ändern. Für mehrere Tage oben „+ Einsatz planen“.</p>
-
-        <!-- Calendar Container -->
-        <div id="calendarContainer" style="overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:white;">
-          <!-- Will be rendered dynamically -->
-        </div>
+        </details>
 
     </div>
   </section>
 
   <section id="piketdienst" class="section">
-    <!-- Active On-Call Member Prominent Banner -->
-    <div class="card piketBanner">
-      <h3 id="activePiketTodayLabel" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; margin: 0 0 6px 0;">Aktueller Piketdienst Heute</h3>
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-        <div>
-          <h2 id="activePiketName" style="font-size:24px; margin:0 0 4px 0;">Hans Müller</h2>
-          <span style="font-size:13px; color:#c9d8e3;">Bereitschaft: <b id="activePiketTime">17:00 - 08:00 Uhr</b> · Tel: <b id="activePiketPhone">+41 79 123 45 67</b></span>
-        </div>
-        <div class="piketBannerBadge">AKTIV IM EINSATZ</div>
-      </div>
-    </div>
-
     <!-- Piket Dashboard Grid: Two main rows (Upper Row = 3 Cols, Lower Row = 2 Columns) -->
     
     <!-- Zwei Spalten, Karten stapeln sich ohne Lücken: links Plan und Einsätze, rechts Planung und Kontakte -->
@@ -1159,6 +1241,7 @@ button.walkLocalKpi{cursor:pointer}
             <p class="smallText" style="margin:2px 0 0 0;">Visualisierung aller Bereitschaftsdienste. Klicken oder ziehen Sie über Tage, um eine neue Bereitschaft zu planen.</p>
           </div>
           <div class="piket-cal-nav">
+            <button class="btn" onclick="openPiketPlanModal(true)">+ Piketdienst planen</button>
             <div class="piket-cal-view-selector">
               <button class="piket-cal-view-btn" id="piketCalViewWeek" onclick="setPiketCalendarView('week')">Woche</button>
               <button class="piket-cal-view-btn active" id="piketCalViewMonth" onclick="setPiketCalendarView('month')">Monat</button>
@@ -1174,23 +1257,22 @@ button.walkLocalKpi{cursor:pointer}
           <!-- Calendar view (Week / Month) rendered dynamically -->
         </div>
       </div>
-      <!-- 2. Rechts: Piketdienst-Planung + Erfasste Bereitschaften (Admin-Bereich, slate / neutral grau) -->
-      <div class="piket-management-card" style="display:flex; flex-direction:column;">
-        <h2 style="margin:0 0 8px 0; display:flex; align-items:center; gap:8px;">
-          Piketdienst-Planung
-        </h2>
+      <div class="modalBack" id="piketPlanModal" role="dialog" aria-modal="true" aria-labelledby="piketPlanModalTitle">
+        <div class="modal" style="width:min(620px,96vw);max-height:90vh;display:flex;flex-direction:column">
+          <div class="modalHead"><b id="piketPlanModalTitle">Piketdienst planen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div>
+          <div class="modalBody" style="overflow-y:auto">
         <p class="smallText" style="color:#475569; margin-bottom:12px;">Planen Sie Bereitschaften, Vertretungen und Bereitschaftszeiten.</p>
         <div class="formGrid" style="gap:8px; margin-bottom:14px;">
           <div class="field full">
-            <label>Mitarbeiter</label>
+            <label for="pkName">Mitarbeiter</label>
             <select id="pkName"></select>
           </div>
           <div class="field">
-            <label>Von (Startzeitpunkt)</label>
+            <label for="pkStart">Von (Startzeitpunkt)</label>
             <input type="datetime-local" id="pkStart" onchange="onPiketDateChange()">
           </div>
           <div class="field">
-            <label>Bis (Endzeitpunkt)</label>
+            <label for="pkEnd">Bis (Endzeitpunkt)</label>
             <input type="datetime-local" id="pkEnd" onchange="onPiketDateChange()">
           </div>
           <div class="field full" style="margin-top: 2px;">
@@ -1198,31 +1280,33 @@ button.walkLocalKpi{cursor:pointer}
             <strong id="pkWeekCalcDisplay" style="color:var(--orange);">—</strong>
           </div>
           <div class="field full">
-            <label>Vertretung für / Übernommen von (optional)</label>
+            <label for="pkHandoverFrom">Vertretung für / Übernommen von (optional)</label>
             <select id="pkHandoverFrom"></select>
           </div>
           <div class="field">
-            <label>Bereitschaftszeit (optional)</label>
+            <label for="pkTime">Bereitschaftszeit (optional)</label>
             <input id="pkTime" placeholder="z.B. 17:00 - 08:00" value="">
           </div>
           <div class="field">
-            <label>Notfallkontakt / Telefon (optional)</label>
+            <label for="pkPhone">Notfallkontakt / Telefon (optional)</label>
             <input id="pkPhone" placeholder="z.B. +41 79 123 45 67" value="">
           </div>
           <div class="field full">
-            <label>Status</label>
+            <label for="pkStatus">Status</label>
             <select id="pkStatus">
               <option>Aktiv</option>
               <option>Geplant</option>
               <option>Beendet</option>
             </select>
           </div>
-          <button class="btn full" onclick="addPiket()">+ Piketeintrag speichern</button>
+          <button class="btn full" id="piketSaveBtn" onclick="addPiket()">+ Piketeintrag speichern</button>
         </div>
         
         <div style="border-top:1px dashed #cbd5e1; padding-top:12px; margin-top:12px; flex: 1;">
           <h3 style="font-size:13px; color:#2c3e4c; margin:0 0 8px 0; font-weight:700;">Erfasste Bereitschaften</h3>
           <div id="piketTableList" class="list" style="max-height: 350px; overflow-y: auto;"></div>
+        </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1470,41 +1554,28 @@ button.walkLocalKpi{cursor:pointer}
   </section>
 
   <section id="dokumente" class="section">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
-        <div>
-          <p class="smallText" style="margin:0;">Globaler Überblick über alle lokal zugeordneten Dokumente.</p>
-        </div>
-        <div class="tabs" style="margin:0;">
-          <button class="tab active" id="docPoolTreeTab" onclick="setDocPoolMode('tree')">Tree-Modus (Explorer-Ansicht)</button>
-          <button class="tab" id="docPoolFlatTab" onclick="setDocPoolMode('flat')">Flat-Search-Modus (Globale Suche)</button>
-        </div>
-      </div>
-
-      <!-- Tree Mode Container -->
-      <div id="docPoolTreeContainer" style="display:block;">
-        <div class="docWalkPanel">
-          <div class="walkthroughHead">
-            <div>
-              <h3 id="docPoolWalkTitle" style="margin-bottom:6px;">Dokumentenpool</h3>
+    <div class="card docxCard">
+      <div class="docxLayout">
+        <aside class="docxTreePane" aria-label="Struktur">
+          <div class="docxPaneHead">Struktur</div>
+          <div id="docPoolTree" class="docxTree" aria-label="Dokumente nach Ort"></div>
+        </aside>
+        <div class="docxMain">
+          <div class="docxHead">
+            <div class="docxWhere">
               <div id="docPoolBreadcrumb" class="walkBreadcrumb"></div>
-              <p id="docPoolHelp" class="smallText" style="margin:8px 0 0;">Standort auswählen und wie im Objekt-Rundgang bis zur Anlage oder zum Bauteil navigieren.</p>
+              <h3 id="docPoolWalkTitle">Alle Dokumente</h3>
+              <p id="docPoolHelp" class="smallText"></p>
             </div>
-            <div id="docPoolActions" class="walkActions"></div>
+            <div id="docPoolActions" class="docxActions"></div>
           </div>
-          <div id="docPoolCurrent" class="docWalkCurrent"></div>
-          <div id="docPoolTree" class="walkGrid"></div>
-          <div id="docPoolDocs" class="docWalkDocs"></div>
+          <div class="docxFilterBar">
+            <input id="docPoolSearch" type="search" placeholder="Dokumente durchsuchen (Name, Typ, Kategorie, Tags, Datei, Ort)" oninput="docPoolSetSearch(this.value)">
+            <label class="docxSubLabel"><input type="checkbox" id="docPoolIncludeSub" checked onchange="docPoolSetIncludeSub(this.checked)"> inkl. Unterebenen</label>
+          </div>
+          <div id="docPoolTypes" class="docxTypes"></div>
+          <div id="docPoolDocs" class="docxList"></div>
         </div>
-      </div>
-
-      <!-- Flat Search Mode Container -->
-      <div id="docPoolFlatContainer" style="display:none;">
-        <div style="margin-bottom:14px; display:flex; gap:10px;">
-          <input id="docPoolSearch" placeholder="Dokumente durchsuchen (Name, Typ, Ordner, Tags...)" oninput="renderDocPoolFlat()" style="width:100%">
-          <button class="btn secondary" onclick="$('docPoolSearch').value='';renderDocPoolFlat()">Zurücksetzen</button>
-        </div>
-        <div id="docPoolFlat" class="list"></div>
       </div>
     </div>
   </section>
@@ -1931,7 +2002,7 @@ button.walkLocalKpi{cursor:pointer}
     <div class="field"><label>Code / ID optional</label><input id="nodeCode" placeholder="z.B. UG.015 / P-001"></div>
     <div class="field"><label>FM-Objektcode</label><input id="nodeObjectCode" placeholder="automatisch, z.B. ALT-UG-01"></div>
     <div class="field"><label>Automatik</label><label class="smallText"><input id="nodeAutoObjectCode" type="checkbox" checked style="width:auto;margin-right:6px">Automatischen eindeutigen FM-Objektcode verwenden</label></div>
-  </div><div class="divider"></div><button class="btn" onclick="saveNode()">Speichern</button>
+  </div><div class="divider"></div><button class="btn" id="nodeSaveBtn" onclick="saveNode()">Speichern</button>
 </div></div></div>
 
 <div class="modalBack" id="nodeEditModal"><div class="modal" style="width:min(680px,96vw)"><div class="modalHead"><b>Eintrag bearbeiten</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
@@ -2016,7 +2087,7 @@ button.walkLocalKpi{cursor:pointer}
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <button class="btn danger" id="deleteAnlageBtn" onclick="deleteCurrentAnlage()">Anlage löschen</button>
-    <button class="btn" onclick="saveAnlage()">Anlage speichern</button>
+    <button class="btn secondary" id="anlageInspectionBtn" hidden onclick="openNewInspection($('anlageEditId').value)">+ Kontrollticket</button><button class="btn" onclick="saveAnlage()">Anlage speichern</button>
   </div>
 </div></div></div>
 
@@ -2032,7 +2103,7 @@ button.walkLocalKpi{cursor:pointer}
 
 <div class="modalBack" id="qrModal"><div class="modal" style="width:min(560px,96vw)"><div class="modalHead"><b>QR-Code</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody" id="qrModalBody"></div></div></div>
 
-<div class="modalBack" id="docModal"><div class="modal"><div class="modalHead"><b>Dokument hinzufügen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
+<div class="modalBack" id="docModal"><div class="modal"><div class="modalHead"><b>Dokument hinzufügen</b><button class="btn secondary" onclick="closeDocumentModal()">Schließen</button></div><div class="modalBody">
   <p class="smallText" id="docPath"></p><div class="formGrid"><select id="docType"><option>Bedienungsanleitung</option><option>Servicevertrag</option><option>Wartungsprotokoll</option><option>Schema / Plan</option><option>Prüfbericht</option><option>Zertifikat</option><option>Lieferschein</option><option>Rechnung</option><option>Foto</option><option>Sonstiges Dokument</option><option>Plan / Schema</option><option>Technisches Dokument</option><option>Vertrag</option><option>Servicebericht</option><option>Manual</option><option>Anlagen-Dokument</option><option>Sonstiges</option></select><input id="docTitle" placeholder="Dokumentname"><input id="docFolder" placeholder="Kategorie optional"><input id="docTags" placeholder="Tags optional"><div class="field full"><label>Datei hochladen</label><input id="docFileInput" type="file" onchange="previewDocumentFile(event)"><span class="smallText" id="docFileHint">PDF, Bild oder Office-Datei auswählen.</span></div><textarea class="full" id="docNote" placeholder="Notiz"></textarea></div><div class="divider"></div><button class="btn" id="docSaveBtn" onclick="saveDocument()">Dokument hochladen</button>
 </div></div></div>
 
@@ -2066,9 +2137,39 @@ button.walkLocalKpi{cursor:pointer}
 
 <div class="modalBack" id="kpiBreakdownModal" onclick="closeModals()"><div class="modal" onclick="event.stopPropagation()"><div class="modalHead"><b id="kpiBreakdownTitle">Kennzahl</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody" id="kpiBreakdownBody"></div></div></div>
 
-<div class="modalBack" id="ticketModal"><div class="modal"><div class="modalHead"><b>Ticket / Auftrag erstellen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
-  <p class="smallText" id="ticketPath"></p><div class="formGrid"><div class="field full"><label>Ticket-Typ</label><select id="ticketType" onchange="updateTicketTypeFields()"><option value="">Bitte Ticket-Typ wählen</option><option>Störung / Ausfall</option><option>Reparatur</option><option>Wartung / Service</option><option>Kontrolle / Prüfung</option><option>Ersatzteil Bestellung</option><option>Sonstiges</option></select></div><div class="field full"><label>Ausführung durch</label><select id="ticketExecutionBy"><option>Intern (Hausdienst / FM)</option><option>Extern (Servicefirma)</option><option>Kombiniert</option></select></div><select id="ticketStatus"><option>Offen</option><option>In Arbeit</option><option>Warten auf Servicefirma</option><option>Warten auf Ersatzteil</option><option>Erledigt</option><option>Abgeschlossen</option></select><select id="ticketPrio"><option>Niedrig</option><option>Mittel</option><option>Hoch</option><option>Kritisch</option></select><input id="ticketTitle" placeholder="Titel"><input id="ticketResp" placeholder="Verantwortlicher / Firma oder Mitarbeiter"><input id="ticketDue" type="date"><input id="ticketIntervalType" data-ticket-field="planned" placeholder="Service- oder Prüfart"><input id="ticketInterval" data-ticket-field="planned" placeholder="Intervall, z.B. 12 Monate"><input id="ticketPart" data-ticket-field="spare" placeholder="Ersatzteil / Artikel"><input id="ticketQuantity" data-ticket-field="spare" placeholder="Menge / Spezifikation"><input id="ticketFailureState" data-ticket-field="fault" placeholder="Auswirkung, z.B. Anlage ausgefallen"><input id="ticketCostChf" placeholder="Kosten CHF"><select id="ticketInvoiceReceived"><option value="">Rechnung erhalten?</option><option>Ja</option><option>Nein</option></select><select id="ticketDeliveryNoteReceived"><option value="">Lieferschein erhalten?</option><option>Ja</option><option>Nein</option></select><input id="ticketClosedAt" type="date" placeholder="Abschlussdatum"><textarea class="full" id="ticketMeasure" placeholder="Maßnahme"></textarea><textarea class="full" id="ticketCloseNote" placeholder="Abschlussnotiz"></textarea><textarea class="full" id="ticketText" placeholder="Beschreibung"></textarea></div><div class="divider"></div><button class="btn" onclick="saveTicket()">Ticket speichern</button>
-</div></div></div></div>
+<div class="modalBack" id="ticketModal" role="dialog" aria-modal="true" aria-labelledby="ticketEditorTitle"><div class="modal workOrderModal"><div class="modalHead"><b id="ticketEditorTitle">Arbeitsauftrag erstellen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
+  <input type="hidden" id="ticketEditId"><input type="hidden" id="ticketPlanningKind"><input type="hidden" id="ticketRepeat"><p class="smallText" id="ticketPath"></p>
+  <form onsubmit="event.preventDefault();saveTicket()">
+    <div class="formGrid">
+      <div class="field full"><label for="ticketTitle">Aufgabe</label><input id="ticketTitle" required placeholder="z.B. Lift kontrollieren"></div>
+      <div class="field full"><label for="ticketParent">Ort / Anlage</label><select id="ticketParent" required onchange="updateWorkOrderPath()"></select></div>
+      <div class="field" id="ticketTypeField"><label for="ticketType">Auftragsart</label><select id="ticketType"><option>Kontrolle / Prüfung</option><option>Reparatur</option><option>Störung / Ausfall</option><option>Wartung / Service</option><option>Sonstiges</option><option>Ersatzteil Bestellung</option></select></div>
+      <div class="field"><label for="ticketAssignedEmployee">Mitarbeiter</label><select id="ticketAssignedEmployee"></select></div>
+      <div class="field"><label id="ticketDueLabel" for="ticketDue">Termin</label><input id="ticketDue" type="date" required></div>
+      <div id="ticketRecurrenceFields" class="full formGrid" hidden>
+        <div class="field"><label for="ticketRepeatEvery">Wiederholen alle</label><div class="workInline"><input id="ticketRepeatEvery" type="number" min="1" max="3650" value="1"><select id="ticketRepeatUnit" onchange="updateWorkOrderRepeat()" aria-label="Intervalleinheit"><option value="days">Tage</option><option value="weeks">Wochen</option><option value="months">Monate</option></select></div></div>
+        <div class="field"><label for="ticketReminderBefore">Hinweis im Voraus</label><div class="workInline"><input id="ticketReminderBefore" type="number" min="0" max="3650" value="7"><select id="ticketReminderUnit" onchange="updateWorkOrderRepeat()" aria-label="Hinweiseinheit"><option value="days">Tage</option><option value="weeks">Wochen</option><option value="months">Monate</option></select></div></div>
+        <div class="field full"><label for="ticketReminderManager">Chef für den Hinweis</label><select id="ticketReminderManager"></select></div>
+        <p class="smallText full">Einmal einrichten: Nach jeder erledigten Kontrolle folgt der nächste Kontrolltermin. Die Ergebnisse bleiben als Historie erhalten.</p>
+      </div>
+      <div class="field full"><label for="ticketText">Beschreibung / Kontrollpunkte</label><textarea id="ticketText" rows="4" placeholder="Was soll geprüft oder ausgeführt werden?"></textarea></div>
+      <div class="field full"><label for="ticketMaterial">Materialbedarf</label><textarea id="ticketMaterial" rows="2" placeholder="Material, Menge und Hinweise zur Beschaffung"></textarea></div>
+      <div class="field"><label for="ticketStatus">Status</label><select id="ticketStatus"><option>Offen</option><option>In Arbeit</option><option>Warten auf Servicefirma</option><option>Warten auf Ersatzteil</option><option>Erledigt</option><option>Abgeschlossen</option></select></div>
+      <div class="field"><label for="ticketPrio">Priorität</label><select id="ticketPrio"><option>Niedrig</option><option>Mittel</option><option>Hoch</option><option>Kritisch</option></select></div>
+    </div>
+    <details class="workDetailSection"><summary>Servicefirma &amp; Abrechnung</summary><div class="formGrid" style="margin-top:12px">
+      <div class="field"><label for="ticketExecutionBy">Ausführung durch</label><select id="ticketExecutionBy"><option>Intern (Hausdienst / FM)</option><option>Extern (Servicefirma)</option><option>Kombiniert</option></select></div>
+      <div class="field"><label for="ticketResp">Verantwortlicher / Firma</label><input id="ticketResp"></div>
+      <div class="field"><label for="ticketCostChf">Kosten CHF</label><input id="ticketCostChf"></div>
+      <div class="field"><label for="ticketInvoiceReceived">Rechnung erhalten</label><select id="ticketInvoiceReceived"><option value="">Offen</option><option>Ja</option><option>Nein</option></select></div>
+      <div class="field"><label for="ticketDeliveryNoteReceived">Lieferschein erhalten</label><select id="ticketDeliveryNoteReceived"><option value="">Offen</option><option>Ja</option><option>Nein</option></select></div>
+    </div></details>
+    <p id="ticketSaveError" class="workError" role="alert"></p><button type="submit" id="ticketSaveBtn" class="btn">Arbeitsauftrag speichern</button>
+  </form>
+</div></div></div>
+<div class="modalBack" id="workOrderDetail" role="dialog" aria-modal="true" aria-label="Arbeitsauftrag"><div class="modal workOrderModal"><div class="modalHead"><b id="workOrderHeading">Arbeitsauftrag</b><button id="workOrderClose" class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody"><div id="workOrderContent"></div><div id="workOrderActions" class="workActions"></div></div></div></div>
+<div class="modalBack" id="workDayModal" role="dialog" aria-modal="true" aria-labelledby="workDayTitle"><div class="modal workOrderModal"><div class="modalHead"><b id="workDayTitle">Aufträge</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody workDayList" id="workDayList"></div></div></div>
+<div class="modalBack" id="workReminderModal" role="dialog" aria-modal="true" aria-label="Benachrichtigungen"><div class="modal workOrderModal"><div class="modalHead"><b>Benachrichtigungen &amp; anstehende Kontrollen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody list" id="workReminderList"></div></div></div>
 
 <div class="modalBack" id="photoModal"><div class="modal"><div class="modalHead"><b>Foto hinzufügen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
   <p class="smallText" id="photoPath"></p>
@@ -2099,10 +2200,10 @@ button.walkLocalKpi{cursor:pointer}
   <p id="largePhotoMeta" class="smallText" style="margin-top:4px;"></p>
 </div></div></div>
 
-<div class="modalBack" id="calendarPlanModal">
+<div class="modalBack" id="calendarPlanModal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
   <div class="modal" style="width: min(500px, 96vw); max-height: 90vh; display: flex; flex-direction: column;">
     <div class="modalHead">
-      <b>Eintrag planen / anpassen</b>
+      <b id="planModalTitle">Einsatz planen</b>
       <button class="btn secondary" onclick="closeModals()">Schließen</button>
     </div>
     <div class="modalBody" style="padding: 16px; overflow-y: auto;">
@@ -2111,54 +2212,72 @@ button.walkLocalKpi{cursor:pointer}
         <input type="hidden" id="planEmpId">
 
         <div class="field" id="planEmpSelectGroup">
-          <label>Mitarbeiter</label>
+          <label for="planEmpSelect">Mitarbeiter</label>
           <select id="planEmpSelect" style="width:100%;">
             <!-- Will be populated dynamically -->
           </select>
         </div>
 
         <div class="field" id="planEmpStaticGroup" style="display:none;">
-          <label>Mitarbeiter</label>
+          <label for="planEmpNameStatic">Mitarbeiter</label>
           <input type="text" id="planEmpNameStatic" disabled style="background:#f1f5f9; width:100%;">
         </div>
 
-        <input type="hidden" id="planRangeType" value="range">
-        <input type="hidden" id="planDateSingle">
-        <div class="formGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin:0;" id="planDateRangeGroup">
+        <div class="field">
+          <label for="planRangeType">Dauer</label>
+          <select id="planRangeType" onchange="togglePlanRange()" style="width:100%;">
+            <option value="single">Einzeltag</option>
+            <option value="range">Mehrere Tage</option>
+          </select>
+        </div>
+
+        <div class="field" id="planDateSingleGroup" style="width:100%;">
+          <label for="planDateSingle">Datum</label>
+          <input type="date" id="planDateSingle" style="width:100%;">
+        </div>
+
+        <div class="formGrid" style="display:none; grid-template-columns: 1fr 1fr; gap:10px; margin:0;" id="planDateRangeGroup">
           <div class="field">
-            <label>Von</label>
-            <input type="date" id="planDateStart" style="width:100%;" onchange="syncPlanEnd()">
+            <label for="planDateStart">Von</label>
+            <input type="date" id="planDateStart" style="width:100%;">
           </div>
           <div class="field">
-            <label>Bis</label>
-            <input type="date" id="planDateEnd" style="width:100%;" onchange="updatePlanDayCount()">
+            <label for="planDateEnd">Bis (einschließlich)</label>
+            <input type="date" id="planDateEnd" style="width:100%;">
           </div>
         </div>
-        <div class="planRangeInfo">
-          <label class="planSkipLabel"><input type="checkbox" id="planSkipWeekends" checked onchange="updatePlanDayCount()"> Wochenenden und Feiertage auslassen</label>
-          <span id="planDayCount" class="smallText"></span>
+
+        <div class="field" id="planWorkLocationGroup">
+          <label for="planWorkLocation">Arbeitsort</label>
+          <input id="planWorkLocation" type="text" list="planningLocations" placeholder="z.B. Hauptgebäude, EG" maxlength="300">
+          <datalist id="planningLocations"></datalist>
         </div>
 
         <div class="field">
-          <label>Status / Typ</label>
-          <select id="planShiftType" style="width:100%;">
-            <option value="Normaldienst">Normaldienst</option>
+          <label for="planTask" id="planTaskLabel">Aufgabe</label>
+          <input type="text" id="planTask" placeholder="z.B. Lüftung kontrollieren" maxlength="1000" style="width:100%;">
+        </div>
+
+        <div class="field">
+          <label for="planShiftType">Eintrag</label>
+          <select id="planShiftType" onchange="updatePlanningFields()" style="width:100%;">
+            <option value="Normaldienst">Arbeitseinsatz</option>
             <option value="Ferien Antrag">Ferien Antrag (ausstehend)</option>
             <option value="Ferien genehmigt">Ferien genehmigt</option>
             <option value="Krank">Abwesend (Krankheit)</option>
           </select>
         </div>
 
-        <div class="field">
-          <label>Aufgabe / Notiz (optional)</label>
-          <input type="text" id="planTask" placeholder="z.B. Wartung Lüftung, Grippe, etc." style="width:100%;">
+        <div id="planRangeHint" class="planRangeInfo" hidden>
+          <label class="planSkipLabel"><input type="checkbox" id="planSkipWeekends" checked> Wochenenden und Feiertage (St. Gallen) auslassen</label>
         </div>
+        <p id="planFormError" role="alert" hidden></p>
 
         <div style="display:flex; justify-content:space-between; gap:10px; margin-top:10px; border-top:1px solid var(--line); padding-top:14px;">
           <button type="button" class="btn danger" id="planDeleteBtn" onclick="deleteCalendarPlan()">Löschen</button>
           <div style="display:flex; gap:10px;">
             <button type="button" class="btn secondary" onclick="closeModals()">Abbrechen</button>
-            <button type="submit" class="btn">Speichern</button>
+            <button type="submit" class="btn" id="planSaveBtn">Speichern</button>
           </div>
         </div>
       </form>
@@ -2304,6 +2423,7 @@ button.walkLocalKpi{cursor:pointer}
   </div>
 </div>
 
+<script src="assets/work-orders.js"></script>
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
 const API='/api/fm360';
@@ -2341,7 +2461,7 @@ function fieldDeviceDiagnostics(){
     pointer:{coarse:hasCoarsePointer,fine:hasFinePointer,hover:canHover},
     conditions,
     trueConditions:Object.keys(conditions).filter(key=>conditions[key]),
-    shouldOpenField:isPhoneLike||isTabletLike
+    shouldOpenField:!(new URLSearchParams(location.search).get('desktop')==='1'||new URLSearchParams(location.hash.slice(1)).get('desktop')==='1')&&(isPhoneLike||isTabletLike)
   };
 }
 function isFieldDevice(){
@@ -2432,7 +2552,7 @@ let showAllWarnings=false;
 let expandedNodes={};
 let isTopLevelsAutoExpanded=false;
 let navigationHistory=[];
-let currentCalendarView = 'month';
+let currentCalendarView = 'week';
 let currentCalendarDate = getTodayDate();
 let calendarFilters = {
   piketEligible: false,
@@ -2447,21 +2567,18 @@ let isArchiveOpen = false;
 let currentProjectTab = 'projects';
 let controlSelected = '';
 
+// Dokumentenpool nach dem Vorbild TD Lighthouse: links Struktur mit Zählern, rechts aktueller Ort,
+// Suche, Filter nach Dokumenttyp und Upload an den gewählten Ort. Dokumente bleiben über `parent`
+// mit ihrem Gebäude, ihrer Etage, ihrem Raum oder ihrer Anlage verknüpft; am Datenmodell ändert sich nichts.
+let docPoolExpanded = {};
+let docPoolSearchText = '';
+let docPoolIncludeSub = true;
+let docPoolTypeFilter = '';
+
+// Frühere Umschaltung Tree/Flat: beide Ansichten sind jetzt eine; bleibt für bestehende Aufrufe erhalten.
 function setDocPoolMode(mode) {
-  currentDocPoolMode = mode;
-  if (mode === 'tree') {
-    $('docPoolTreeTab').classList.add('active');
-    $('docPoolFlatTab').classList.remove('active');
-    $('docPoolTreeContainer').style.display = 'block';
-    $('docPoolFlatContainer').style.display = 'none';
-    renderDocPoolTreeHTML();
-  } else {
-    $('docPoolTreeTab').classList.remove('active');
-    $('docPoolFlatTab').classList.add('active');
-    $('docPoolTreeContainer').style.display = 'none';
-    $('docPoolFlatContainer').style.display = 'block';
-    renderDocPoolFlat();
-  }
+  currentDocPoolMode = 'tree';
+  renderDocPoolTreeHTML();
 }
 
 function docPoolCurrentNode(){
@@ -2478,100 +2595,122 @@ function docPoolSubtreeDocCount(id){
 }
 function docPoolOpen(id=''){
   docPoolSelected = id || null;
+  docPoolTypeFilter = '';
+  // Pfad zum gewählten Ort aufklappen, damit er links sichtbar ist
+  if (docPoolSelected) nodeChain(docPoolSelected).forEach(x => { docPoolExpanded[x.id] = true; });
+  renderDocPoolTreeHTML();
+}
+function docPoolToggle(id, event){
+  if (event) event.stopPropagation();
+  docPoolExpanded[id] = !docPoolExpanded[id];
   renderDocPoolTreeHTML();
 }
 function docPoolBack(){
   let n = docPoolCurrentNode();
-  docPoolSelected = n?.parent || null;
-  renderDocPoolTreeHTML();
+  docPoolOpen(n?.parent || '');
 }
 function docPoolAddDocument(){
   let n = docPoolCurrentNode();
-  if (!n) { alert('Bitte zuerst einen Eintrag auswählen.'); return; }
-  selected = n.id;
-  openDocModal();
+  if (!n) { alert('Bitte links zuerst einen Ort wählen (Gebäude, Etage, Raum oder Anlage).'); return; }
+  openDocModal(n.id);
 }
+function docPoolSetSearch(v){ docPoolSearchText = v || ''; renderDocPoolList(); }
+function docPoolSetIncludeSub(v){ docPoolIncludeSub = !!v; docPoolTypeFilter = ''; renderDocPoolList(); }
+function docPoolSetType(t){ docPoolTypeFilter = docPoolTypeFilter === t ? '' : t; renderDocPoolList(); }
 function docPoolBreadcrumb(n){
-  let parts=[`<button onclick="docPoolOpen('')">Dokumentenpool</button>`];
+  let parts=[`<button onclick="docPoolOpen('')">Alle Dokumente</button>`];
   if(n){
     parts=parts.concat(nodeChain(n.id).map(x=>`<button data-id="${esc(x.id)}" onclick="docPoolOpen(this.dataset.id)">${esc(label(x))}</button>`));
   }
   return parts.join('<span class="separator">&gt;</span>');
 }
-function renderDocPoolCurrent(n, directChildren){
-  if (!$('docPoolCurrent')) return;
-  let directDocs = n ? docPoolDirectDocCount(n.id) : 0;
-  let subtreeDocs = n ? docPoolSubtreeDocCount(n.id) : docPoolSubtreeDocCount('');
-  $('docPoolCurrent').innerHTML = `
-    <div class="docWalkStats">
-      <div class="docWalkStat"><b>${directChildren.length}</b><span>Direkte Untereinträge</span></div>
-      <div class="docWalkStat"><b>${directDocs}</b><span>Direkte Dokumente</span></div>
-      <div class="docWalkStat"><b>${subtreeDocs}</b><span>Dokumente im Teilbaum</span></div>
-    </div>
-  `;
+// Dokumente im aktuellen Bereich (ohne Such- und Typfilter)
+function docPoolScopeDocs(n){
+  if (!n) return state.docs.slice();
+  if (!docPoolIncludeSub) return state.docs.filter(d => d.parent === n.id);
+  let ids = descendants(n.id);
+  return state.docs.filter(d => ids.has(d.parent));
 }
-function renderDocPoolDocs(n){
+function docPoolMatches(d, q){
+  if (!q) return true;
+  return [d.title, d.type, d.folder, d.tags, d.fileName, d.note, d.parent ? path(d.parent) : '']
+    .some(v => String(v || '').toLowerCase().includes(q));
+}
+function docFileKind(d){
+  let ext = String(d.fileName || '').split('.').pop().toLowerCase(), mime = String(d.contentType || '');
+  if (!d.blobKey) return ['none', 'Info'];
+  if (ext === 'pdf' || mime === 'application/pdf') return ['pdf', 'PDF'];
+  if (/^(doc|docx|odt|rtf)$/.test(ext)) return ['word', 'DOC'];
+  if (/^(xls|xlsx|ods|csv)$/.test(ext)) return ['excel', 'XLS'];
+  if (/^(png|jpg|jpeg|gif|webp|bmp|tif|tiff|heic)$/.test(ext) || mime.startsWith('image/')) return ['image', 'Bild'];
+  return ['other', 'Datei'];
+}
+function docPoolRow(d, n){
+  let [kind, kindLabel] = docFileKind(d);
+  let showPath = !n || d.parent !== n.id;
+  let meta = [d.type, d.folder, d.fileName].filter(Boolean).map(esc).join(' · ');
+  let open = d.blobKey ? `<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" rel="noopener" style="text-decoration:none;">Öffnen</a>` : '';
+  let place = d.parent && node(d.parent) ? `<button class="btn small secondary" onclick="docPoolOpen('${escJsArg(d.parent)}')">Zum Ort</button>` : '';
+  return `<div class="docxRow">
+    <span class="docxKind ${kind}" title="${kind === 'none' ? 'Eintrag ohne Datei' : esc(d.fileName || '')}">${kindLabel}</span>
+    <div class="docxIdent"><strong>${esc(d.title)}</strong><span>${meta || 'ohne Angaben'}</span>${showPath ? `<span class="docxPath">${d.parent && node(d.parent) ? esc(path(d.parent)) : 'Ohne Zuordnung'}</span>` : ''}</div>
+    <div class="docxRowActions">${open}${place}</div>
+  </div>`;
+}
+function docPoolTreeRows(parentId, depth){
+  return children(parentId).map(c => {
+    let kids = children(c.id);
+    let open = !!docPoolExpanded[c.id];
+    let active = docPoolSelected === c.id;
+    let count = docPoolSubtreeDocCount(c.id);
+    let caret = kids.length
+      ? `<button type="button" class="docxCaret" aria-label="${open ? 'Zuklappen' : 'Aufklappen'} ${esc(label(c))}" aria-expanded="${open}" onclick="docPoolToggle('${escJsArg(c.id)}', event)">${open ? '▾' : '▸'}</button>`
+      : '<span class="docxCaret"></span>';
+    return `<div class="docxTreeLine" style="padding-left:${6 + depth * 14}px">${caret}<button type="button" class="docxNode ${active ? 'active' : ''}" aria-pressed="${active}" onclick="docPoolOpen('${escJsArg(c.id)}')"><span class="docxNodeLabel"><span>${esc(label(c))}</span><small>${esc(normalizedType(c))}</small></span><span class="docxCount${count ? '' : ' zero'}">${count}</span></button></div>`
+      + (open && kids.length ? docPoolTreeRows(c.id, depth + 1) : '');
+  }).join('');
+}
+function renderDocPoolList(){
   if (!$('docPoolDocs')) return;
-  if (!n) {
-    $('docPoolDocs').innerHTML = '';
-    return;
-  }
-  let docs = state.docs.filter(d => d.parent === n.id);
-  $('docPoolDocs').innerHTML = `
-    <div class="docWalkDocsHead">
-      <h3 style="margin:0">Dokumente an diesem Eintrag</h3>
-      <button class="btn small" onclick="docPoolAddDocument()">+ Dokument</button>
-    </div>
-    <div class="list">${docs.map(listDoc).join('') || '<p class="smallText">Keine direkten Dokumente an diesem Eintrag.</p>'}</div>
-  `;
+  let n = docPoolCurrentNode();
+  let q = docPoolSearchText.trim().toLowerCase();
+  let scope = docPoolScopeDocs(n).filter(d => docPoolMatches(d, q));
+  let types = Object.create(null);
+  scope.forEach(d => { let t = d.type || 'Ohne Typ'; types[t] = (types[t] || 0) + 1; });
+  if (docPoolTypeFilter && !types[docPoolTypeFilter]) docPoolTypeFilter = '';
+  let typeNames = Object.keys(types).sort((a, b) => a.localeCompare(b, 'de-CH'));
+  $('docPoolTypes').innerHTML = typeNames.length > 1
+    ? `<button type="button" class="tab ${docPoolTypeFilter ? '' : 'active'}" onclick="docPoolSetType('')">Alle <span class="docxTypeCount">${scope.length}</span></button>` + typeNames.map(t => { let c = types[t]; return `<button type="button" class="tab ${docPoolTypeFilter === t ? 'active' : ''}" data-type="${esc(t)}" onclick="docPoolSetType(this.dataset.type)">${esc(t)} <span class="docxTypeCount">${c}</span></button>`; }).join('')
+    : '';
+  let rows = docPoolTypeFilter ? scope.filter(d => (d.type || 'Ohne Typ') === docPoolTypeFilter) : scope;
+  rows = rows.slice().sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'de-CH', { numeric: true, sensitivity: 'base' }));
+  let empty = q
+    ? 'Keine passenden Dokumente. Suchbegriff anpassen.'
+    : n ? (docPoolIncludeSub ? 'Noch keine Dokumente an diesem Ort. Mit „+ Dokument hochladen“ hier ablegen.' : 'Keine direkten Dokumente an diesem Ort. „inkl. Unterebenen“ zeigt auch Dokumente darunter.') : 'Noch keine Dokumente vorhanden. Links einen Ort wählen und ein Dokument hochladen.';
+  $('docPoolDocs').innerHTML = `<div class="docxListHead">${rows.length} Dokument${rows.length === 1 ? '' : 'e'}</div>` + (rows.map(d => docPoolRow(d, n)).join('') || `<div class="docWalkEmpty">${empty}</div>`);
 }
 function renderDocPoolTreeHTML() {
   if (!$('docPoolTree')) return;
   let n = docPoolCurrentNode();
-  let currentId = n ? n.id : '';
-  let direct = children(currentId);
-  // At the top level the page title already says "Dokumentenpool"; show name and path only inside the tree.
-  if ($('docPoolWalkTitle')) { $('docPoolWalkTitle').textContent = n ? label(n) : ''; $('docPoolWalkTitle').hidden = !n; }
+  if ($('docPoolSearch') && $('docPoolSearch').value !== docPoolSearchText) $('docPoolSearch').value = docPoolSearchText;
+  if ($('docPoolIncludeSub')) $('docPoolIncludeSub').checked = docPoolIncludeSub;
+  if ($('docPoolWalkTitle')) $('docPoolWalkTitle').textContent = n ? label(n) : 'Alle Dokumente';
   if ($('docPoolBreadcrumb')) { $('docPoolBreadcrumb').innerHTML = n ? docPoolBreadcrumb(n) : ''; $('docPoolBreadcrumb').hidden = !n; }
-  if ($('docPoolHelp')) $('docPoolHelp').textContent = n ? `${normalizedType(n)} · ${direct.length} direkte Untereinträge` : 'Standort auswählen und Schritt für Schritt durch Objekt, Etage, Raum, Anlage und Bauteil gehen.';
-  if ($('docPoolActions')) $('docPoolActions').innerHTML = n ? `<button class="btn secondary" onclick="docPoolBack()">← Zurück</button><button class="btn" onclick="docPoolAddDocument()">+ Dokument</button>` : '';
-  renderDocPoolCurrent(n, direct);
-  renderDocPoolDocs(n);
-  if (!direct.length && !n && !state.nodes.length) {
-    $('docPoolTree').innerHTML = `<div class="docWalkEmpty">Es sind noch keine FM-Struktur-Einträge vorhanden. Der Dokumentenpool spiegelt automatisch die Einträge aus Struktur / Navigator.</div>`;
-    return;
-  }
-  let cards = direct.map(c => {
-    let directDocs = docPoolDirectDocCount(c.id);
-    let subtreeDocs = docPoolSubtreeDocCount(c.id);
-    let childCount = children(c.id).length;
-    return `<div class="walkCard" role="button" tabindex="0" data-id="${esc(c.id)}" onclick="docPoolOpen(this.dataset.id)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();docPoolOpen(this.dataset.id)}">
-      <span class="walkCardHead"><span class="walkCardTitle"><span class="walkType">${esc(normalizedType(c))}</span><strong>${esc(label(c))}</strong>${codeLine(c)}</span></span>
-      <span class="walkStats"><span><b>${childCount}</b>Untereinträge</span><span><b>${directDocs}</b>Dokumente direkt</span><span><b>${subtreeDocs}</b>im Teilbaum</span></span>
-      <span class="walkCardActions" onclick="event.stopPropagation()">
-        <button class="btn small secondary" onclick="openEntry('${esc(c.id)}')">Zum Navigator</button>
-        <button class="btn small" onclick="docPoolOpen('${esc(c.id)}')">Öffnen</button>
-      </span>
-    </div>`;
-  }).join('');
-  $('docPoolTree').innerHTML = cards || `<div class="docWalkEmpty">Keine Untereinträge an dieser Stelle. Direkte Dokumente erscheinen unten.</div>`;
+  if ($('docPoolHelp')) $('docPoolHelp').textContent = n
+    ? `${normalizedType(n)}${displayCode(n) ? ' · ' + displayCode(n) : ''} · ${docPoolDirectDocCount(n.id)} direkt · ${docPoolSubtreeDocCount(n.id)} mit Unterebenen`
+    : 'Links einen Ort wählen, um seine Dokumente zu sehen und neue Dateien dort abzulegen.';
+  if ($('docPoolActions')) $('docPoolActions').innerHTML = n
+    ? `<button class="btn secondary" onclick="docPoolBack()">← Eine Ebene höher</button><button class="btn" onclick="docPoolAddDocument()">+ Dokument hochladen</button>`
+    : `<span class="smallText">Zum Hochladen links einen Ort wählen.</span>`;
+  $('docPoolTree').innerHTML = state.nodes.length
+    ? `<button type="button" class="docxNode ${n ? '' : 'active'}" aria-pressed="${!n}" onclick="docPoolOpen('')"><span class="docxCaret"></span><span class="docxNodeLabel"><span>Alle Dokumente</span></span><span class="docxCount">${state.docs.length}</span></button>` + docPoolTreeRows('', 0)
+    : '<div class="docWalkEmpty">Noch keine FM-Struktur vorhanden. Standorte, Gebäude und Räume zuerst im Objekt-Rundgang anlegen.</div>';
+  renderDocPoolList();
 }
 
+// Globale Suche ist jetzt Teil der Ansicht (oben rechts); bleibt als Alias für bestehende Aufrufe.
 function renderDocPoolFlat() {
-  if (!$('docPoolFlat')) return;
-  let q = ($('docPoolSearch').value || '').trim().toLowerCase();
-  let docs = state.docs;
-  if (q) {
-    docs = docs.filter(d => 
-      d.title.toLowerCase().includes(q) || 
-      d.type.toLowerCase().includes(q) || 
-      (d.folder || '').toLowerCase().includes(q) || 
-      (d.tags || '').toLowerCase().includes(q) ||
-      (d.parent ? path(d.parent) : '').toLowerCase().includes(q)
-    );
-  }
-  
-  $('docPoolFlat').innerHTML = docs.map(listDoc).join('') || '<p class="smallText">Keine Dokumente gefunden.</p>';
+  renderDocPoolTreeHTML();
 }
 
 function toggleCalendarFilter(filterKey) {
@@ -2592,78 +2731,58 @@ function toggleQuarterMonth(monthName) {
   renderCalendar();
 }
 
-function hasShiftInPeriod(empId, shiftType) {
-  const shifts = state.shifts || [];
-  const year = currentCalendarDate.getFullYear();
-  const month = currentCalendarDate.getMonth();
+function planningWeekStart(date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+  return start;
+}
 
-  if (currentCalendarView === 'week') {
-    const weekDates = calendarViewDays().map(toLocalDateString);
-    return shifts.some(s => s.employeeId === empId && weekDates.includes(s.date) && s.shiftType === shiftType);
+function planningPeriod(date = currentCalendarDate, view = currentCalendarView) {
+  const year = date.getFullYear(), month = date.getMonth();
+  let start, end;
+  if (view === 'week') {
+    start = planningWeekStart(date);
+    end = new Date(start); end.setDate(end.getDate() + 6);
+  } else if (view === 'month') {
+    start = new Date(year, month, 1); end = new Date(year, month + 1, 0);
+  } else if (view === 'quarter') {
+    const firstMonth = Math.floor(month / 3) * 3;
+    start = new Date(year, firstMonth, 1); end = new Date(year, firstMonth + 3, 0);
+  } else {
+    start = new Date(year, 0, 1); end = new Date(year, 11, 31);
   }
-  if (currentCalendarView === 'month') {
-    const numDays = new Date(year, month + 1, 0).getDate();
-    for (let d = 1; d <= numDays; d++) {
-      const dStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      if (shifts.some(s => s.employeeId === empId && s.date === dStr && s.shiftType === shiftType)) {
-        return true;
-      }
-    }
-  } else if (currentCalendarView === 'quarter') {
-    const q = Math.floor(month / 3);
-    const startM = q * 3;
-    for (let m = 0; m < 3; m++) {
-      const curM = startM + m;
-      const numDaysInM = new Date(year, curM + 1, 0).getDate();
-      for (let d = 1; d <= numDaysInM; d++) {
-        const dStr = `${year}-${String(curM+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        if (shifts.some(s => s.employeeId === empId && s.date === dStr && s.shiftType === shiftType)) {
-          return true;
-        }
-      }
-    }
-  } else if (currentCalendarView === 'year') {
-    return shifts.some(s => s.employeeId === empId && s.date.startsWith(`${year}-`) && s.shiftType === shiftType);
+  return { start: toLocalDateString(start), end: toLocalDateString(end) };
+}
+
+function planningDates(start, end, skipNonWorkdays = false) {
+  // Calendar dates stay local across daylight-saving and year boundaries.
+  const parse = value => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const [y, m, d] = value.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return toLocalDateString(date) === value ? date : null;
+  };
+  const first = parse(start), last = parse(end);
+  if (!first || !last || start > end) return [];
+  const dates = [];
+  let dayCount = 0;
+  for (const day = new Date(first); day <= last; day.setDate(day.getDate() + 1)) {
+    if (dayCount++ >= 366) return [];
+    const dateStr = toLocalDateString(day);
+    if (skipNonWorkdays && (day.getDay() === 0 || day.getDay() === 6 || getStGallenHolidays(day.getFullYear())[dateStr])) continue;
+    dates.push(dateStr);
   }
-  return false;
+  return dates;
+}
+
+function hasShiftInPeriod(empId, shiftType) {
+  const { start, end } = planningPeriod();
+  return (state.shifts || []).some(s => s.employeeId === empId && s.date >= start && s.date <= end && s.shiftType === shiftType);
 }
 
 function hasTaskInPeriod(empId) {
-  const shifts = state.shifts || [];
-  const year = currentCalendarDate.getFullYear();
-  const month = currentCalendarDate.getMonth();
-
-  const isTask = s => s.taskAssignment && s.taskAssignment !== '-' && s.taskAssignment.trim() !== '';
-
-  if (currentCalendarView === 'week') {
-    const weekDates = calendarViewDays().map(toLocalDateString);
-    return shifts.some(s => s.employeeId === empId && weekDates.includes(s.date) && isTask(s));
-  }
-  if (currentCalendarView === 'month') {
-    const numDays = new Date(year, month + 1, 0).getDate();
-    for (let d = 1; d <= numDays; d++) {
-      const dStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      if (shifts.some(s => s.employeeId === empId && s.date === dStr && isTask(s))) {
-        return true;
-      }
-    }
-  } else if (currentCalendarView === 'quarter') {
-    const q = Math.floor(month / 3);
-    const startM = q * 3;
-    for (let m = 0; m < 3; m++) {
-      const curM = startM + m;
-      const numDaysInM = new Date(year, curM + 1, 0).getDate();
-      for (let d = 1; d <= numDaysInM; d++) {
-        const dStr = `${year}-${String(curM+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        if (shifts.some(s => s.employeeId === empId && s.date === dStr && isTask(s))) {
-          return true;
-        }
-      }
-    }
-  } else if (currentCalendarView === 'year') {
-    return shifts.some(s => s.employeeId === empId && s.date.startsWith(`${year}-`) && isTask(s));
-  }
-  return false;
+  const { start, end } = planningPeriod();
+  return (state.tickets||[]).some(t=>workOrderEmployeeIds(t).includes(empId)&&t.due>=start&&t.due<=end) || (state.shifts || []).some(s => s.employeeId === empId && s.date >= start && s.date <= end && s.taskAssignment && s.taskAssignment !== '-' && s.taskAssignment.trim());
 }
 
 function updateFilterButtons() {
@@ -2918,21 +3037,23 @@ function clearTreeSearch() {
   if (input) input.value = '';
   render();
 }
-async function loadState(){try{clearStartupNotice();state=await loadApiWithRetry();state.floorRecords=state.floorRecords||[];state.roomRecords=state.roomRecords||[];let targetId=fieldEntryNodeId();if(targetId&&state.nodes.some(n=>n.id===targetId)){selected=targetId;if(isFieldDevice()&&supportsQrNode(state.nodes.find(n=>n.id===targetId))){location.replace(fieldModeUrl(targetId));return;}}autoExpandTopLevels();render()}catch(e){if(e.sessionExpired)return;showStartupNotice('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}async function save(){
+async function loadState(){try{clearStartupNotice();state=await loadApiWithRetry();state.floorRecords=state.floorRecords||[];state.roomRecords=state.roomRecords||[];let targetId=fieldEntryNodeId();if(targetId&&state.nodes.some(n=>n.id===targetId)){selected=targetId;if(isFieldDevice()&&supportsQrNode(state.nodes.find(n=>n.id===targetId))){location.replace(fieldModeUrl(targetId));return;}}autoExpandTopLevels();render();if(new URLSearchParams(location.search).get('section')==='mitarbeiter')activate('mitarbeiter','Arbeitsplanung')}catch(e){if(e.sessionExpired)return;showStartupNotice('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}async function save(){
   try{
     if(!syncedState)throw new Error('Noch keine Daten geladen');
     let changes=pendingChanges();
     if(Object.keys(changes).length)state=await api('PATCH',{action:'batch',changes});
     render();
+    return true;
   }catch(e){
-    if(e.sessionExpired)return;
+    if(e.sessionExpired)return false;
     if(e.status===403||e.status===409){
       // Not allowed: show the message and go back to what is actually stored.
       alert(e.serverMessage||'Keine Berechtigung für diese Änderung.');
       if(syncedState){state=JSON.parse(JSON.stringify(syncedState));render()}
-      return;
+      return false;
     }
     alert(e.serverMessage&&e.status===400?`Daten konnten nicht gespeichert werden: ${e.serverMessage}`:'Daten konnten nicht gespeichert werden.');
+    return false;
   }
 }function node(id){return state.nodes.find(n=>n.id===id)}function childSortValue(n,idx){return Number.isFinite(Number(n?.sortOrder))?Number(n.sortOrder):idx}function children(id){return state.nodes.filter(n=>(n.parent||'')===(id||'')).sort((a,b)=>childSortValue(a,state.nodes.indexOf(a))-childSortValue(b,state.nodes.indexOf(b))||state.nodes.indexOf(a)-state.nodes.indexOf(b))}function label(n){return n?.name||''}function displayCode(n){return n?.objectCode||n?.code||''}function codeLine(n){let parts=[];if(n?.objectCode)parts.push('FM-Code '+esc(n.objectCode));if(n?.code)parts.push('ID '+esc(n.code));return parts.length?`<span class="systemCode">${parts.join(' · ')}</span>`:''}function nodeChain(id){let a=[],n=node(id);while(n){a.unshift(n);n=node(n.parent)}return a}function path(id){return nodeChain(id).map(label).join(' → ')}function descendants(id){let s=new Set();function walk(x){if(!x)return;s.add(x);children(x).forEach(c=>walk(c.id))}walk(id);return s}
 const branchAccents=[
@@ -3141,7 +3262,8 @@ function quickActionsFor(parentId='', opts={}){
     actions.push(hierarchyAction('Standort hinzufügen','master','add',`openNodeModal('Standort','',true)`,'Standort'));
   }else if(isAssetNode(n)){
     actions.push(hierarchyAction('Anlagen-Stammdaten','master','master',`openAnlageModal('${parentId}')`,'Stammdaten'));
-    actions.push(hierarchyAction('Ticket erstellen','ticket','ticket',`openTicketFor('${parentId}')`,'Ticket'));
+    actions.push(hierarchyAction('+ Kontrollticket','ticket','ticket',`openNewInspection('${parentId}')`,'Kontrollticket'));
+    actions.push(hierarchyAction('+ Arbeitsauftrag','ticket','ticket',`openTicketFor('${parentId}')`,'Arbeitsauftrag'));
     if(supportsQrNode(n))actions.push(hierarchyAction('QR-Code','qr','qr',`openQrModal('${parentId}')`,'QR'));
     actions.push(hierarchyAction('Komponente / Dokument hinzufügen','master','add',`openNodeModal('','${parentId}',true)`,'Element'));
   }else if(normalizedType(n)==='Raum / Bereich'){
@@ -3746,7 +3868,35 @@ function editSelected(id){
 }
 function editContext(){ editSelected(selected); }
 function suggestType(parentId=selected){let n=node(parentId);if(!n)return 'Standort';let t=normalizedType(n);if(t==='Standort')return 'Objekt / Gebäude';if(t==='Objekt / Gebäude')return 'Etage';if(t==='Etage')return 'Raum / Bereich';if(t==='Raum / Bereich')return 'Anlage';if(isAssetNode(t))return 'Ticket';if(t==='Baugruppe')return 'Komponente';return 'Unterordner'}
-function saveNode(){let id=$('nodeEditId').value;let parentVal=$('nodeParent').value;let type=$('nodeType').value;if(!id&&!allowedAddTypes(parentVal).includes(type)){alert('Dieser Eintragstyp ist an dieser Stelle nicht erlaubt.');return;}if(!id&&['Dokument','Ticket','Foto'].includes(type)){selected=parentVal;closeModals();type==='Dokument'?openDocModal():type==='Ticket'?openTicketModal():openPhotoModal();return;}if(id&&parentVal===id){alert('Eintrag kann nicht sein eigener Parent sein.');return;}let old=id?node(id):null;let auto=$('nodeAutoObjectCode').checked;let obj={...(old||{}),id:id||uid(),parent:parentVal,type:type,name:$('nodeName').value.trim(),code:$('nodeCode').value.trim(),objectCode:auto?'':$('nodeObjectCode').value.trim().toUpperCase(),autoObjectCode:auto,notes:id?(old?.notes||''):''};if(isAssetNode(obj))obj.anlage=obj.anlage||{typ:'',hersteller:'',model:'',serial:'',baujahr:'',lieferant:'',kontakt:'',vertragNr:'',standort:path(parentVal),dokumente:'',annex:'',intervall:'',letzte:'',naechste:'',garantieBis:'',note:'',ignoredWarnings:[]};if(!obj.name){alert('Bitte Name eingeben.');return}if(id&&parentVal&&descendants(id).has(parentVal)){alert('Eintrag kann nicht unter seine eigenen Einträge verschoben werden.');return}let i=state.nodes.findIndex(n=>n.id===id);if(i>-1){state.nodes[i]=obj;selected=obj.id;}else{state.nodes.push(obj);selected=parentVal||null;}save();closeModals()}
+function saveNode(){let id=$('nodeEditId').value;let parentVal=$('nodeParent').value;let type=$('nodeType').value;if(!id&&!allowedAddTypes(parentVal).includes(type)){alert('Dieser Eintragstyp ist an dieser Stelle nicht erlaubt.');return;}if(!id&&['Dokument','Ticket','Foto'].includes(type)){selected=parentVal;closeModals();type==='Dokument'?openDocModal():type==='Ticket'?openTicketModal():openPhotoModal();return;}if(id&&parentVal===id){alert('Eintrag kann nicht sein eigener Parent sein.');return;}let old=id?node(id):null;let auto=$('nodeAutoObjectCode').checked;let obj={...(old||{}),id:id||uid(),parent:parentVal,type:type,name:$('nodeName').value.trim(),code:$('nodeCode').value.trim(),objectCode:auto?'':$('nodeObjectCode').value.trim().toUpperCase(),autoObjectCode:auto,notes:id?(old?.notes||''):''};if(isAssetNode(obj))obj.anlage=obj.anlage||{typ:'',hersteller:'',model:'',serial:'',baujahr:'',lieferant:'',kontakt:'',vertragNr:'',standort:path(parentVal),dokumente:'',annex:'',intervall:'',letzte:'',naechste:'',garantieBis:'',note:'',ignoredWarnings:[]};if(!obj.name){alert('Bitte Name eingeben.');return}if(id&&parentVal&&descendants(id).has(parentVal)){alert('Eintrag kann nicht unter seine eigenen Einträge verschoben werden.');return}let i=state.nodes.findIndex(n=>n.id===id);if(i<0&&normalizedType(obj)==='Raum / Bereich')return saveNewRoom(obj);if(i>-1){state.nodes[i]=obj;selected=obj.id;}else{state.nodes.push(obj);selected=parentVal||null;}save();closeModals()}
+
+let roomSaveInFlight = false;
+async function saveNewRoom(room) {
+  if (roomSaveInFlight) return;
+  roomSaveInFlight = true;
+  const button = $('nodeSaveBtn');
+  button.disabled = true;
+  button.textContent = 'Wird gespeichert…';
+  state.nodes.push(room);
+  let saved = false;
+  try {
+    saved = await save();
+  } finally {
+    roomSaveInFlight = false;
+    button.disabled = false;
+    button.textContent = 'Speichern';
+  }
+  if (!saved || !node(room.id)) {
+    state.nodes = state.nodes.filter(n => n.id !== room.id);
+    render();
+    return;
+  }
+  closeModals();
+  pushNavigationState();
+  selected = room.id;
+  render();
+  openQrModal(room.id, {created:true});
+}
 async function persistSiblingOrder(parentId,orderedIds){
   let siblingSet=new Set(children(parentId).map(n=>n.id));
   if(orderedIds.length!==siblingSet.size||orderedIds.some(id=>!siblingSet.has(id))){alert('Sortierung kann nur innerhalb derselben Ebene geändert werden.');return false}
@@ -3882,7 +4032,7 @@ function renderAnlageRelated(id){
     let hint='<p class="smallText">Zuerst die Anlage speichern, danach lassen sich Dokumente und Arbeitsaufträge zuordnen.</p>';
     $('anlageDocsPanel').innerHTML=hint;$('anlageTicketsPanel').innerHTML=hint;return;
   }
-  $('anlageDocsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Bedienungsanleitungen, Prüfberichte, Zertifikate und Pläne dieser Anlage.</span><button class="btn small" onclick="closeModals();openDocFor('${escJsArg(id)}')">+ Dokument hochladen</button></div>`+(docs.map(listDoc).join('')||'<p class="smallText">Noch keine Dokumente.</p>');
+  $('anlageDocsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Bedienungsanleitungen, Prüfberichte, Zertifikate und Pläne dieser Anlage.</span><button class="btn small" onclick="openDocFor('${escJsArg(id)}')">+ Dokument hochladen</button></div>`+(docs.map(listDoc).join('')||'<p class="smallText">Noch keine Dokumente.</p>');
   $('anlageTicketsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Störungen, Reparaturen und Wartungsaufträge dieser Anlage.</span><button class="btn small" onclick="closeModals();openTicketFor('${escJsArg(id)}')">+ Arbeitsauftrag erstellen</button></div>`+(tickets.map(listTicket).join('')||'<p class="smallText">Noch keine Arbeitsaufträge.</p>');
 }
 function updateMaintenancePreview(){
@@ -3935,25 +4085,32 @@ function renderQrPanel(n,labelText='QR-Code führt direkt auf diesen Eintrag.'){
     </div>
   `;
 }
-function renderQrModalPanel(n){
+function renderQrModalPanel(n,options={}){
   if(!supportsQrNode(n))return '<p class="smallText">Für diesen Eintrag ist kein QR-Code verfügbar.</p>';
   return `
-    <div style="display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start;">
+    ${options.created ? `<p class="smallText" style="margin:0 0 12px"><strong>${esc(n.name)}</strong> wurde gespeichert. Jetzt QR-Code drucken oder die Ausstattung erfassen.</p>` : ''}
+    <div style="display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;align-items:start;">
       <div class="qrBox"><img src="${qrImageUrl(n.id,220)}" alt="QR-Code für ${esc(n.name)}"></div>
       <div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn small secondary" onclick="printNodeQr('${esc(n.id)}')">QR-Code drucken</button>
+          <button class="${options.created ? 'btn' : 'btn small secondary'}" onclick="printNodeQr('${escJsArg(n.id)}')">QR-Code drucken</button>
           <a class="btn small secondary" href="${qrImageUrl(n.id,520)}" download="${esc(qrDownloadName(n))}" style="text-decoration:none;">QR-Code exportieren</a>
         </div>
         ${renderQrDetails(n)}
+        ${options.created ? `<p class="smallText" style="overflow-wrap:anywhere">QR-Ziel: ${esc(qrTargetPageUrl(n.id))}</p>
+          ${['localhost','127.0.0.1','[::1]'].includes(location.hostname) ? '<p class="smallText">Lokale Vorschau: Für die Nutzung im Gebäude den Raum im veröffentlichten System anlegen und den QR-Code dort drucken.</p>' : ''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+            <button class="btn secondary" onclick="closeModals();openAnlageModal('','${escJsArg(n.id)}')">+ Anlage erfassen</button>
+            <button class="btn secondary" onclick="closeModals()">Später</button>
+          </div>` : ''}
       </div>
     </div>
   `;
 }
-function openQrModal(id=selected){
+function openQrModal(id=selected,options={}){
   let n=node(id);
   if(!supportsQrNode(n)){alert('Für diesen Eintrag ist kein QR-Code verfügbar.');return;}
-  $('qrModalBody').innerHTML=renderQrModalPanel(n);
+  $('qrModalBody').innerHTML=renderQrModalPanel(n,options);
   $('qrModal').style.display='flex';
 }
 function buildServiceRequestText(n){
@@ -4005,6 +4162,7 @@ function openAnlageModal(id='', parentOverride=''){
     return;
   }
   $('anlageEditId').value=id||'';
+  $('anlageInspectionBtn').hidden=!id;
   $('anlagePath').textContent='Zugeordnet zu: '+(parentId?path(parentId):'');
   $('anlageCode').value=n?.code||'';
   $('anlageFmCodePreview').textContent=displayCode(n)||'wird beim Speichern automatisch erzeugt';
@@ -4114,8 +4272,7 @@ function deleteCurrentAnlage(){
   deleteNodeById(id);
 }
 function openDocFor(id){
-  selected=id;
-  openDocModal();
+  openDocModal(id);
 }
 function openTicketFor(id, kind=''){
   selected=id;
@@ -4125,7 +4282,25 @@ function openTicketFor(id, kind=''){
 let uploadDocBase64 = null;
 let uploadDocContentType = '';
 let uploadDocFileName = '';
-function openDocModal(){if(!selected){alert('Bitte zuerst einen Eintrag auswählen.');return}let n=node(selected);$('docPath').textContent='Zugeordnet zu: '+path(selected);$('docTitle').value='';$('docFolder').value='';$('docTags').value='';$('docNote').value='';$('docFileInput').value='';$('docFileHint').textContent='PDF, Bild oder Office-Datei auswählen.';uploadDocBase64=null;uploadDocContentType='';uploadDocFileName='';$('docType').value=isAssetNode(n)?'Bedienungsanleitung':'Sonstiges Dokument';$('docFolder').placeholder=isAssetNode(n)?'Dokumenttyp/Kategorie, keine Unterordner-Struktur':'Kategorie optional';$('docModal').style.display='flex'}
+let documentParentId = '';
+let documentReturnAnlage = '';
+function openDocModal(parentId=selected){
+  let n=node(parentId);if(!n){alert('Bitte zuerst einen Eintrag auswählen.');return;}
+  documentParentId=parentId;
+  documentReturnAnlage=$('anlageModal').style.display==='flex'?$('anlageEditId').value:'';
+  if(documentReturnAnlage)$('anlageModal').style.display='none';
+  $('docPath').textContent='Zugeordnet zu: '+path(parentId);$('docTitle').value='';$('docFolder').value='';$('docTags').value='';$('docNote').value='';$('docFileInput').value='';$('docFileHint').textContent='PDF, Bild oder Office-Datei auswählen.';
+  uploadDocBase64=null;uploadDocContentType='';uploadDocFileName='';
+  $('docType').value=isAssetNode(n)?'Bedienungsanleitung':'Sonstiges Dokument';$('docFolder').placeholder=isAssetNode(n)?'Dokumenttyp/Kategorie, keine Unterordner-Struktur':'Kategorie optional';$('docModal').style.display='flex';
+}
+function closeDocumentModal(){
+  $('docModal').style.display='none';
+  const returnId=documentReturnAnlage;documentReturnAnlage='';documentParentId='';
+  if(returnId && node(returnId)){
+    renderAnlageRelated(returnId);
+    $('anlageModal').style.display='flex';
+  }
+}
 function previewDocumentFile(e){
   let file=e.target.files[0];
   uploadDocBase64=null; uploadDocContentType=''; uploadDocFileName='';
@@ -4143,7 +4318,7 @@ async function saveDocument(){
   if(!title){alert('Bitte Dokumentname eingeben.');return;}
   if($('docFileInput').files[0] && !uploadDocBase64){alert('Datei wird noch gelesen. Bitte erneut speichern.');return;}
   let id=uid();
-  let item={id,parent:selected,type:$('docType').value,title,folder:$('docFolder').value,tags:$('docTags').value,note:$('docNote').value};
+  let item={id,parent:documentParentId,type:$('docType').value,title,folder:$('docFolder').value,tags:$('docTags').value,note:$('docNote').value};
   if(uploadDocBase64){
     item.blobKey=`documents/${id}/${uploadDocFileName||'upload'}`;
     item.contentType=uploadDocContentType||'application/octet-stream';
@@ -4152,7 +4327,7 @@ async function saveDocument(){
   }
   try{
     state=await api('PATCH',{collection:'docs',item});
-    render(); closeModals();
+    render(); closeDocumentModal();
   }catch(e){alert('Dokument konnte nicht hochgeladen werden.');}
 }
 function updateTicketTypeFields(){
@@ -4176,83 +4351,8 @@ function updateTicketTypeFields(){
     'Sonstiges':'Beschreibung'
   }[type]||'Beschreibung';
 }
-function openTicketModal(kind=''){
-  if(!selected){alert('Bitte zuerst einen Eintrag auswählen.');return}
-  let n=node(selected),a=n?.anlage||{};
-  $('ticketPath').textContent='Zugeordnet zu: '+path(selected);
-  $('ticketTitle').value='';
-  $('ticketResp').value='';
-  $('ticketDue').value='';
-  $('ticketText').value='';
-  $('ticketMeasure').value='';
-  $('ticketCloseNote').value='';
-  $('ticketClosedAt').value='';
-  if($('ticketExecutionBy'))$('ticketExecutionBy').value='Intern (Hausdienst / FM)';
-  if($('ticketCostChf'))$('ticketCostChf').value='';
-  if($('ticketInvoiceReceived'))$('ticketInvoiceReceived').value='';
-  if($('ticketDeliveryNoteReceived'))$('ticketDeliveryNoteReceived').value='';
-  $('ticketIntervalType').value='';
-  $('ticketInterval').value='';
-  if($('ticketPart'))$('ticketPart').value='';
-  if($('ticketQuantity'))$('ticketQuantity').value='';
-  if($('ticketFailureState'))$('ticketFailureState').value='';
-  if(kind==='maintenance'||kind==='wartung'){
-    $('ticketType').value='Wartung / Service';
-    if($('ticketExecutionBy'))$('ticketExecutionBy').value='Extern (Servicefirma)';
-  }else if(kind==='repair'){
-    $('ticketType').value='Störung / Ausfall';
-  }else{
-    $('ticketType').value='';
-  }
-  $('ticketStatus').value='Offen';
-  $('ticketPrio').value='Mittel';
-  if(isAssetNode(n)){
-    if($('ticketType').value==='Wartung / Service'){
-      $('ticketTitle').value='Wartung: '+label(n);
-      $('ticketResp').value=a.lieferant||'';
-      $('ticketDue').value=a.naechste||calculatedNextMaintenance(a.letzte,a.intervall)||'';
-      $('ticketIntervalType').value='Regelmäßige Wartung';
-      $('ticketInterval').value=a.intervall||'';
-      $('ticketText').value=`Aus Anlagen-Stammdaten erzeugt. Letzte Wartung: ${a.letzte||'—'}, nächste Wartung: ${a.naechste||'—'}.`;
-    }else if($('ticketType').value==='Störung / Ausfall'){
-      $('ticketTitle').value='Störung: '+label(n);
-      $('ticketResp').value=a.lieferant||'';
-      $('ticketPrio').value='Hoch';
-    }
-  }
-  updateTicketTypeFields();
-  $('ticketModal').style.display='flex'
-}
-function saveTicket(){
-  let title=$('ticketTitle').value.trim();if(!title)return;
-  if(!$('ticketType').value){alert('Bitte zuerst einen Ticket-Typ wählen.');return;}
-  let wantsClosed=String($('ticketStatus').value)==='Abgeschlossen';
-  if(wantsClosed && !canCloseTicketForParent(selected)){
-    alert('Ticket kann erst abgeschlossen werden, wenn ein Lieferschein oder eine Rechnung an diesem Eintrag hochgeladen wurde.');
-    return;
-  }
-  if(wantsClosed && (!$('ticketCostChf')?.value.trim() || !$('ticketInvoiceReceived')?.value || !$('ticketDeliveryNoteReceived')?.value)){
-    alert('Bitte vor Abschluss Kosten CHF, Rechnung erhalten und Lieferschein erhalten ausfüllen.');
-    return;
-  }
-  let ticketType=$('ticketType').value;
-  let planned=['Wartung / Service','Kontrolle / Prüfung'].includes(ticketType);
-  let spare=ticketType==='Ersatzteil Bestellung';
-  let fault=ticketType==='Störung / Ausfall';
-  let details=[
-    $('ticketText').value,
-    planned&&$('ticketIntervalType').value?`Intervall-/Prüfart: ${$('ticketIntervalType').value}`:'',
-    planned&&$('ticketInterval').value?`Intervall: ${$('ticketInterval').value}`:'',
-    spare&&$('ticketPart')?.value?`Ersatzteil: ${$('ticketPart').value}`:'',
-    spare&&$('ticketQuantity')?.value?`Menge / Spezifikation: ${$('ticketQuantity').value}`:'',
-    fault&&$('ticketFailureState')?.value?`Auswirkung: ${$('ticketFailureState').value}`:'',
-    $('ticketMeasure').value?`Maßnahme: ${$('ticketMeasure').value}`:'',
-    $('ticketClosedAt').value?`Abschlussdatum: ${$('ticketClosedAt').value}`:'',
-    $('ticketCloseNote').value?`Abschlussnotiz: ${$('ticketCloseNote').value}`:''
-  ].filter(Boolean).join('\n');
-  state.tickets.push({id:uid(),parent:selected,type:ticketType,status:$('ticketStatus').value,prio:$('ticketPrio').value,title,resp:$('ticketResp').value,due:$('ticketDue').value,text:details,executionBy:$('ticketExecutionBy')?.value||'',costChf:$('ticketCostChf')?.value||'',invoiceReceived:$('ticketInvoiceReceived')?.value||'',deliveryNoteReceived:$('ticketDeliveryNoteReceived')?.value||'',created:new Date().toLocaleString('de-CH')});
-  save();closeModals()
-}
+function openTicketModal(kind=''){openWorkOrderEditor('',{parentId:selected||'',kind});}
+async function saveTicket(){return saveWorkOrder();}
 function addTemplate(){let name=$('tplName').value.trim();if(!name)return;state.templates.push({id:uid(),type:$('tplType').value,name,text:$('tplText').value});$('tplName').value='';$('tplText').value='';save()}
 function closeModals(){document.querySelectorAll('.modalBack').forEach(m=>m.style.display='none');if($('nodeParent'))$('nodeParent').disabled=false;if($('nodeParentField'))$('nodeParentField').style.display='flex';if($('nodeType'))$('nodeType').disabled=false}
 function documentAllowsTicketClose(d){
@@ -4300,13 +4400,13 @@ function listTicket(t){
   let placeAction=t.parent?`<button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button>`:'';
   return `<div class="ticketCard prio-${prioKey}">
     <div class="ticketMain">
-      <div class="ticketHead"><span class="ticketType">${esc(t.type)}</span><span class="ticketBadge status-${group}">${esc(t.status)}</span><span class="ticketBadge prio-${prioKey}">${esc(t.prio)}</span></div>
+      <div class="ticketHead"><span class="ticketType">${esc(workItemLabel(t))} · ${esc(t.type)}</span><span class="ticketBadge status-${group}">${esc(t.status)}</span><span class="ticketBadge prio-${prioKey}">${esc(t.prio)}</span></div>
       <strong class="ticketTitle">${esc(t.title)}</strong>
       <div class="ticketPath">${pathHtml}</div>
       ${factsHtml?`<div class="ticketFacts">${factsHtml}</div>`:''}
       ${textHtml}${photoHtml}
     </div>
-    <div class="ticketActions">${placeAction}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button>${closeAction}</div>
+    <div class="ticketActions"><button class="btn small" onclick="openWorkOrder('${escJsArg(t.id)}')">Auftrag öffnen</button>${placeAction}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button>${closeAction}</div>
   </div>`;
 }
 function delDoc(id){let d=state.docs.find(x=>x.id===id);let parentId=d?.parent||selected||null;state.docs=state.docs.filter(d=>d.id!==id);selected=parentId;save()}function delTicket(id){let t=state.tickets.find(x=>x.id===id);let parentId=t?.parent||selected||null;state.tickets=state.tickets.filter(t=>t.id!==id);selected=parentId;save()}
@@ -5195,7 +5295,7 @@ function renderAssetSheet(n){
         <div style="border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff;">
           <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
             <div><h3 style="margin:0 0 4px;">Anlagen-Stammdaten</h3><p class="smallText" style="margin:0;">${esc(path(n.id))}</p></div>
-            ${assetActionButton('Anlagen-Stammdaten','master','master',`openAnlageModal('${esc(n.id)}')`)}
+            <div class="workActions" style="margin:0"><button class="btn" onclick="openNewInspection('${escJsArg(n.id)}')">+ Kontrollticket</button>${assetActionButton('Anlagen-Stammdaten','master','master',`openAnlageModal('${esc(n.id)}')`)}</div>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px;">
             <div class="kpi"><b>${missing.length?'Unvollständig':'Vollständig'}</b><span>Stammdaten Status</span></div>
@@ -5581,6 +5681,16 @@ document.addEventListener('click',e=>{if(e.target.closest('#searchResults')&&e.t
 function toggleVacationPanel(force){let p=$('vacationPanel');if(!p)return;let show=typeof force==='boolean'?force:p.hidden;p.hidden=!show;$('vacationToggleBtn')?.classList.toggle('active',show)}
 function setAdminTab(tab){document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===tab));document.querySelectorAll('[data-admin-panel]').forEach(p=>p.classList.toggle('active',p.dataset.adminPanel===tab))}
 function setPiketTab(tab){document.querySelectorAll('[data-piket-tab]').forEach(b=>b.classList.toggle('active',b.dataset.piketTab===tab));document.querySelectorAll('[data-piket-panel]').forEach(p=>p.classList.toggle('active',p.dataset.piketPanel===tab))}
+function openPiketPlanModal(reset=false){
+  if(reset){
+    ['pkStart','pkEnd','pkTime','pkPhone'].forEach(id=>$(id).value='');
+    $('pkHandoverFrom').value='';
+    $('pkStatus').value='Geplant';
+    onPiketDateChange();
+  }
+  $('piketPlanModal').style.display='flex';
+  $('pkName').focus();
+}
 function focusGlobalSearch(){openSearchDialog()}
 // TD-style header: logged-in user, date and open ticket count.
 function renderAppHeader(){
@@ -5593,6 +5703,7 @@ function renderAppHeader(){
 }
 function render(){
   renderAppHeader();
+  renderWorkOrderReminders();
   if($('structureList'))$('structureList').innerHTML=renderStructureList();
   $('cStandort').textContent=countType('Standort');
   $('cGebaeude').textContent=countType('Objekt / Gebäude');
@@ -5604,6 +5715,7 @@ function render(){
   if($('cTicketOpenGlobal'))$('cTicketOpenGlobal').textContent=state.tickets.filter(t=>ticketStatusGroup(t.status)==='open'||ticketStatusGroup(t.status)==='progress').length;
   if($('cTicketClosedGlobal'))$('cTicketClosedGlobal').textContent=state.tickets.filter(t=>ticketStatusGroup(t.status)==='closed').length;
   let n=node(selected);
+  if($('addInspectionBtn'))$('addInspectionBtn').hidden=!n||!isAssetNode(n);
   $('breadcrumb').innerHTML=renderBreadcrumb(n);
   let activeSection=document.querySelector('.main>.section.active')?.id||'uebersicht';
   if($('pageTitle')){
@@ -5748,9 +5860,22 @@ function getStGallenHolidays(year) {
 
 // Calendar View and Navigation Controls
 function setCalendarView(view) {
+  if (!['week','month','quarter','year'].includes(view)) return;
   currentCalendarView = view;
-  if ($('calendarViewSelect')) $('calendarViewSelect').value = view;
+  $('planningViewSelect').value = view;
   renderCalendar();
+}
+
+function showCurrentPlanningWeek() {
+  currentCalendarDate = getTodayDate();
+  setCalendarView('week');
+}
+
+function openPlanningTeam() {
+  activate('admin');
+  setAdminTab('mitarbeiter');
+  render();
+  $('empName')?.focus();
 }
 
 function navigateCalendar(direction) {
@@ -5758,80 +5883,69 @@ function navigateCalendar(direction) {
   if (currentCalendarView === 'week') {
     date.setDate(date.getDate() + direction * 7);
   } else if (currentCalendarView === 'month') {
+    date.setDate(1);
     date.setMonth(date.getMonth() + direction);
   } else if (currentCalendarView === 'quarter') {
+    date.setDate(1);
     date.setMonth(date.getMonth() + (direction * 3));
   } else if (currentCalendarView === 'year') {
+    date.setDate(1);
     date.setFullYear(date.getFullYear() + direction);
   }
   currentCalendarDate = date;
   renderCalendar();
 }
 
-// Tage der angezeigten Woche (Montag bis Sonntag) bzw. des Monats
-function calendarViewDays() {
-  const base = new Date(currentCalendarDate);
-  if (currentCalendarView === 'week') {
-    const monday = new Date(base.getFullYear(), base.getMonth(), base.getDate() - ((base.getDay() + 6) % 7));
-    return Array.from({ length: 7 }, (_, i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
-  }
-  const y = base.getFullYear(), m = base.getMonth(), n = new Date(y, m + 1, 0).getDate();
-  return Array.from({ length: n }, (_, i) => new Date(y, m, i + 1));
-}
-function calendarWeekLabel(days) {
-  const f = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
-  return `KW ${getISOWeekAndYear(days[0]).week} · ${f(days[0])} – ${f(days[6])}${days[6].getFullYear()}`;
+function togglePlanRange() {
+  const isRange = $('planRangeType').value === 'range';
+  $('planDateSingleGroup').style.display = isRange ? 'none' : 'block';
+  $('planDateRangeGroup').style.display = isRange ? 'grid' : 'none';
+  $('planDateSingle').required = !isRange;
+  $('planDateStart').required = $('planDateEnd').required = isRange;
+  $('planRangeHint').hidden = !isRange;
 }
 
-// Von/Bis sind immer sichtbar; ein einzelner Tag ist Von = Bis.
-function togglePlanRange() { updatePlanDayCount(); }
-function isPlanWorkday(dStr) {
-  const d = new Date(dStr + 'T12:00:00');
-  const day = d.getDay();
-  return day !== 0 && day !== 6 && !getStGallenHolidays(d.getFullYear())[dStr];
+function updatePlanningFields() {
+  const working = !['Krank','Ferien Antrag','Ferien genehmigt','Ferien approved'].includes($('planShiftType').value);
+  $('planWorkLocationGroup').style.display = working ? 'block' : 'none';
+  $('planWorkLocation').required = working;
+  $('planTask').required = working;
+  $('planTaskLabel').textContent = working ? 'Aufgabe' : 'Notiz (optional)';
+  $('planTask').placeholder = working ? 'z.B. Lüftung kontrollieren' : 'Optionale Notiz';
 }
-function planDatesInRange(startStr, endStr, skipWeekends) {
-  const out = [];
-  if (!startStr || !endStr || startStr > endStr) return out;
-  const cur = new Date(startStr + 'T12:00:00'), end = new Date(endStr + 'T12:00:00');
-  while (cur <= end) {
-    const dStr = toLocalDateString(cur);
-    if (!skipWeekends || isPlanWorkday(dStr)) out.push(dStr);
-    cur.setDate(cur.getDate() + 1);
-  }
-  return out;
-}
-function syncPlanEnd() {
-  if (!$('planDateEnd').value || $('planDateEnd').value < $('planDateStart').value) $('planDateEnd').value = $('planDateStart').value;
-  updatePlanDayCount();
-}
-function updatePlanDayCount() {
-  const el = $('planDayCount');
-  if (!el) return;
-  const s = $('planDateStart').value, e = $('planDateEnd').value;
-  if (!s || !e) { el.textContent = ''; return; }
-  if (s > e) { el.textContent = 'Bis liegt vor Von.'; return; }
-  const n = planDatesInRange(s, e, s !== e && $('planSkipWeekends').checked).length;
-  el.textContent = n === 1 ? '1 Tag wird geplant' : `${n} Tage werden geplant`;
-}
-function openNewPlanModal() {
-  const emps = operationalEmployees();
-  if (emps.length === 0) { alert("Bitte erfassen Sie zuerst einen Mitarbeiter."); return; }
-  $('planEmpSelectGroup').style.display = 'block';
-  $('planEmpStaticGroup').style.display = 'none';
-  $('planEmpSelect').innerHTML = emps.map(e => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+
+function preparePlanningForm() {
+  $('calendarPlanForm').reset();
+  $('planFormError').hidden = true;
   $('planEditId').value = '';
   $('planEmpId').value = '';
-  const today = toLocalDateString(new Date());
-  $('planDateStart').value = today;
-  $('planDateEnd').value = today;
-  $('planDateSingle').value = today;
-  $('planSkipWeekends').checked = true;
+  $('planSaveBtn').disabled = false;
+  const locations = [...new Set([
+    ...(state.nodes || []).filter(n => ['Standort','Gebäude','Objekt / Gebäude','Etage','Raum / Bereich','Raum / Zone'].includes(n.type)).map(n => path(n.id)),
+    ...(state.shifts || []).map(s => s.workLocation).filter(Boolean)
+  ])];
+  $('planningLocations').innerHTML = locations.map(value => `<option value="${esc(value)}"></option>`).join('');
+}
+
+function openNewWorkPlan(dateStr) {
+  const emps = operationalEmployees();
+  if (!emps.length) { openPlanningTeam(); return; }
+  preparePlanningForm();
+  const { start, end } = planningPeriod();
+  const today = toLocalDateString(getTodayDate());
+  dateStr = dateStr || (today >= start && today <= end ? today : start);
+  $('planModalTitle').textContent = 'Einsatz planen';
+  $('planEmpSelectGroup').style.display = 'block';
+  $('planEmpStaticGroup').style.display = 'none';
+  $('planEmpSelect').innerHTML = '<option value="">Mitarbeiter auswählen</option>' + emps.map(e => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+  $('planEmpSelect').required = true;
+  $('planDateSingle').value = $('planDateStart').value = $('planDateEnd').value = dateStr;
+  $('planRangeType').value = 'single';
   $('planShiftType').value = 'Normaldienst';
-  $('planTask').value = '';
   $('planDeleteBtn').style.display = 'none';
-  updatePlanDayCount();
+  togglePlanRange(); updatePlanningFields();
   $('calendarPlanModal').style.display = 'flex';
+  $('planEmpSelect').focus();
 }
 
 // Interactive cell click: open modal
@@ -5839,6 +5953,9 @@ function openCalendarPlan(empId, dateStr, shiftId = null) {
   const emps = operationalEmployees();
   const emp = emps.find(e => e.id === empId);
   if (!emp) return;
+  preparePlanningForm();
+  $('planModalTitle').textContent = shiftId ? 'Eintrag bearbeiten' : 'Einsatz planen';
+  $('planEmpSelect').required = false;
 
   // Setup modal mode
   $('planEmpSelectGroup').style.display = 'none';
@@ -5860,8 +5977,15 @@ function openCalendarPlan(empId, dateStr, shiftId = null) {
     const shs = state.shifts || [];
     const sh = shs.find(s => s.id === shiftId);
     if (sh) {
-      $('planShiftType').value = sh.shiftType || 'Normaldienst';
+      $('planShiftType').value = sh.shiftType === 'Ferien approved' ? 'Ferien genehmigt' : sh.shiftType || 'Normaldienst';
+      if (!$('planShiftType').value) {
+        const option = document.createElement('option');
+        option.value = option.textContent = sh.shiftType;
+        $('planShiftType').append(option);
+        $('planShiftType').value = sh.shiftType;
+      }
       $('planTask').value = sh.taskAssignment && sh.taskAssignment !== '-' ? sh.taskAssignment : '';
+      $('planWorkLocation').value = sh.workLocation || '';
       $('planDeleteBtn').style.display = 'inline-flex';
     }
   } else {
@@ -5870,8 +5994,7 @@ function openCalendarPlan(empId, dateStr, shiftId = null) {
     $('planDeleteBtn').style.display = 'none';
   }
 
-  $('planSkipWeekends').checked = true;
-  updatePlanDayCount();
+  updatePlanningFields();
   $('calendarPlanModal').style.display = 'flex';
 }
 
@@ -5881,6 +6004,10 @@ function openRequestVacationModal() {
     alert("Bitte erfassen Sie zuerst einen Mitarbeiter.");
     return;
   }
+
+  preparePlanningForm();
+  $('planModalTitle').textContent = 'Ferien beantragen';
+  $('planEmpSelect').required = true;
 
   // Setup modal for a fresh vacation request
   $('planEmpSelectGroup').style.display = 'block';
@@ -5912,46 +6039,57 @@ function openRequestVacationModal() {
   $('planShiftType').value = 'Ferien Antrag';
   $('planTask').value = '';
   $('planDeleteBtn').style.display = 'none';
-  $('planSkipWeekends').checked = true;
-  updatePlanDayCount();
-
+  updatePlanningFields();
   $('calendarPlanModal').style.display = 'flex';
 }
 
-function saveCalendarPlan(e) {
+async function saveCalendarPlan(e) {
   if (e) e.preventDefault();
-  
+  const error = message => { $('planFormError').textContent = message; $('planFormError').hidden = false; };
+  $('planFormError').hidden = true;
   const empId = $('planEmpSelectGroup').style.display === 'block' ? $('planEmpSelect').value : $('planEmpId').value;
-  if (!empId) { alert("Mitarbeiter ungültig."); return; }
+  if (!operationalEmployees().some(emp => emp.id === empId)) { error('Bitte einen Mitarbeiter auswählen.'); return; }
 
+  const rangeType = $('planRangeType').value;
   const shiftType = $('planShiftType').value;
-  const task = $('planTask').value.trim() || '-';
+  const task = $('planTask').value.trim();
+  const workLocation = $('planWorkLocation').value.trim();
   const editId = $('planEditId').value;
-  const startStr = $('planDateStart').value;
-  const endStr = $('planDateEnd').value || startStr;
-  if (!startStr) { alert("Bitte ein Datum wählen."); return; }
-  if (startStr > endStr) { alert("Das Datum 'Bis' darf nicht vor 'Von' liegen."); return; }
-
-  state.shifts = state.shifts || [];
-  const existing = editId ? state.shifts.find(s => s.id === editId) : null;
-
-  if (existing && startStr === endStr && existing.date === startStr) {
-    // Bestehenden Eintrag für diesen Tag ändern
-    existing.shiftType = shiftType;
-    existing.taskAssignment = task;
-  } else {
-    // Ein einzelner Tag wird immer geplant; bei Zeiträumen optional nur Werktage.
-    const skip = startStr !== endStr && $('planSkipWeekends').checked;
-    const dates = planDatesInRange(startStr, endStr, skip);
-    if (!dates.length) { alert("Im gewählten Zeitraum liegt kein Arbeitstag."); return; }
-    dates.forEach(dStr => {
-      state.shifts = state.shifts.filter(s => !(s.employeeId === empId && s.date === dStr));
-      state.shifts.push({ id: uid(), employeeId: empId, date: dStr, shiftType, taskAssignment: task, workload: 'Normal' });
-    });
+  const away = ['Krank','Ferien Antrag','Ferien genehmigt','Ferien approved'].includes(shiftType);
+  if (!away && (!task || !workLocation)) { error('Bitte Arbeitsort und Aufgabe eintragen.'); return; }
+  const start = rangeType === 'single' ? $('planDateSingle').value : $('planDateStart').value;
+  const end = rangeType === 'single' ? start : $('planDateEnd').value;
+  const dates = planningDates(start, end, rangeType === 'range' && start !== end && $('planSkipWeekends').checked);
+  if (!dates.length) { error('Bitte einen gültigen Zeitraum mit mindestens einem Planungstag und höchstens einem Jahr wählen. Prüfen Sie auch die Option für Wochenenden und Feiertage.'); return; }
+  const previous = state.shifts || [];
+  const original = previous.find(s => s.id === editId);
+  if (editId && !original) { error('Dieser Eintrag ist nicht mehr vorhanden. Bitte den Plan neu öffnen.'); return; }
+  const conflict = previous.find(s => s.employeeId === empId && dates.includes(s.date) && s.id !== editId);
+  if (conflict) {
+    error(`Am ${conflict.date.split('-').reverse().join('.')} besteht bereits ein Eintrag für diesen Mitarbeiter. Bitte diesen Eintrag im Wochenplan bearbeiten oder einen anderen Tag wählen.`);
+    return;
   }
-
-  save();
-  closeModals();
+  state.shifts = previous.filter(s => s.id !== editId).concat(dates.map((date, i) => ({
+    ...(original || {}), id: i === 0 && editId ? editId : uid(), employeeId: empId,
+    date, shiftType, taskAssignment: task, workLocation: away ? '' : workLocation,
+    workload: original?.workload || 'Normal'
+  })));
+  $('planSaveBtn').disabled = true;
+  $('planSaveBtn').textContent = 'Wird gespeichert…';
+  try {
+    if (await save()) {
+      const [year, month, day] = start.split('-').map(Number);
+      currentCalendarDate = new Date(year, month - 1, day);
+      clearCalendarFilters();
+      closeModals();
+    } else {
+      state.shifts = previous;
+      error('Der Eintrag wurde nicht gespeichert. Bitte erneut versuchen.');
+    }
+  } finally {
+    $('planSaveBtn').disabled = false;
+    $('planSaveBtn').textContent = 'Speichern';
+  }
 }
 
 function deleteCalendarPlan() {
@@ -6104,24 +6242,51 @@ function renderAdminEmployees() {
   }
 }
 // Render dynamic planning calendar planner table
+function renderWeeklyPlan(emps,shifts){return renderWorkCalendar(emps,shifts,'week');}
+
 function renderCalendar() {
   const container = $('calendarContainer');
   if (!container) return;
 
   container.style.overflowX = currentCalendarView === 'quarter' ? 'hidden' : 'auto';
 
-  const allEmps = operationalEmployees();
+  const allEmps = workCalendarEmployees(operationalEmployees());
   const shifts = state.shifts || [];
   const pikets = state.piket || [];
+  const period = planningPeriod();
+  const weekStart = planningWeekStart(currentCalendarDate);
+  const titles = {week:'Wochenplan',month:'Monatsplan',quarter:'Quartalsplan',year:'Jahresplan'};
+  $('planningViewTitle').textContent = titles[currentCalendarView];
+  $('planningViewSelect').value = currentCalendarView;
+  $('planningWeekBtn').classList.toggle('active', currentCalendarView === 'week');
+  $('planningMonthBtn').classList.toggle('active', currentCalendarView === 'month');
+  $('planningLegend').style.display = currentCalendarView === 'week' ? 'none' : 'flex';
+  $('planningOptions').hidden = !allEmps.length;
+  $('planNewBtn').style.display = 'inline-flex';
+  $('planningSummary').textContent = allEmps.length ? `${allEmps.length} Mitarbeiter` : '';
+  $('planningFilterNotice').hidden = !allEmps.length || !Object.values(calendarFilters).some(Boolean);
+  $('calendarPeriodLabel').textContent = currentCalendarView === 'week'
+    ? `KW ${getISOWeekAndYear(weekStart).week} · ${period.start.split('-').reverse().join('.')} – ${period.end.split('-').reverse().join('.')}`
+    : currentCalendarView === 'quarter' ? `Q${Math.floor(currentCalendarDate.getMonth()/3)+1} ${currentCalendarDate.getFullYear()}`
+    : currentCalendarView === 'year' ? String(currentCalendarDate.getFullYear())
+    : currentCalendarDate.toLocaleDateString('de-CH', {month:'long',year:'numeric'});
+  updateFilterButtons();
 
   if (allEmps.length === 0) {
     container.innerHTML = `
-      <div style="text-align:center; padding:40px; color:var(--muted);">
-        <strong>Keine Mitarbeiter vorhanden.</strong><br>
-        <span class="smallText">Legen Sie unter System / Administration Mitarbeiter an, um den Kalender anzuzeigen.</span>
+      <div class="planningEmpty">
+        <h3>Starten Sie mit Ihrem Team</h3>
+        <p>Für die Arbeitsplanung ist noch kein Mitarbeiter erfasst.<br>Fügen Sie Ihr Team hinzu oder erstellen Sie zunächst einen noch nicht zugeteilten Arbeitsauftrag.</p>
+        <button class="btn" onclick="openPlanningTeam()">+ Mitarbeiter hinzufügen</button>
+        <p class="exampleLabel" style="margin-top:24px">Beispiel: So lesen Sie einen Einsatz im Wochenplan.</p>
+        <div class="planningExample">
+          <div><span>Wer?</span><strong>Ihr Mitarbeiter</strong></div>
+          <div><span>Wo?</span><strong>Hauptgebäude, EG</strong></div>
+          <div><span>Was?</span><strong>Lüftung kontrollieren</strong></div>
+        </div>
+        <p class="smallText" style="margin-bottom:0">1. Mitarbeiter hinzufügen &nbsp; → &nbsp; 2. Einsatz planen &nbsp; → &nbsp; 3. Woche überblicken</p>
       </div>
     `;
-    $('calendarPeriodLabel').textContent = "-";
     return;
   }
 
@@ -6159,7 +6324,7 @@ function renderCalendar() {
         <span class="smallText">Passen Sie die Filter an oder setzen Sie sie zurück.</span>
       </div>
     `;
-    $('calendarPeriodLabel').textContent = currentCalendarView === 'week' ? calendarWeekLabel(calendarViewDays()) : currentCalendarView === 'quarter' ? `Q${Math.floor(month/3)+1} ${year}` : (currentCalendarView === 'year' ? `${year}` : `${monthNames[month]} ${year}`);
+    $('planningSummary').textContent = 'Keine passenden Mitarbeiter';
     return;
   }
 
@@ -6168,127 +6333,10 @@ function renderCalendar() {
 
   let html = '';
 
-  if (currentCalendarView === 'month' || currentCalendarView === 'week') {
-    const isWeekView = currentCalendarView === 'week';
-    const viewDays = calendarViewDays();
-    $('calendarPeriodLabel').textContent = isWeekView ? calendarWeekLabel(viewDays) : `${monthNames[month]} ${year}`;
-    
-    html += `<table class="plannerTable${isWeekView ? ' plannerWeek' : ''}"><thead><tr>`;
-    html += `<th class="emp-name-col-header">Mitarbeiter</th>`;
-    
-    viewDays.forEach(dateObj => {
-      const d = dateObj.getDate();
-      const isWk = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-      const dStr = toLocalDateString(dateObj);
-      const isHol = getStGallenHolidays(dateObj.getFullYear())[dStr];
-      const holName = isHol ? holidays[dStr] : '';
-      
-      const colStyle = isHol ? 'background:#e2e8f0; color:#2c3e4c;' : (isWk ? 'background:#f8fafc;' : '');
-      const dName = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][dateObj.getDay()];
-      
-      let headerContent = isWeekView ? `${dName} ${d}.${dateObj.getMonth()+1}.` : `${d}<br><span style="font-size:10px;font-weight:normal;color:var(--muted);">${dName}</span>`;
-      if (!isWeekView && dateObj.getDay() === 1) { // Monday column
-        const kwNum = getISOWeekAndYear(dateObj).week;
-        headerContent = `<span style="font-size:9px;font-weight:bold;color:#3f7692;display:block;margin-bottom:2px;" class="month-kw-label">KW ${kwNum}</span>` + headerContent;
-      }
-      
-      html += `<th style="${colStyle}" title="${esc(holName)}">${headerContent}</th>`;
-    });
-    html += `</tr></thead><tbody>`;
-
-    emps.forEach(e => {
-      const isPiketOnly = e.role === 'Piket Only';
-      html += `<tr class="${isPiketOnly ? 'row-piket-only' : ''}">`;
-      
-      const roleBadge = isPiketOnly 
-        ? `<span class="badge" style="font-size:9px; background:#e2e8f0; color:#475569; padding:1px 4px; font-weight:bold; margin-top:2px; display:inline-block;">Piket Only</span>`
-        : `<span style="font-size:10px;font-weight:normal;color:var(--muted);">${esc(e.role)}</span>`;
-
-      html += `<td class="emp-name-col"><b>${esc(e.name)}</b><br>${roleBadge}</td>`;
-      
-      viewDays.forEach(dateObj => {
-        const d = dateObj.getDate();
-        const dStr = toLocalDateString(dateObj);
-        const isWk = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-        const isToday = dStr === todayStr;
-        const dayHolidays = getStGallenHolidays(dateObj.getFullYear());
-        const isHol = dayHolidays[dStr];
-
-        // Find shift entry
-        const sh = shifts.find(s => s.employeeId === e.id && s.date === dStr);
-        // Find Piket reference (week-based)
-        const weekStr = getISOWeekString(dateObj);
-        const pk = pikets.find(p => p.date === weekStr && p.employeeName === e.name);
-
-        let cellClass = 'plannerCell';
-        let cellText = '';
-        let cellTitle = `${e.name} · ${d}.${dateObj.getMonth()+1}.${dateObj.getFullYear()}`;
-        let shiftId = '';
-
-        if (isPiketOnly) {
-          if (pk) {
-            cellClass += ' cell-piket-indicator';
-            cellTitle += `\n[Piketdienst] Bereitschaft: ${pk.shiftTime || 'ganze Woche'}`;
-          }
-          if (isToday) {
-            cellClass += ' cell-today';
-            cellTitle += '\n(Heute)';
-          }
-        } else {
-          if (sh) {
-            shiftId = sh.id;
-            if (sh.taskAssignment && sh.taskAssignment !== '-' && sh.shiftType !== 'Krank') cellTitle += `\nAufgabe: ${sh.taskAssignment}`;
-            
-            if (sh.shiftType === 'Normaldienst') {
-              cellClass += ' cell-normal';
-              cellText = '🟢';
-            } else if (sh.shiftType === 'Ferien Antrag') {
-              cellClass += ' cell-vacation-pending';
-              cellText = '🟡';
-            } else if (sh.shiftType === 'Ferien approved' || sh.shiftType === 'Ferien genehmigt') {
-              cellClass += ' cell-vacation-approved';
-              cellText = '🔵';
-            } else if (sh.shiftType === 'Krank') {
-              cellClass += ' cell-sick';
-              cellText = '🔴';
-              cellTitle += `\nAbwesend`;
-            }
-          } else {
-            if (isHol) {
-              cellClass += ' cell-holiday';
-              cellText = '⚫';
-              cellTitle += `\nFeiertag: ${dayHolidays[dStr]}`;
-            } else if (isWk) {
-              cellClass += ' cell-weekend';
-            } else {
-              cellClass += ' cell-normal';
-              cellText = '🟢';
-              cellTitle += `\nNormaldienst (Default)`;
-            }
-          }
-
-          if (pk) {
-            cellClass += ' cell-piket-indicator';
-            cellTitle += `\n[Piketdienst] Bereitschaft: ${pk.shiftTime || 'ganze Woche'}`;
-          }
-
-          if (isToday) {
-            cellClass += ' cell-today';
-            cellTitle += '\n(Heute)';
-          }
-        }
-
-        // In der Wochenansicht steht die Aufgabe bzw. der Status direkt im Feld
-        if (isWeekView && !isPiketOnly) {
-          const note = sh && sh.taskAssignment && sh.taskAssignment !== '-' ? sh.taskAssignment : (sh && sh.shiftType !== 'Normaldienst' ? (sh.shiftType === 'Krank' ? 'Abwesend' : sh.shiftType) : (isHol ? isHol : ''));
-          if (note) cellText += `<span class="weekNote">${esc(note)}</span>`;
-        }
-        html += `<td class="${cellClass}" onclick="openCalendarPlan('${escJsArg(e.id)}', '${dStr}', '${shiftId}')" title="${esc(cellTitle)}">${cellText}</td>`;
-      });
-      html += `</tr>`;
-    });
-    html += `</tbody></table>`;
-
+  if (currentCalendarView === 'week') {
+    html = renderWeeklyPlan(emps, shifts);
+  } else if (currentCalendarView === 'month') {
+    html=renderWorkCalendar(emps,shifts,'month');
   } else if (currentCalendarView === 'quarter') {
     // Quarter View Stacked Redesign
     const q = Math.floor(month / 3); // 0 to 3
@@ -6945,6 +6993,7 @@ window.addEventListener('mouseup', () => {
       endInput.value = formatToLocalISO(end);
       
       onPiketDateChange();
+      openPiketPlanModal();
       
       startInput.style.borderColor = 'var(--orange)';
       endInput.style.borderColor = 'var(--orange)';
@@ -6974,6 +7023,7 @@ function selectPiketRecord(id) {
       $('pkHandoverFrom').value = '';
     }
     onPiketDateChange();
+    openPiketPlanModal();
   }
 }
 
@@ -7568,7 +7618,8 @@ function deleteShift(id) {
   save();
 }
 
-function addPiket() {
+async function addPiket() {
+  if ($('piketSaveBtn').disabled) return;
   let startVal = $('pkStart').value;
   let endVal = $('pkEnd').value;
   let name = $('pkName').value;
@@ -7590,6 +7641,7 @@ function addPiket() {
   let calculatedWeek = getISOWeekString(startDateObj);
 
   state.piket = state.piket || [];
+  const previousPiket = [...state.piket];
   state.piket.push({
     id: uid(),
     date: calculatedWeek,
@@ -7611,13 +7663,18 @@ function addPiket() {
     interventionEndTime: ''
   });
 
+  $('piketSaveBtn').disabled = true;
+  let saved = false;
+  try { saved = await save(); } finally { $('piketSaveBtn').disabled = false; }
+  if (!saved) { state.piket = previousPiket; return; }
+
   $('pkStart').value = '';
   $('pkEnd').value = '';
   $('pkHandoverFrom').value = '';
   $('pkTime').value = '';
   $('pkPhone').value = '';
   $('pkWeekCalcDisplay').textContent = '—';
-  save();
+  closeModals();
 }
 
 function loadInterventionDetails() {
@@ -8298,5 +8355,6 @@ initDesktopSession();
     <div id="searchCard" style="display:none"><div id="searchResults" class="list"></div></div>
   </section>
 </div>
+<div id="workOrderPrint" class="workPrint"></div>
 </body>
 </html>

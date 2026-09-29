@@ -68,6 +68,30 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     return session.token;
   }
 
+  test("planning keeps workplace and task after creation, editing and a fresh read", async () => {
+    const token = await adminToken();
+    const employee = { id: "emp-plan-test", name: "Plan Test", role: "FM Internal" };
+    const shift = { id: "shift-test", employeeId: employee.id, date: "2026-09-29", shiftType: "Normaldienst", taskAssignment: "Lüftung prüfen", workLocation: "Neubau / UG / Technikraum" };
+    assert.equal((await batch(token, { employees: { upsert: [employee] }, shifts: { upsert: [shift] } })).status, 200);
+    let saved = (await getState(token)).shifts.find(s => s.id === shift.id);
+    assert.equal(saved.workLocation, shift.workLocation);
+    assert.equal(saved.taskAssignment, shift.taskAssignment);
+    assert.equal((await batch(token, { shifts: { upsert: [{ ...saved, date: "2026-09-30", workLocation: "Altbau / EG", taskAssignment: "Beleuchtung prüfen" }] } })).status, 200);
+    saved = (await getState(token)).shifts.find(s => s.id === shift.id);
+    assert.equal(saved.workLocation, "Altbau / EG");
+    assert.equal(saved.taskAssignment, "Beleuchtung prüfen");
+    assert.equal(saved.date, "2026-09-30");
+    assert.equal((await getState(token)).shifts.length, 1);
+  });
+
+  test("legacy planning records without a workplace remain readable", async () => {
+    const token = await adminToken();
+    assert.equal((await batch(token, { shifts: { upsert: [{ id: "legacy-shift", employeeId: "emp-roland", date: "2026-09-28", shiftType: "Normaldienst", taskAssignment: "Existing task" }] } })).status, 200);
+    const saved = (await getState(token)).shifts.find(s => s.id === "legacy-shift");
+    assert.equal(saved.workLocation, "");
+    assert.equal(saved.taskAssignment, "Existing task");
+  });
+
   async function getState(token) {
     const res = await call("GET", { token });
     assert.equal(res.status, 200);
@@ -365,5 +389,177 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     const res = await call("POST", { body: { action: "logout" } });
     assert.equal(res.status, 200);
     assert.match(res.headers.get("set-cookie") || "", /^fm360_session=;.*Max-Age=0/);
+  });
+
+  // --- Wiederkehrende Arbeitsaufträge ---------------------------------------------------------
+  const zurichToday = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Zurich" }).format(new Date());
+  const shiftDays = (iso, days) => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10); };
+  const recurring = (extra = {}) => ({
+    id: "rt1", parent: "room-1", type: "Wartung / Service", status: "Offen", prio: "Mittel", title: "Filter prüfen", due: "2026-10-01",
+    text: "Filter und Keilriemen prüfen", materialNeeded: "2x Filter F7, 1 Keilriemen",
+    recurrence: { every: 12, unit: "days", remindBefore: 7, remindUnit: "days", managerId: "emp-admin" }, ...extra,
+  });
+
+  test("recurrence and material are stored and kept when an older client omits them", async () => {
+    const admin = await adminToken();
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring()] } })).status, 200);
+    let [ticket] = (await getState(admin)).tickets;
+    assert.deepEqual(ticket.recurrence, { every: 12, unit: "days", remindBefore: 7, remindUnit: "days", managerId: "emp-admin" });
+    assert.equal(ticket.materialNeeded, "2x Filter F7, 1 Keilriemen");
+    assert.equal(ticket.seriesId, "rt1");
+
+    const { recurrence: _r, materialNeeded: _m, due: _d, seriesId: _s, ...oldClient } = ticket;
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...oldClient, prio: "Hoch" }] } })).status, 200);
+    [ticket] = (await getState(admin)).tickets;
+    assert.equal(ticket.prio, "Hoch");
+    assert.equal(ticket.recurrence?.every, 12, "recurrence survives a save without the field");
+    assert.equal(ticket.materialNeeded, "2x Filter F7, 1 Keilriemen");
+    assert.equal(ticket.due, "2026-10-01", "the date survives a save without the field");
+
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...ticket, recurrence: null }] } })).status, 200);
+    assert.equal((await getState(admin)).tickets[0].recurrence, null, "explicit null ends the repetition");
+  });
+
+  test("invalid intervals, dates and managers are rejected", async () => {
+    const admin = await adminToken();
+    for (const [extra, why] of [
+      [{ recurrence: { every: 0, unit: "days" } }, "zero interval"],
+      [{ recurrence: { every: 12, unit: "years" } }, "unknown unit"],
+      [{ recurrence: { every: 12, unit: "days", remindBefore: -2 } }, "negative reminder"],
+      [{ due: "" }, "missing date"],
+      [{ due: "2026-02-30" }, "impossible date"],
+      [{ due: "01.10.2026" }, "wrong date format"],
+      [{ recurrence: { every: 12, unit: "days", managerId: "emp-nobody" } }, "unknown manager"],
+    ]) {
+      const res = await batch(admin, { tickets: { upsert: [recurring(extra)] } });
+      assert.equal(res.status, 400, why);
+    }
+    assert.equal((await getState(admin)).tickets.length, 0);
+  });
+
+  test("completing a recurring order keeps its history and creates exactly one next order", async () => {
+    const admin = await adminToken();
+    const worker = (await getState(admin)).employees.find((employee) => employee.loginName === "worker");
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring({ assignedEmployeeId: worker.id })] } })).status, 200);
+    const [open] = (await getState(admin)).tickets;
+
+    // Late completion with a changed date in the request: the next date still follows the plan.
+    const done = { ...open, status: "Erledigt", due: "2026-10-09", completionNote: "Geprüft, kein Mangel." };
+    assert.equal((await batch(admin, { tickets: { upsert: [done] } })).status, 200);
+    assert.equal((await batch(admin, { tickets: { upsert: [done] } })).status, 200, "saving again");
+    let tickets = (await getState(admin)).tickets;
+    assert.equal(tickets.length, 2);
+    const closed = tickets.find((t) => t.id === "rt1");
+    const next = tickets.find((t) => t.id !== "rt1");
+    assert.equal(closed.due, "2026-10-01", "completed order keeps its original date");
+    assert.ok(closed.completedAt, "completion time is stored");
+    assert.equal(closed.nextTicketId, next.id);
+    assert.equal(next.due, "2026-10-13", "next date = planned date + 12 days, not completion date");
+    assert.equal(next.status, "Offen");
+    assert.equal(next.previousTicketId, "rt1");
+    assert.equal(next.seriesId, "rt1");
+    assert.equal(next.assignedEmployeeId, worker.id);
+    assert.equal(next.materialNeeded, "2x Filter F7, 1 Keilriemen");
+    assert.equal(closed.completionNote, "Geprüft, kein Mangel.");
+    assert.equal(next.completionNote, "", "a new inspection must not inherit an old inspection result");
+    assert.equal(next.text, open.text, "the inspection instructions remain unchanged");
+    assert.deepEqual(next.recurrence, closed.recurrence);
+    assert.ok((await getState(admin)).notifications.some((n) => n.ticketId === next.id && n.employeeId === worker.id), "worker is told about the next order");
+
+    // Reopening and closing again does not create a second follow-up.
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...closed, status: "Offen" }] } })).status, 200);
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...closed, status: "Abgeschlossen" }] } })).status, 200);
+    tickets = (await getState(admin)).tickets;
+    assert.equal(tickets.filter((t) => t.previousTicketId === "rt1").length, 1);
+    assert.equal(tickets.length, 2);
+  });
+
+  test("simultaneous completion creates only one next order", async () => {
+    const admin = await adminToken();
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring()] } })).status, 200);
+    const [open] = (await getState(admin)).tickets;
+    const done = { ...open, status: "Erledigt" };
+    const results = await Promise.all(Array.from({ length: 5 }, () => batch(admin, { tickets: { upsert: [done] } })));
+    assert.ok(results.every((res) => res.status === 200), `statuses: ${results.map((res) => res.status)}`);
+    const tickets = (await getState(admin)).tickets;
+    assert.equal(tickets.filter((t) => t.previousTicketId === "rt1").length, 1);
+  });
+
+  test("monthly orders keep the end of month and one-time orders do not repeat", async () => {
+    const admin = await adminToken();
+    const monthly = recurring({ id: "m1", due: "2026-01-31", recurrence: { every: 1, unit: "months", remindBefore: 1, remindUnit: "weeks" } });
+    const once = { id: "o1", parent: "room-1", type: "Reparatur", status: "Offen", prio: "Hoch", title: "Leck", due: "2026-10-01" };
+    assert.equal((await batch(admin, { tickets: { upsert: [monthly, once] } })).status, 200);
+    const saved = (await getState(admin)).tickets;
+    assert.equal(saved.find((t) => t.id === "m1").recurrence.managerId, "emp-admin", "manager defaults to the person planning");
+    assert.equal(saved.find((t) => t.id === "o1").recurrence, null);
+    assert.equal((await batch(admin, { tickets: { upsert: saved.map((t) => ({ ...t, status: "Erledigt" })) } })).status, 200);
+    const tickets = (await getState(admin)).tickets;
+    assert.equal(tickets.length, 3, "only the recurring order gets a successor");
+    assert.equal(tickets.find((t) => t.previousTicketId === "m1").due, "2026-02-28");
+    assert.equal(tickets.some((t) => t.previousTicketId === "o1"), false);
+  });
+
+  test("field workers can complete recurring orders", async () => {
+    const admin = await adminToken();
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring()] } })).status, 200);
+    const worker = (await login("worker", "worker")).token;
+    const [open] = (await getState(worker)).tickets;
+    assert.equal((await batch(worker, { tickets: { upsert: [{ ...open, status: "Erledigt" }] } })).status, 200);
+    assert.equal((await getState(admin)).tickets.length, 2);
+  });
+
+  test("the manager gets one in-app reminder when the reminder date is reached", async () => {
+    const admin = await adminToken();
+    const today = zurichToday();
+    const due = recurring({ id: "due-soon", due: shiftDays(today, 3) });
+    const later = recurring({ id: "later", due: shiftDays(today, 30) });
+    const closed = recurring({ id: "closed", due: shiftDays(today, 1), status: "Erledigt" });
+    assert.equal((await batch(admin, { tickets: { upsert: [due, later, closed] } })).status, 200);
+    await getState(admin);
+    const state = await getState(admin);
+    const reminders = state.notifications.filter((n) => n.eventType === "maintenance_reminder");
+    assert.deepEqual(reminders.map((n) => n.ticketId), ["due-soon"], "only the order within its reminder window, once");
+    assert.equal(reminders[0].employeeId, "emp-admin");
+    assert.match(reminders[0].body, /Filter F7/);
+
+    // Marking the reminder as read through the normal notification save works.
+    assert.equal((await batch(admin, { notifications: { upsert: [{ ...reminders[0], readAt: new Date().toISOString() }] } })).status, 200);
+    const read = (await getState(admin)).notifications.find((n) => n.id === reminders[0].id);
+    assert.ok(read.readAt, "reminder stays read and is not recreated");
+  });
+
+  // --- Arbeitsauftrag vs. Inspektion (planningKind) --------------------------------------------
+  test("planningKind separates one-time work orders from recurring inspections", async () => {
+    const admin = await adminToken();
+    const workOrder = { id: "wo1", parent: "room-1", type: "Reparatur", status: "Offen", prio: "Hoch", title: "Leck abdichten", due: "2026-10-01" };
+    assert.equal((await batch(admin, { tickets: { upsert: [workOrder, recurring({ id: "insp1" })] } })).status, 200);
+    let tickets = (await getState(admin)).tickets;
+    assert.equal(tickets.find((t) => t.id === "wo1").planningKind, "work_order", "default without interval");
+    assert.equal(tickets.find((t) => t.id === "insp1").planningKind, "inspection", "an interval makes it an inspection");
+
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring({ id: "bad", planningKind: "work_order" })] } })).status, 400, "explicit work order with interval");
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...workOrder, id: "bad2", planningKind: "maintenance" }] } })).status, 400, "unknown kind");
+    const insp = tickets.find((t) => t.id === "insp1");
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...insp, planningKind: "work_order" }] } })).status, 400, "cannot turn an inspection with interval into a work order");
+    assert.equal((await getState(admin)).tickets.length, 2);
+
+    // Explicit inspection without an interval is allowed (e.g. a single control); work orders stay one-time.
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...workOrder, id: "ctl1", title: "Einmalige Kontrolle Druck", planningKind: "inspection" }] } })).status, 200);
+    assert.equal((await getState(admin)).tickets.find((t) => t.id === "ctl1").planningKind, "inspection");
+  });
+
+  test("older clients keep planningKind and the next control stays an inspection", async () => {
+    const admin = await adminToken();
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring({ planningKind: "inspection" })] } })).status, 200);
+    const [saved] = (await getState(admin)).tickets;
+    const { planningKind: _k, ...oldClient } = saved;
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...oldClient, recurrence: null }] } })).status, 200);
+    assert.equal((await getState(admin)).tickets[0].planningKind, "inspection", "kept when the field is missing");
+
+    const { planningKind: _k2, ...again } = (await getState(admin)).tickets[0];
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...again, recurrence: recurring().recurrence, status: "Erledigt" }] } })).status, 200);
+    const next = (await getState(admin)).tickets.find((t) => t.previousTicketId === "rt1");
+    assert.equal(next.planningKind, "inspection");
   });
 });

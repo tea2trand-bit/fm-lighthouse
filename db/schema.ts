@@ -76,9 +76,21 @@ export const fm360Tickets = pgTable("fm360_tickets", {
   assignedEmployeeId: text("assigned_employee_id").references(() => fm360Employees.id),
   assignedByEmployeeId: text("assigned_by_employee_id").references(() => fm360Employees.id),
   assignedAt: timestamp("assigned_at"),
+  // Wiederkehrender Auftrag: { every, unit, remindBefore, remindUnit, managerId } oder null (einmalig).
+  recurrence: jsonb(),
+  // Serverseitig verwaltet: Serie, Vorgänger/Nachfolger, Abschlusszeitpunkt.
+  seriesId: text("series_id"),
+  previousTicketId: text("previous_ticket_id"),
+  nextTicketId: text("next_ticket_id"),
+  completedAt: timestamp("completed_at"),
+  materialNeeded: text("material_needed").notNull().default(""),
+  completionNote: text("completion_note").notNull().default(""),
+  planningKind: text("planning_kind").notNull().default("work_order"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("fm360_tickets_previous_ticket_id_unique").on(table.previousTicketId).where(sql`${table.previousTicketId} is not null`),
+]);
 
 export const fm360Templates = pgTable("fm360_templates", {
   id: text().primaryKey(),
@@ -122,6 +134,7 @@ export const fm360Shifts = pgTable("fm360_shifts", {
   date: text().notNull(),
   shiftType: text("shift_type").notNull(), // "Früh", "Spät", "Tag", etc.
   taskAssignment: text("task_assignment").notNull().default(""),
+  workLocation: text("work_location").notNull().default(""),
   workload: text().notNull().default("Normal"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
