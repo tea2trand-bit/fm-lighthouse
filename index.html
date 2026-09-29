@@ -840,6 +840,30 @@ button.walkLocalKpi{cursor:pointer}
 .ticketText{margin:0;font-size:13px;color:#2c3e4c;line-height:1.45}
 .ticketActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-self:center}
 @media(max-width:700px){.ticketCard{grid-template-columns:1fr}.ticketActions{justify-content:flex-start}}
+/* Einsatzplanung: gut sichtbarer Einstieg, Zeitraum immer sichtbar */
+.planNewBtn{white-space:nowrap}
+.planRangeInfo{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:-4px}
+.planSkipLabel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#2c3e4c;cursor:pointer}
+.planSkipLabel input{width:auto;margin:0}
+#planDayCount{color:#3f7692;font-weight:600}
+.planHint{margin:8px 0 0;font-size:12.5px;color:#5f7380}
+/* Ansicht als Auswahlfeld, Wochenansicht mit breiteren Feldern */
+.calendarViewSelect{width:auto;min-width:118px;height:36px;padding:0 30px 0 12px;border:1px solid var(--td-line);border-radius:999px;background-color:#fff;font:600 13px var(--font-button);color:#28566e;cursor:pointer}
+.plannerWeek th{font-size:12px;white-space:nowrap}
+.plannerWeek td.plannerCell{height:58px;vertical-align:middle}
+.weekNote{display:block;margin-top:3px;font-size:11px;line-height:1.2;color:#2c3e4c;font-weight:500;white-space:normal}
+/* Anlage-Dialog in Reiter aufgeteilt */
+.anlageTabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--td-line)}
+.anlageTabs .tab{margin:0}
+.anlageTabCount{display:inline-block;min-width:18px;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e9f1f9;color:#2f5f78;font-size:11px;line-height:16px}
+.anlageTabCount:empty{display:none}
+.anlagePanel{display:none}.anlagePanel.active{display:block}
+.anlageSubhead{margin:4px 0 8px;font-size:13px;letter-spacing:.04em;color:#28566e}
+.anlagePanel .anlageSubhead:not(:first-child){margin-top:18px;padding-top:14px;border-top:1px solid #edf2f6}
+.anlagePanelHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+/* Kennzahlen in schmalen Rundgang-Kacheln immer in einer Zeile */
+.walkStats{grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column}
+.walkStats span{font-size:10.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -884,7 +908,7 @@ button.walkLocalKpi{cursor:pointer}
       <button class="active" data-section="uebersicht" data-title="Übersicht"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Übersicht</span></button>
       <button data-section="tickets" data-title="Tickets / Aufträge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z"/><path d="M9 9h6"/><path d="M9 15h3"/></svg><span>Tickets / Aufträge</span></button>
       <button data-section="piketdienst" data-title="Piketdienst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h4l2 5-2 1.5a12 12 0 0 0 5.5 5.5L18 14l5 2v4c0 .6-.4 1-1 1C11.5 21 3 12.5 3 2c0-.6.4-1 1-1h3v3Z"/><path d="M16 4c1.8.6 3.2 2 4 4"/></svg><span>Piketdienst</span></button>
-      <button data-section="mitarbeiter" data-title="Mitarbeiter Planung"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 10h18"/><path d="M9 15h.01"/><path d="M14 15h.01"/></svg><span>Mitarbeiter Planung</span></button>
+      <button data-section="mitarbeiter" data-title="Arbeitsplanung"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 10h18"/><path d="M9 15h.01"/><path d="M14 15h.01"/></svg><span>Arbeitsplanung</span></button>
     </div>
     <div class="navGroup">
       <div class="navLabel">Sicherheit</div>
@@ -1027,16 +1051,18 @@ button.walkLocalKpi{cursor:pointer}
     <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
           <div>
-            <h2>Operativer FM Jahresplan & Kalender</h2>
+            <h2>Arbeitsplanung &amp; Kalender</h2>
             <p class="smallText" style="margin:0;">Verwalten Sie die Schichtplanung, Abwesenheiten und Feiertage für das Team.</p>
           </div>
           <!-- View switcher & Nav -->
           <div style="display:flex; align-items:center; gap:10px;">
-            <div class="tabs" style="margin:0;">
-              <button class="tab active" id="viewMonthBtn" onclick="setCalendarView('month')">Monat</button>
-              <button class="tab" id="viewQuarterBtn" onclick="setCalendarView('quarter')">Quartal</button>
-              <button class="tab" id="viewYearBtn" onclick="setCalendarView('year')">Jahr</button>
-            </div>
+            <select id="calendarViewSelect" class="calendarViewSelect" aria-label="Ansicht" onchange="setCalendarView(this.value)">
+              <option value="week">Woche</option>
+              <option value="month" selected>Monat</option>
+              <option value="quarter">Quartal</option>
+              <option value="year">Jahr</option>
+            </select>
+            <button class="btn planNewBtn" type="button" onclick="openNewPlanModal()">+ Einsatz planen</button>
             <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferien-Anträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
             <div style="display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:10px; background:white; padding:4px;">
               <button class="btn small secondary" onclick="navigateCalendar(-1)" style="border-radius:6px; padding:4px 8px;">&larr;</button>
@@ -1089,9 +1115,11 @@ button.walkLocalKpi{cursor:pointer}
           <button class="tab" id="filterPiketBtn" onclick="toggleCalendarFilter('piketEligible')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Piketfähig</button>
           <button class="tab" id="filterAbsentBtn" onclick="toggleCalendarFilter('absent')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Abwesend</button>
           <button class="tab" id="filterVacationBtn" onclick="toggleCalendarFilter('vacation')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Urlaub</button>
-          <button class="tab" id="filterTasksBtn" onclick="toggleCalendarFilter('assignedTasks')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Assigned Tasks</button>
+          <button class="tab" id="filterTasksBtn" onclick="toggleCalendarFilter('assignedTasks')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Mit Aufgaben</button>
           <button class="btn small secondary" onclick="clearCalendarFilters()" style="padding: 5px 10px; font-size: 12px; border-radius: 999px; margin-left: auto;">Zurücksetzen</button>
         </div>
+
+        <p class="planHint">Tipp: Auf ein Feld im Kalender klicken, um einen Tag zu planen oder zu ändern. Für mehrere Tage oben „+ Einsatz planen“.</p>
 
         <!-- Calendar Container -->
         <div id="calendarContainer" style="overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:white;">
@@ -1925,7 +1953,14 @@ button.walkLocalKpi{cursor:pointer}
 <div class="modalBack" id="anlageModal"><div class="modal"><div class="modalHead"><b>Anlage-Datenbank</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
   <input type="hidden" id="anlageEditId">
   <p class="smallText" id="anlagePath"></p>
-  <div class="formGrid">
+  <div class="anlageTabs" role="tablist">
+    <button type="button" class="tab active" data-anlage-tab="stamm" onclick="setAnlageTab('stamm')">Maschinenstammdaten</button>
+    <button type="button" class="tab" data-anlage-tab="service" onclick="setAnlageTab('service')">Service &amp; Vertrag</button>
+    <button type="button" class="tab" data-anlage-tab="intervall" onclick="setAnlageTab('intervall')">Wartung &amp; Inspektion</button>
+    <button type="button" class="tab" data-anlage-tab="docs" onclick="setAnlageTab('docs')">Dokumente <span class="anlageTabCount" id="anlageDocCount"></span></button>
+    <button type="button" class="tab" data-anlage-tab="tickets" onclick="setAnlageTab('tickets')">Arbeitsaufträge <span class="anlageTabCount" id="anlageTicketCount"></span></button>
+  </div>
+  <div class="anlagePanel active" data-anlage-panel="stamm"><div class="formGrid">
     <div class="field"><label>FM-Code</label><div class="readonlyCode"><span id="anlageFmCodePreview">wird automatisch erzeugt</span><small id="anlageFmCodeHint">fix aus Struktur</small></div></div>
     <div class="field"><label>Admin / Bearbeiten-Modus</label><label class="smallText" style="display:flex;align-items:center;margin-top:8px;"><input id="anlageManualCodeToggle" type="checkbox" onchange="toggleAnlageManualCode()" style="width:auto;margin-right:6px">FM-Code manuell überschreiben</label></div>
     <div class="field full" id="anlageManualCodeField" style="display:none"><label>Manueller FM-Code</label><input id="anlageCode" placeholder="optional nur im Admin-Modus"></div>
@@ -1937,6 +1972,11 @@ button.walkLocalKpi{cursor:pointer}
     <div class="field"><label>Seriennummer</label><input id="anlageSerial" placeholder="Seriennummer"></div>
     <div class="field"><label>Baujahr</label><input id="anlageBaujahr" placeholder="z.B. 2021"></div>
     <div class="field"><label>Installationsdatum</label><input id="anlageInstallDate" type="date"></div>
+    <div class="field"><label>Garantie bis</label><input id="anlageGarantie" type="date"></div>
+    <div class="field full"><label>Standort</label><input id="anlageStandort" placeholder="wird aus dem gewählten Ort übernommen"></div>
+    <textarea class="full" id="anlageNote" placeholder="Notizen / Bemerkungen"></textarea>
+  </div></div>
+  <div class="anlagePanel" data-anlage-panel="service"><div class="formGrid">
     <div class="field"><label>Servicefirma</label><input id="anlageLieferant" placeholder="Verantwortliche Servicefirma"></div>
     <div class="field"><label>Ansprechpartner</label><input id="anlageKontakt" placeholder="Name"></div>
     <div class="field"><label>Telefonnummer</label><input id="anlageTelefon" placeholder="+41 ..."></div>
@@ -1948,16 +1988,31 @@ button.walkLocalKpi{cursor:pointer}
     <div class="field"><label>Kostenstelle</label><input id="anlageKostenstelle" placeholder="Kostenstelle / Budget"></div>
     <div class="field"><label>Vertragsnummer</label><input id="anlageVertragNr" placeholder="Wartungsvertrag / Vertragsnummer"></div>
     <div class="field"><label>Vertragsablauf</label><input id="anlageVertragsablauf" type="date"></div>
-    <div class="field full"><label>Standort</label><input id="anlageStandort" placeholder="wird aus dem gewählten Ort übernommen"></div>
+  </div></div>
+  <div class="anlagePanel" data-anlage-panel="intervall">
+    <h4 class="anlageSubhead">Wartung</h4>
+    <div class="formGrid">
     <div class="field"><label>Wartungsintervall</label><select id="anlageIntervall" onchange="updateMaintenancePreview()"><option value="">Nicht definiert</option><option value="1 Monate">monatlich</option><option value="3 Monate">alle 3 Monate</option><option value="6 Monate">alle 6 Monate</option><option value="12 Monate">jährlich</option><option value="24 Monate">alle 2 Jahre</option></select></div>
     <div class="field"><label>Frei wählbar in Monaten</label><input id="anlageIntervallCustom" type="number" min="1" step="1" placeholder="z.B. 18" oninput="updateMaintenancePreview()"></div>
     <div class="field"><label>Letzte Wartung</label><input id="anlageLetzte" type="date" onchange="updateMaintenancePreview()"></div>
     <div class="field"><label>Nächste Wartung</label><input id="anlageNaechste" type="date" readonly></div>
     <div class="field"><label>Erinnerung vor Fälligkeit</label><select id="anlageReminderDays" onchange="updateMaintenancePreview()"><option value="14">14 Tage</option><option value="30">30 Tage</option><option value="60">60 Tage</option><option value="90">90 Tage</option></select></div>
     <div class="field full"><label>Hinweis ab</label><input id="anlageReminderDate" readonly></div>
-    <div class="field"><label>Garantie bis</label><input id="anlageGarantie" type="date"></div>
-    <textarea class="full" id="anlageNote" placeholder="Notizen / Bemerkungen"></textarea>
+    </div>
+    <h4 class="anlageSubhead">Inspektion</h4>
+    <div class="formGrid">
+    <div class="field"><label>Inspektion / Prüfung</label><input id="anlageInspArt" placeholder="z.B. Kesselprüfung, Druckbehälter, Elektro-Sicherheit"></div>
+    <div class="field"><label>Prüfstelle / Inspektor</label><input id="anlageInspStelle" placeholder="z.B. SVTI, Elektro-Kontrolleur"></div>
+    <div class="field"><label>Inspektionsintervall</label><select id="anlageInspIntervall" onchange="updateInspectionPreview()"><option value="">Nicht definiert</option><option value="1 Monate">monatlich</option><option value="3 Monate">alle 3 Monate</option><option value="6 Monate">alle 6 Monate</option><option value="12 Monate">jährlich</option><option value="24 Monate">alle 2 Jahre</option><option value="36 Monate">alle 3 Jahre</option><option value="60 Monate">alle 5 Jahre</option></select></div>
+    <div class="field"><label>Frei wählbar in Monaten</label><input id="anlageInspIntervallCustom" type="number" min="1" step="1" placeholder="z.B. 18" oninput="updateInspectionPreview()"></div>
+    <div class="field"><label>Letzte Inspektion</label><input id="anlageInspLetzte" type="date" onchange="updateInspectionPreview()"></div>
+    <div class="field"><label>Nächste Inspektion</label><input id="anlageInspNaechste" type="date" readonly></div>
+    <div class="field"><label>Erinnerung vor Fälligkeit</label><select id="anlageInspReminderDays" onchange="updateInspectionPreview()"><option value="14">14 Tage</option><option value="30">30 Tage</option><option value="60">60 Tage</option><option value="90">90 Tage</option></select></div>
+    <div class="field"><label>Hinweis ab</label><input id="anlageInspReminderDate" readonly></div>
+    </div>
   </div>
+  <div class="anlagePanel" data-anlage-panel="docs"><div id="anlageDocsPanel"></div></div>
+  <div class="anlagePanel" data-anlage-panel="tickets"><div id="anlageTicketsPanel"></div></div>
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <button class="btn danger" id="deleteAnlageBtn" onclick="deleteCurrentAnlage()">Anlage löschen</button>
@@ -2067,28 +2122,21 @@ button.walkLocalKpi{cursor:pointer}
           <input type="text" id="planEmpNameStatic" disabled style="background:#f1f5f9; width:100%;">
         </div>
 
-        <div class="field">
-          <label>Planungsart</label>
-          <select id="planRangeType" onchange="togglePlanRange()" style="width:100%;">
-            <option value="single">Einzeltag</option>
-            <option value="range">Zeitraum (z.B. Ferien)</option>
-          </select>
-        </div>
-
-        <div class="field" id="planDateSingleGroup" style="width:100%;">
-          <label>Datum</label>
-          <input type="date" id="planDateSingle" style="width:100%;">
-        </div>
-
-        <div class="formGrid" style="display:none; grid-template-columns: 1fr 1fr; gap:10px; margin:0;" id="planDateRangeGroup">
+        <input type="hidden" id="planRangeType" value="range">
+        <input type="hidden" id="planDateSingle">
+        <div class="formGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin:0;" id="planDateRangeGroup">
           <div class="field">
-            <label>Startdatum</label>
-            <input type="date" id="planDateStart" style="width:100%;">
+            <label>Von</label>
+            <input type="date" id="planDateStart" style="width:100%;" onchange="syncPlanEnd()">
           </div>
           <div class="field">
-            <label>Enddatum</label>
-            <input type="date" id="planDateEnd" style="width:100%;">
+            <label>Bis</label>
+            <input type="date" id="planDateEnd" style="width:100%;" onchange="updatePlanDayCount()">
           </div>
+        </div>
+        <div class="planRangeInfo">
+          <label class="planSkipLabel"><input type="checkbox" id="planSkipWeekends" checked onchange="updatePlanDayCount()"> Wochenenden und Feiertage auslassen</label>
+          <span id="planDayCount" class="smallText"></span>
         </div>
 
         <div class="field">
@@ -2549,6 +2597,10 @@ function hasShiftInPeriod(empId, shiftType) {
   const year = currentCalendarDate.getFullYear();
   const month = currentCalendarDate.getMonth();
 
+  if (currentCalendarView === 'week') {
+    const weekDates = calendarViewDays().map(toLocalDateString);
+    return shifts.some(s => s.employeeId === empId && weekDates.includes(s.date) && s.shiftType === shiftType);
+  }
   if (currentCalendarView === 'month') {
     const numDays = new Date(year, month + 1, 0).getDate();
     for (let d = 1; d <= numDays; d++) {
@@ -2583,6 +2635,10 @@ function hasTaskInPeriod(empId) {
 
   const isTask = s => s.taskAssignment && s.taskAssignment !== '-' && s.taskAssignment.trim() !== '';
 
+  if (currentCalendarView === 'week') {
+    const weekDates = calendarViewDays().map(toLocalDateString);
+    return shifts.some(s => s.employeeId === empId && weekDates.includes(s.date) && isTask(s));
+  }
   if (currentCalendarView === 'month') {
     const numDays = new Date(year, month + 1, 0).getDate();
     for (let d = 1; d <= numDays; d++) {
@@ -3800,6 +3856,33 @@ function maintenanceIntervalValue(){
   let custom=parseInt($('anlageIntervallCustom')?.value||'',10);
   return Number.isFinite(custom)&&custom>0?`${custom} Monate`:$('anlageIntervall').value;
 }
+function inspectionIntervalValue(){
+  let custom=parseInt($('anlageInspIntervallCustom')?.value||'',10);
+  return Number.isFinite(custom)&&custom>0?`${custom} Monate`:($('anlageInspIntervall')?.value||'');
+}
+function updateInspectionPreview(){
+  if(!$('anlageInspNaechste'))return;
+  let next=calculatedNextMaintenance($('anlageInspLetzte').value,inspectionIntervalValue());
+  $('anlageInspNaechste').value=next;
+  $('anlageInspReminderDate').value=subtractDays(next,parseInt($('anlageInspReminderDays').value||'60',10));
+}
+function setAnlageTab(tab){
+  document.querySelectorAll('[data-anlage-tab]').forEach(b=>b.classList.toggle('active',b.dataset.anlageTab===tab));
+  document.querySelectorAll('[data-anlage-panel]').forEach(p=>p.classList.toggle('active',p.dataset.anlagePanel===tab));
+}
+// Dokumente und Arbeitsaufträge der Anlage im Dialog (nur bei bestehenden Anlagen)
+function renderAnlageRelated(id){
+  let docs=id?state.docs.filter(d=>d.parent===id):[];
+  let tickets=id?state.tickets.filter(t=>t.parent===id):[];
+  $('anlageDocCount').textContent=docs.length?String(docs.length):'';
+  $('anlageTicketCount').textContent=tickets.filter(t=>!isClosedTicketStatus(t.status)).length?String(tickets.filter(t=>!isClosedTicketStatus(t.status)).length):'';
+  if(!id){
+    let hint='<p class="smallText">Zuerst die Anlage speichern, danach lassen sich Dokumente und Arbeitsaufträge zuordnen.</p>';
+    $('anlageDocsPanel').innerHTML=hint;$('anlageTicketsPanel').innerHTML=hint;return;
+  }
+  $('anlageDocsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Bedienungsanleitungen, Prüfberichte, Zertifikate und Pläne dieser Anlage.</span><button class="btn small" onclick="closeModals();openDocFor('${escJsArg(id)}')">+ Dokument hochladen</button></div>`+(docs.map(listDoc).join('')||'<p class="smallText">Noch keine Dokumente.</p>');
+  $('anlageTicketsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Störungen, Reparaturen und Wartungsaufträge dieser Anlage.</span><button class="btn small" onclick="closeModals();openTicketFor('${escJsArg(id)}')">+ Arbeitsauftrag erstellen</button></div>`+(tickets.map(listTicket).join('')||'<p class="smallText">Noch keine Arbeitsaufträge.</p>');
+}
 function updateMaintenancePreview(){
   if(!$('anlageNaechste'))return;
   let next=calculatedNextMaintenance($('anlageLetzte').value,maintenanceIntervalValue());
@@ -3952,6 +4035,17 @@ function openAnlageModal(id='', parentOverride=''){
   $('anlageLetzte').value=a.letzte||'';
   $('anlageReminderDays').value=[14,30,60,90].includes(reminderDaysFromAsset(a))?String(reminderDaysFromAsset(a)):'60';
   updateMaintenancePreview();
+  $('anlageInspArt').value=a.inspektionArt||'';
+  $('anlageInspStelle').value=a.inspektionStelle||'';
+  let inspMonths=intervalMonths(a.inspektionIntervall);
+  let inspPredefined=['1','3','6','12','24','36','60'].includes(String(inspMonths));
+  $('anlageInspIntervall').value=inspPredefined?`${inspMonths} Monate`:'';
+  $('anlageInspIntervallCustom').value=!inspPredefined&&inspMonths?inspMonths:'';
+  $('anlageInspLetzte').value=a.inspektionLetzte||'';
+  $('anlageInspReminderDays').value=['14','30','60','90'].includes(String(a.inspektionReminderDays))?String(a.inspektionReminderDays):'60';
+  updateInspectionPreview();
+  setAnlageTab('stamm');
+  renderAnlageRelated(id);
   $('anlageGarantie').value=a.garantieBis||a.garantie||'';
   $('anlageNote').value=a.note||'';
   window.currentAnlageParent=parentId;
@@ -3987,6 +4081,12 @@ function saveAnlage(){
     naechste:$('anlageNaechste').value||calculatedNextMaintenance($('anlageLetzte').value,maintenanceIntervalValue()),
     reminderDays:$('anlageReminderDays').value||'60',
     reminderDate:$('anlageReminderDate').value,
+    inspektionArt:$('anlageInspArt').value,
+    inspektionStelle:$('anlageInspStelle').value,
+    inspektionIntervall:inspectionIntervalValue(),
+    inspektionLetzte:$('anlageInspLetzte').value,
+    inspektionNaechste:calculatedNextMaintenance($('anlageInspLetzte').value,inspectionIntervalValue()),
+    inspektionReminderDays:$('anlageInspReminderDays').value||'60',
     garantieBis:$('anlageGarantie').value,
     note:$('anlageNote').value
   };
@@ -4462,7 +4562,7 @@ function renderWalkthrough(){
         <span class="walkCardTitle"><span class="walkType">${esc(normalizedType(c))}</span><strong>${esc(label(c))}</strong>${codeLine(c)}</span>
         <span class="walkOrder" onclick="event.stopPropagation()"><button class="walkOrderBtn" title="Nach oben" aria-label="Nach oben" ${canUp?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx-1})">↑</button><button class="walkOrderBtn" title="Nach unten" aria-label="Nach unten" ${canDown?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx+1})">↓</button></span>
       </span>
-      <span class="walkStats"><span><b>${childCount}</b>Untereinträge</span><span><b>${anlagen}</b>Anlagen</span><span><b>${docs}</b>Dokumente</span><span><b>${tickets}</b>Tickets</span></span>
+      <span class="walkStats"><span><b>${childCount}</b>Einträge</span><span><b>${anlagen}</b>Anlagen</span><span><b>${docs}</b>Dokumente</span><span><b>${tickets}</b>Tickets</span></span>
       <span class="walkCardActions" onclick="event.stopPropagation()">
         <button class="btn small secondary" onclick="editSelected('${esc(c.id)}')">Bearbeiten</button>
         <button class="btn small" onclick="openEntry('${esc(c.id)}')">Öffnen</button>
@@ -5185,6 +5285,15 @@ function renderWarnings() {
       }
     }
 
+    let inspDate = n.anlage?.inspektionNaechste || '';
+    let inspDays = daysUntil(inspDate);
+    let inspLabel = n.anlage?.inspektionArt ? `Inspektion (${n.anlage.inspektionArt})` : 'Inspektion';
+    if (inspDate && inspDate < todayStr && !isAssetHintHidden(n,'date:inspection')) {
+      warningsList.push({ type: 'inspection', key: 'date:inspection', category: 'Kritisch', title: `${inspLabel} überfällig`, assetName: n.name, locationPath: path(n.id), dueDate: inspDate, statusText: 'Inspektion überfällig', prio: 'Kritisch', nodeId: n.id, icon: '🔴' });
+    } else if (inspDays !== null && inspDays <= (parseInt(n.anlage?.inspektionReminderDays,10) || 60) && !isAssetHintHidden(n,'date:inspection-info')) {
+      warningsList.push({ type: 'inspection-info', key: 'date:inspection-info', category: 'Info', title: `${inspLabel} ${n.name} in ${inspDays} Tagen fällig`, assetName: n.name, locationPath: path(n.id), dueDate: inspDate, statusText: 'Information', prio: 'Info', nodeId: n.id, icon: '🔵' });
+    }
+
     let safetyDate = n.anlage?.sicherheitspruefungBis || n.anlage?.pruefungBis || n.anlage?.sicherheitspruefung || '';
     if (safetyDate && safetyDate < todayStr && !isAssetHintHidden(n,'date:safety')) {
       warningsList.push({
@@ -5636,16 +5745,15 @@ function getStGallenHolidays(year) {
 // Calendar View and Navigation Controls
 function setCalendarView(view) {
   currentCalendarView = view;
-  document.querySelectorAll('#mitarbeiter .tabs .tab').forEach(b => b.classList.remove('active'));
-  if (view === 'month') $('viewMonthBtn').classList.add('active');
-  if (view === 'quarter') $('viewQuarterBtn').classList.add('active');
-  if (view === 'year') $('viewYearBtn').classList.add('active');
+  if ($('calendarViewSelect')) $('calendarViewSelect').value = view;
   renderCalendar();
 }
 
 function navigateCalendar(direction) {
   const date = new Date(currentCalendarDate);
-  if (currentCalendarView === 'month') {
+  if (currentCalendarView === 'week') {
+    date.setDate(date.getDate() + direction * 7);
+  } else if (currentCalendarView === 'month') {
     date.setMonth(date.getMonth() + direction);
   } else if (currentCalendarView === 'quarter') {
     date.setMonth(date.getMonth() + (direction * 3));
@@ -5656,10 +5764,70 @@ function navigateCalendar(direction) {
   renderCalendar();
 }
 
-function togglePlanRange() {
-  const isRange = $('planRangeType').value === 'range';
-  $('planDateSingleGroup').style.display = isRange ? 'none' : 'block';
-  $('planDateRangeGroup').style.display = isRange ? 'grid' : 'none';
+// Tage der angezeigten Woche (Montag bis Sonntag) bzw. des Monats
+function calendarViewDays() {
+  const base = new Date(currentCalendarDate);
+  if (currentCalendarView === 'week') {
+    const monday = new Date(base.getFullYear(), base.getMonth(), base.getDate() - ((base.getDay() + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
+  }
+  const y = base.getFullYear(), m = base.getMonth(), n = new Date(y, m + 1, 0).getDate();
+  return Array.from({ length: n }, (_, i) => new Date(y, m, i + 1));
+}
+function calendarWeekLabel(days) {
+  const f = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
+  return `KW ${getISOWeekAndYear(days[0]).week} · ${f(days[0])} – ${f(days[6])}${days[6].getFullYear()}`;
+}
+
+// Von/Bis sind immer sichtbar; ein einzelner Tag ist Von = Bis.
+function togglePlanRange() { updatePlanDayCount(); }
+function isPlanWorkday(dStr) {
+  const d = new Date(dStr + 'T12:00:00');
+  const day = d.getDay();
+  return day !== 0 && day !== 6 && !getStGallenHolidays(d.getFullYear())[dStr];
+}
+function planDatesInRange(startStr, endStr, skipWeekends) {
+  const out = [];
+  if (!startStr || !endStr || startStr > endStr) return out;
+  const cur = new Date(startStr + 'T12:00:00'), end = new Date(endStr + 'T12:00:00');
+  while (cur <= end) {
+    const dStr = toLocalDateString(cur);
+    if (!skipWeekends || isPlanWorkday(dStr)) out.push(dStr);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+function syncPlanEnd() {
+  if (!$('planDateEnd').value || $('planDateEnd').value < $('planDateStart').value) $('planDateEnd').value = $('planDateStart').value;
+  updatePlanDayCount();
+}
+function updatePlanDayCount() {
+  const el = $('planDayCount');
+  if (!el) return;
+  const s = $('planDateStart').value, e = $('planDateEnd').value;
+  if (!s || !e) { el.textContent = ''; return; }
+  if (s > e) { el.textContent = 'Bis liegt vor Von.'; return; }
+  const n = planDatesInRange(s, e, s !== e && $('planSkipWeekends').checked).length;
+  el.textContent = n === 1 ? '1 Tag wird geplant' : `${n} Tage werden geplant`;
+}
+function openNewPlanModal() {
+  const emps = operationalEmployees();
+  if (emps.length === 0) { alert("Bitte erfassen Sie zuerst einen Mitarbeiter."); return; }
+  $('planEmpSelectGroup').style.display = 'block';
+  $('planEmpStaticGroup').style.display = 'none';
+  $('planEmpSelect').innerHTML = emps.map(e => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+  $('planEditId').value = '';
+  $('planEmpId').value = '';
+  const today = toLocalDateString(new Date());
+  $('planDateStart').value = today;
+  $('planDateEnd').value = today;
+  $('planDateSingle').value = today;
+  $('planSkipWeekends').checked = true;
+  $('planShiftType').value = 'Normaldienst';
+  $('planTask').value = '';
+  $('planDeleteBtn').style.display = 'none';
+  updatePlanDayCount();
+  $('calendarPlanModal').style.display = 'flex';
 }
 
 // Interactive cell click: open modal
@@ -5698,6 +5866,8 @@ function openCalendarPlan(empId, dateStr, shiftId = null) {
     $('planDeleteBtn').style.display = 'none';
   }
 
+  $('planSkipWeekends').checked = true;
+  updatePlanDayCount();
   $('calendarPlanModal').style.display = 'flex';
 }
 
@@ -5738,6 +5908,8 @@ function openRequestVacationModal() {
   $('planShiftType').value = 'Ferien Antrag';
   $('planTask').value = '';
   $('planDeleteBtn').style.display = 'none';
+  $('planSkipWeekends').checked = true;
+  updatePlanDayCount();
 
   $('calendarPlanModal').style.display = 'flex';
 }
@@ -5748,66 +5920,30 @@ function saveCalendarPlan(e) {
   const empId = $('planEmpSelectGroup').style.display === 'block' ? $('planEmpSelect').value : $('planEmpId').value;
   if (!empId) { alert("Mitarbeiter ungültig."); return; }
 
-  const rangeType = $('planRangeType').value;
   const shiftType = $('planShiftType').value;
   const task = $('planTask').value.trim() || '-';
   const editId = $('planEditId').value;
+  const startStr = $('planDateStart').value;
+  const endStr = $('planDateEnd').value || startStr;
+  if (!startStr) { alert("Bitte ein Datum wählen."); return; }
+  if (startStr > endStr) { alert("Das Datum 'Bis' darf nicht vor 'Von' liegen."); return; }
 
   state.shifts = state.shifts || [];
+  const existing = editId ? state.shifts.find(s => s.id === editId) : null;
 
-  if (rangeType === 'single') {
-    const date = $('planDateSingle').value;
-    if (!date) { alert("Datum ungültig."); return; }
-
-    if (editId) {
-      // Update existing
-      const sh = state.shifts.find(s => s.id === editId);
-      if (sh) {
-        sh.shiftType = shiftType;
-        sh.taskAssignment = task;
-      }
-    } else {
-      // Remove any existing shift for this employee on this date
-      state.shifts = state.shifts.filter(s => !(s.employeeId === empId && s.date === date));
-      // Add new
-      state.shifts.push({
-        id: uid(),
-        employeeId: empId,
-        date: date,
-        shiftType: shiftType,
-        taskAssignment: task,
-        workload: 'Normal'
-      });
-    }
+  if (existing && startStr === endStr && existing.date === startStr) {
+    // Bestehenden Eintrag für diesen Tag ändern
+    existing.shiftType = shiftType;
+    existing.taskAssignment = task;
   } else {
-    // Range type
-    const startStr = $('planDateStart').value;
-    const endStr = $('planDateEnd').value;
-    if (!startStr || !endStr) { alert("Zeitraum ungültig."); return; }
-    if (startStr > endStr) { alert("Das Startdatum darf nicht nach dem Enddatum liegen."); return; }
-
-    const startDate = new Date(startStr);
-    const endDate = new Date(endStr);
-    
-    // Create shifts for all days in range
-    const curDate = new Date(startDate);
-    while (curDate <= endDate) {
-      const dStr = toLocalDateString(curDate);
-      
-      // Remove existing to avoid duplicates
+    // Ein einzelner Tag wird immer geplant; bei Zeiträumen optional nur Werktage.
+    const skip = startStr !== endStr && $('planSkipWeekends').checked;
+    const dates = planDatesInRange(startStr, endStr, skip);
+    if (!dates.length) { alert("Im gewählten Zeitraum liegt kein Arbeitstag."); return; }
+    dates.forEach(dStr => {
       state.shifts = state.shifts.filter(s => !(s.employeeId === empId && s.date === dStr));
-      
-      state.shifts.push({
-        id: uid(),
-        employeeId: empId,
-        date: dStr,
-        shiftType: shiftType,
-        taskAssignment: task,
-        workload: 'Normal'
-      });
-
-      curDate.setDate(curDate.getDate() + 1);
-    }
+      state.shifts.push({ id: uid(), employeeId: empId, date: dStr, shiftType, taskAssignment: task, workload: 'Normal' });
+    });
   }
 
   save();
@@ -6019,7 +6155,7 @@ function renderCalendar() {
         <span class="smallText">Passen Sie die Filter an oder setzen Sie sie zurück.</span>
       </div>
     `;
-    $('calendarPeriodLabel').textContent = currentCalendarView === 'quarter' ? `Q${Math.floor(month/3)+1} ${year}` : (currentCalendarView === 'year' ? `${year}` : `${monthNames[month]} ${year}`);
+    $('calendarPeriodLabel').textContent = currentCalendarView === 'week' ? calendarWeekLabel(calendarViewDays()) : currentCalendarView === 'quarter' ? `Q${Math.floor(month/3)+1} ${year}` : (currentCalendarView === 'year' ? `${year}` : `${monthNames[month]} ${year}`);
     return;
   }
 
@@ -6028,32 +6164,32 @@ function renderCalendar() {
 
   let html = '';
 
-  if (currentCalendarView === 'month') {
-    $('calendarPeriodLabel').textContent = `${monthNames[month]} ${year}`;
-
-    const numDays = new Date(year, month + 1, 0).getDate();
+  if (currentCalendarView === 'month' || currentCalendarView === 'week') {
+    const isWeekView = currentCalendarView === 'week';
+    const viewDays = calendarViewDays();
+    $('calendarPeriodLabel').textContent = isWeekView ? calendarWeekLabel(viewDays) : `${monthNames[month]} ${year}`;
     
-    html += `<table class="plannerTable"><thead><tr>`;
+    html += `<table class="plannerTable${isWeekView ? ' plannerWeek' : ''}"><thead><tr>`;
     html += `<th class="emp-name-col-header">Mitarbeiter</th>`;
     
-    for (let d = 1; d <= numDays; d++) {
-      const dateObj = new Date(year, month, d);
+    viewDays.forEach(dateObj => {
+      const d = dateObj.getDate();
       const isWk = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-      const dStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const isHol = holidays[dStr];
+      const dStr = toLocalDateString(dateObj);
+      const isHol = getStGallenHolidays(dateObj.getFullYear())[dStr];
       const holName = isHol ? holidays[dStr] : '';
       
       const colStyle = isHol ? 'background:#e2e8f0; color:#2c3e4c;' : (isWk ? 'background:#f8fafc;' : '');
       const dName = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][dateObj.getDay()];
       
-      let headerContent = `${d}<br><span style="font-size:10px;font-weight:normal;color:var(--muted);">${dName}</span>`;
-      if (dateObj.getDay() === 1) { // Monday column
+      let headerContent = isWeekView ? `${dName} ${d}.${dateObj.getMonth()+1}.` : `${d}<br><span style="font-size:10px;font-weight:normal;color:var(--muted);">${dName}</span>`;
+      if (!isWeekView && dateObj.getDay() === 1) { // Monday column
         const kwNum = getISOWeekAndYear(dateObj).week;
         headerContent = `<span style="font-size:9px;font-weight:bold;color:#3f7692;display:block;margin-bottom:2px;" class="month-kw-label">KW ${kwNum}</span>` + headerContent;
       }
       
       html += `<th style="${colStyle}" title="${esc(holName)}">${headerContent}</th>`;
-    }
+    });
     html += `</tr></thead><tbody>`;
 
     emps.forEach(e => {
@@ -6066,12 +6202,13 @@ function renderCalendar() {
 
       html += `<td class="emp-name-col"><b>${esc(e.name)}</b><br>${roleBadge}</td>`;
       
-      for (let d = 1; d <= numDays; d++) {
-        const dStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dateObj = new Date(year, month, d);
+      viewDays.forEach(dateObj => {
+        const d = dateObj.getDate();
+        const dStr = toLocalDateString(dateObj);
         const isWk = dateObj.getDay() === 0 || dateObj.getDay() === 6;
         const isToday = dStr === todayStr;
-        const isHol = holidays[dStr];
+        const dayHolidays = getStGallenHolidays(dateObj.getFullYear());
+        const isHol = dayHolidays[dStr];
 
         // Find shift entry
         const sh = shifts.find(s => s.employeeId === e.id && s.date === dStr);
@@ -6081,7 +6218,7 @@ function renderCalendar() {
 
         let cellClass = 'plannerCell';
         let cellText = '';
-        let cellTitle = `${e.name} · ${d}.${month+1}.${year}`;
+        let cellTitle = `${e.name} · ${d}.${dateObj.getMonth()+1}.${dateObj.getFullYear()}`;
         let shiftId = '';
 
         if (isPiketOnly) {
@@ -6116,7 +6253,7 @@ function renderCalendar() {
             if (isHol) {
               cellClass += ' cell-holiday';
               cellText = '⚫';
-              cellTitle += `\nFeiertag: ${holidays[dStr]}`;
+              cellTitle += `\nFeiertag: ${dayHolidays[dStr]}`;
             } else if (isWk) {
               cellClass += ' cell-weekend';
             } else {
@@ -6137,8 +6274,13 @@ function renderCalendar() {
           }
         }
 
+        // In der Wochenansicht steht die Aufgabe bzw. der Status direkt im Feld
+        if (isWeekView && !isPiketOnly) {
+          const note = sh && sh.taskAssignment && sh.taskAssignment !== '-' ? sh.taskAssignment : (sh && sh.shiftType !== 'Normaldienst' ? (sh.shiftType === 'Krank' ? 'Abwesend' : sh.shiftType) : (isHol ? isHol : ''));
+          if (note) cellText += `<span class="weekNote">${esc(note)}</span>`;
+        }
         html += `<td class="${cellClass}" onclick="openCalendarPlan('${escJsArg(e.id)}', '${dStr}', '${shiftId}')" title="${esc(cellTitle)}">${cellText}</td>`;
-      }
+      });
       html += `</tr>`;
     });
     html += `</tbody></table>`;
