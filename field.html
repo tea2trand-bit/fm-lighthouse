@@ -532,7 +532,8 @@ function renderAll(){
   renderHeader();renderQuick();renderService();renderTicket();renderDocs();renderHistory();renderTasks();renderPortal();renderNotifications();updateBell();showSection(activeSection,{scroll:false})
 }
 async function loadState(){try{clearStatus();clearStoredFieldContext();state=await loadApiWithRetry();loggedEmployee();updateEmployeeHeader();renderTasks();renderPortal();renderNotifications();updateBell();let id=directContextId(),ticketId=directTicketId();if(id){let n=resolveQrValue(id);history.replaceState(null,'',neutralFieldUrl());if(!n){showStart();showStatus('Der QR-Link konnte keinem Raum oder keiner Anlage zugeordnet werden.','error');return}openContext(n,{ticketId});return}showStart()}catch(e){if(e.sessionExpired)return;showStatus('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}
-function init(){renderNav();$('contextScreen').style.display='none';setSessionEmployee(null);$('loginScreen').style.display='grid';}
+// Gespeicherten Login beim Neuladen weiterverwenden; bei Ablauf zeigt handleExpiredSession() die Anmeldung.
+function init(){renderNav();$('contextScreen').style.display='none';let emp=storedSessionEmployee();if(storedSessionToken()&&emp){setSessionEmployee(emp);$('loginScreen').style.display='none';loadState();return}setSessionEmployee(null);$('loginScreen').style.display='grid';}
 init();
 </script>
 </body>
