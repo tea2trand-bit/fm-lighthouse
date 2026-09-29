@@ -852,6 +852,18 @@ button.walkLocalKpi{cursor:pointer}
 .plannerWeek th{font-size:12px;white-space:nowrap}
 .plannerWeek td.plannerCell{height:58px;vertical-align:middle}
 .weekNote{display:block;margin-top:3px;font-size:11px;line-height:1.2;color:#2c3e4c;font-weight:500;white-space:normal}
+/* Anlage-Dialog in Reiter aufgeteilt */
+.anlageTabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--td-line)}
+.anlageTabs .tab{margin:0}
+.anlageTabCount{display:inline-block;min-width:18px;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e9f1f9;color:#2f5f78;font-size:11px;line-height:16px}
+.anlageTabCount:empty{display:none}
+.anlagePanel{display:none}.anlagePanel.active{display:block}
+.anlageSubhead{margin:4px 0 8px;font-size:13px;letter-spacing:.04em;color:#28566e}
+.anlagePanel .anlageSubhead:not(:first-child){margin-top:18px;padding-top:14px;border-top:1px solid #edf2f6}
+.anlagePanelHead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+/* Kennzahlen in schmalen Rundgang-Kacheln immer in einer Zeile */
+.walkStats{grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column}
+.walkStats span{font-size:10.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -1941,7 +1953,14 @@ button.walkLocalKpi{cursor:pointer}
 <div class="modalBack" id="anlageModal"><div class="modal"><div class="modalHead"><b>Anlage-Datenbank</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
   <input type="hidden" id="anlageEditId">
   <p class="smallText" id="anlagePath"></p>
-  <div class="formGrid">
+  <div class="anlageTabs" role="tablist">
+    <button type="button" class="tab active" data-anlage-tab="stamm" onclick="setAnlageTab('stamm')">Maschinenstammdaten</button>
+    <button type="button" class="tab" data-anlage-tab="service" onclick="setAnlageTab('service')">Service &amp; Vertrag</button>
+    <button type="button" class="tab" data-anlage-tab="intervall" onclick="setAnlageTab('intervall')">Wartung &amp; Inspektion</button>
+    <button type="button" class="tab" data-anlage-tab="docs" onclick="setAnlageTab('docs')">Dokumente <span class="anlageTabCount" id="anlageDocCount"></span></button>
+    <button type="button" class="tab" data-anlage-tab="tickets" onclick="setAnlageTab('tickets')">Arbeitsaufträge <span class="anlageTabCount" id="anlageTicketCount"></span></button>
+  </div>
+  <div class="anlagePanel active" data-anlage-panel="stamm"><div class="formGrid">
     <div class="field"><label>FM-Code</label><div class="readonlyCode"><span id="anlageFmCodePreview">wird automatisch erzeugt</span><small id="anlageFmCodeHint">fix aus Struktur</small></div></div>
     <div class="field"><label>Admin / Bearbeiten-Modus</label><label class="smallText" style="display:flex;align-items:center;margin-top:8px;"><input id="anlageManualCodeToggle" type="checkbox" onchange="toggleAnlageManualCode()" style="width:auto;margin-right:6px">FM-Code manuell überschreiben</label></div>
     <div class="field full" id="anlageManualCodeField" style="display:none"><label>Manueller FM-Code</label><input id="anlageCode" placeholder="optional nur im Admin-Modus"></div>
@@ -1953,6 +1972,11 @@ button.walkLocalKpi{cursor:pointer}
     <div class="field"><label>Seriennummer</label><input id="anlageSerial" placeholder="Seriennummer"></div>
     <div class="field"><label>Baujahr</label><input id="anlageBaujahr" placeholder="z.B. 2021"></div>
     <div class="field"><label>Installationsdatum</label><input id="anlageInstallDate" type="date"></div>
+    <div class="field"><label>Garantie bis</label><input id="anlageGarantie" type="date"></div>
+    <div class="field full"><label>Standort</label><input id="anlageStandort" placeholder="wird aus dem gewählten Ort übernommen"></div>
+    <textarea class="full" id="anlageNote" placeholder="Notizen / Bemerkungen"></textarea>
+  </div></div>
+  <div class="anlagePanel" data-anlage-panel="service"><div class="formGrid">
     <div class="field"><label>Servicefirma</label><input id="anlageLieferant" placeholder="Verantwortliche Servicefirma"></div>
     <div class="field"><label>Ansprechpartner</label><input id="anlageKontakt" placeholder="Name"></div>
     <div class="field"><label>Telefonnummer</label><input id="anlageTelefon" placeholder="+41 ..."></div>
@@ -1964,16 +1988,31 @@ button.walkLocalKpi{cursor:pointer}
     <div class="field"><label>Kostenstelle</label><input id="anlageKostenstelle" placeholder="Kostenstelle / Budget"></div>
     <div class="field"><label>Vertragsnummer</label><input id="anlageVertragNr" placeholder="Wartungsvertrag / Vertragsnummer"></div>
     <div class="field"><label>Vertragsablauf</label><input id="anlageVertragsablauf" type="date"></div>
-    <div class="field full"><label>Standort</label><input id="anlageStandort" placeholder="wird aus dem gewählten Ort übernommen"></div>
+  </div></div>
+  <div class="anlagePanel" data-anlage-panel="intervall">
+    <h4 class="anlageSubhead">Wartung</h4>
+    <div class="formGrid">
     <div class="field"><label>Wartungsintervall</label><select id="anlageIntervall" onchange="updateMaintenancePreview()"><option value="">Nicht definiert</option><option value="1 Monate">monatlich</option><option value="3 Monate">alle 3 Monate</option><option value="6 Monate">alle 6 Monate</option><option value="12 Monate">jährlich</option><option value="24 Monate">alle 2 Jahre</option></select></div>
     <div class="field"><label>Frei wählbar in Monaten</label><input id="anlageIntervallCustom" type="number" min="1" step="1" placeholder="z.B. 18" oninput="updateMaintenancePreview()"></div>
     <div class="field"><label>Letzte Wartung</label><input id="anlageLetzte" type="date" onchange="updateMaintenancePreview()"></div>
     <div class="field"><label>Nächste Wartung</label><input id="anlageNaechste" type="date" readonly></div>
     <div class="field"><label>Erinnerung vor Fälligkeit</label><select id="anlageReminderDays" onchange="updateMaintenancePreview()"><option value="14">14 Tage</option><option value="30">30 Tage</option><option value="60">60 Tage</option><option value="90">90 Tage</option></select></div>
     <div class="field full"><label>Hinweis ab</label><input id="anlageReminderDate" readonly></div>
-    <div class="field"><label>Garantie bis</label><input id="anlageGarantie" type="date"></div>
-    <textarea class="full" id="anlageNote" placeholder="Notizen / Bemerkungen"></textarea>
+    </div>
+    <h4 class="anlageSubhead">Inspektion</h4>
+    <div class="formGrid">
+    <div class="field"><label>Inspektion / Prüfung</label><input id="anlageInspArt" placeholder="z.B. Kesselprüfung, Druckbehälter, Elektro-Sicherheit"></div>
+    <div class="field"><label>Prüfstelle / Inspektor</label><input id="anlageInspStelle" placeholder="z.B. SVTI, Elektro-Kontrolleur"></div>
+    <div class="field"><label>Inspektionsintervall</label><select id="anlageInspIntervall" onchange="updateInspectionPreview()"><option value="">Nicht definiert</option><option value="1 Monate">monatlich</option><option value="3 Monate">alle 3 Monate</option><option value="6 Monate">alle 6 Monate</option><option value="12 Monate">jährlich</option><option value="24 Monate">alle 2 Jahre</option><option value="36 Monate">alle 3 Jahre</option><option value="60 Monate">alle 5 Jahre</option></select></div>
+    <div class="field"><label>Frei wählbar in Monaten</label><input id="anlageInspIntervallCustom" type="number" min="1" step="1" placeholder="z.B. 18" oninput="updateInspectionPreview()"></div>
+    <div class="field"><label>Letzte Inspektion</label><input id="anlageInspLetzte" type="date" onchange="updateInspectionPreview()"></div>
+    <div class="field"><label>Nächste Inspektion</label><input id="anlageInspNaechste" type="date" readonly></div>
+    <div class="field"><label>Erinnerung vor Fälligkeit</label><select id="anlageInspReminderDays" onchange="updateInspectionPreview()"><option value="14">14 Tage</option><option value="30">30 Tage</option><option value="60">60 Tage</option><option value="90">90 Tage</option></select></div>
+    <div class="field"><label>Hinweis ab</label><input id="anlageInspReminderDate" readonly></div>
+    </div>
   </div>
+  <div class="anlagePanel" data-anlage-panel="docs"><div id="anlageDocsPanel"></div></div>
+  <div class="anlagePanel" data-anlage-panel="tickets"><div id="anlageTicketsPanel"></div></div>
   <div class="divider"></div>
   <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <button class="btn danger" id="deleteAnlageBtn" onclick="deleteCurrentAnlage()">Anlage löschen</button>
@@ -3817,6 +3856,33 @@ function maintenanceIntervalValue(){
   let custom=parseInt($('anlageIntervallCustom')?.value||'',10);
   return Number.isFinite(custom)&&custom>0?`${custom} Monate`:$('anlageIntervall').value;
 }
+function inspectionIntervalValue(){
+  let custom=parseInt($('anlageInspIntervallCustom')?.value||'',10);
+  return Number.isFinite(custom)&&custom>0?`${custom} Monate`:($('anlageInspIntervall')?.value||'');
+}
+function updateInspectionPreview(){
+  if(!$('anlageInspNaechste'))return;
+  let next=calculatedNextMaintenance($('anlageInspLetzte').value,inspectionIntervalValue());
+  $('anlageInspNaechste').value=next;
+  $('anlageInspReminderDate').value=subtractDays(next,parseInt($('anlageInspReminderDays').value||'60',10));
+}
+function setAnlageTab(tab){
+  document.querySelectorAll('[data-anlage-tab]').forEach(b=>b.classList.toggle('active',b.dataset.anlageTab===tab));
+  document.querySelectorAll('[data-anlage-panel]').forEach(p=>p.classList.toggle('active',p.dataset.anlagePanel===tab));
+}
+// Dokumente und Arbeitsaufträge der Anlage im Dialog (nur bei bestehenden Anlagen)
+function renderAnlageRelated(id){
+  let docs=id?state.docs.filter(d=>d.parent===id):[];
+  let tickets=id?state.tickets.filter(t=>t.parent===id):[];
+  $('anlageDocCount').textContent=docs.length?String(docs.length):'';
+  $('anlageTicketCount').textContent=tickets.filter(t=>!isClosedTicketStatus(t.status)).length?String(tickets.filter(t=>!isClosedTicketStatus(t.status)).length):'';
+  if(!id){
+    let hint='<p class="smallText">Zuerst die Anlage speichern, danach lassen sich Dokumente und Arbeitsaufträge zuordnen.</p>';
+    $('anlageDocsPanel').innerHTML=hint;$('anlageTicketsPanel').innerHTML=hint;return;
+  }
+  $('anlageDocsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Bedienungsanleitungen, Prüfberichte, Zertifikate und Pläne dieser Anlage.</span><button class="btn small" onclick="closeModals();openDocFor('${escJsArg(id)}')">+ Dokument hochladen</button></div>`+(docs.map(listDoc).join('')||'<p class="smallText">Noch keine Dokumente.</p>');
+  $('anlageTicketsPanel').innerHTML=`<div class="anlagePanelHead"><span class="smallText">Störungen, Reparaturen und Wartungsaufträge dieser Anlage.</span><button class="btn small" onclick="closeModals();openTicketFor('${escJsArg(id)}')">+ Arbeitsauftrag erstellen</button></div>`+(tickets.map(listTicket).join('')||'<p class="smallText">Noch keine Arbeitsaufträge.</p>');
+}
 function updateMaintenancePreview(){
   if(!$('anlageNaechste'))return;
   let next=calculatedNextMaintenance($('anlageLetzte').value,maintenanceIntervalValue());
@@ -3969,6 +4035,17 @@ function openAnlageModal(id='', parentOverride=''){
   $('anlageLetzte').value=a.letzte||'';
   $('anlageReminderDays').value=[14,30,60,90].includes(reminderDaysFromAsset(a))?String(reminderDaysFromAsset(a)):'60';
   updateMaintenancePreview();
+  $('anlageInspArt').value=a.inspektionArt||'';
+  $('anlageInspStelle').value=a.inspektionStelle||'';
+  let inspMonths=intervalMonths(a.inspektionIntervall);
+  let inspPredefined=['1','3','6','12','24','36','60'].includes(String(inspMonths));
+  $('anlageInspIntervall').value=inspPredefined?`${inspMonths} Monate`:'';
+  $('anlageInspIntervallCustom').value=!inspPredefined&&inspMonths?inspMonths:'';
+  $('anlageInspLetzte').value=a.inspektionLetzte||'';
+  $('anlageInspReminderDays').value=['14','30','60','90'].includes(String(a.inspektionReminderDays))?String(a.inspektionReminderDays):'60';
+  updateInspectionPreview();
+  setAnlageTab('stamm');
+  renderAnlageRelated(id);
   $('anlageGarantie').value=a.garantieBis||a.garantie||'';
   $('anlageNote').value=a.note||'';
   window.currentAnlageParent=parentId;
@@ -4004,6 +4081,12 @@ function saveAnlage(){
     naechste:$('anlageNaechste').value||calculatedNextMaintenance($('anlageLetzte').value,maintenanceIntervalValue()),
     reminderDays:$('anlageReminderDays').value||'60',
     reminderDate:$('anlageReminderDate').value,
+    inspektionArt:$('anlageInspArt').value,
+    inspektionStelle:$('anlageInspStelle').value,
+    inspektionIntervall:inspectionIntervalValue(),
+    inspektionLetzte:$('anlageInspLetzte').value,
+    inspektionNaechste:calculatedNextMaintenance($('anlageInspLetzte').value,inspectionIntervalValue()),
+    inspektionReminderDays:$('anlageInspReminderDays').value||'60',
     garantieBis:$('anlageGarantie').value,
     note:$('anlageNote').value
   };
@@ -4479,7 +4562,7 @@ function renderWalkthrough(){
         <span class="walkCardTitle"><span class="walkType">${esc(normalizedType(c))}</span><strong>${esc(label(c))}</strong>${codeLine(c)}</span>
         <span class="walkOrder" onclick="event.stopPropagation()"><button class="walkOrderBtn" title="Nach oben" aria-label="Nach oben" ${canUp?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx-1})">↑</button><button class="walkOrderBtn" title="Nach unten" aria-label="Nach unten" ${canDown?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx+1})">↓</button></span>
       </span>
-      <span class="walkStats"><span><b>${childCount}</b>Untereinträge</span><span><b>${anlagen}</b>Anlagen</span><span><b>${docs}</b>Dokumente</span><span><b>${tickets}</b>Tickets</span></span>
+      <span class="walkStats"><span><b>${childCount}</b>Einträge</span><span><b>${anlagen}</b>Anlagen</span><span><b>${docs}</b>Dokumente</span><span><b>${tickets}</b>Tickets</span></span>
       <span class="walkCardActions" onclick="event.stopPropagation()">
         <button class="btn small secondary" onclick="editSelected('${esc(c.id)}')">Bearbeiten</button>
         <button class="btn small" onclick="openEntry('${esc(c.id)}')">Öffnen</button>
@@ -5200,6 +5283,15 @@ function renderWarnings() {
           icon: '🔵'
         });
       }
+    }
+
+    let inspDate = n.anlage?.inspektionNaechste || '';
+    let inspDays = daysUntil(inspDate);
+    let inspLabel = n.anlage?.inspektionArt ? `Inspektion (${n.anlage.inspektionArt})` : 'Inspektion';
+    if (inspDate && inspDate < todayStr && !isAssetHintHidden(n,'date:inspection')) {
+      warningsList.push({ type: 'inspection', key: 'date:inspection', category: 'Kritisch', title: `${inspLabel} überfällig`, assetName: n.name, locationPath: path(n.id), dueDate: inspDate, statusText: 'Inspektion überfällig', prio: 'Kritisch', nodeId: n.id, icon: '🔴' });
+    } else if (inspDays !== null && inspDays <= (parseInt(n.anlage?.inspektionReminderDays,10) || 60) && !isAssetHintHidden(n,'date:inspection-info')) {
+      warningsList.push({ type: 'inspection-info', key: 'date:inspection-info', category: 'Info', title: `${inspLabel} ${n.name} in ${inspDays} Tagen fällig`, assetName: n.name, locationPath: path(n.id), dueDate: inspDate, statusText: 'Information', prio: 'Info', nodeId: n.id, icon: '🔵' });
     }
 
     let safetyDate = n.anlage?.sicherheitspruefungBis || n.anlage?.pruefungBis || n.anlage?.sicherheitspruefung || '';
