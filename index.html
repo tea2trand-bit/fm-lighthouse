@@ -729,6 +729,28 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .warnCard .itemActions{margin-top:auto!important;padding-top:8px;justify-content:flex-start;flex-wrap:wrap}
 .warnCard > div:nth-child(2){color:#5f7380!important}
 #dynamicWarningsList{max-height:none!important;overflow:visible!important}
+
+/* Kompakte Zähler: Zahl und Bezeichnung in einer Zeile */
+.globalMetrics,.infraRail{padding:10px 14px 12px;margin-bottom:8px}
+.globalMetrics h2,.infraRail h2{margin:0 0 7px}
+.kpi,.infraKpi{display:flex;align-items:baseline;gap:8px;padding:9px 12px 8px;min-height:0}
+.kpi::before,.infraKpi::before{height:2px}
+.kpi b,.infraKpi b{display:inline;font-size:20px;line-height:1}
+.kpi span,.infraKpi span{display:inline;margin-top:0;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.infraGroups{gap:14px}
+.infraGroup{gap:5px}
+.infraGroupLabel{font-size:11.5px}
+.stickyHeader{position:relative;top:auto;backdrop-filter:none;background:transparent}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.infraKpis.infraKpis3,.infraKpis.infraKpis4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+@media(max-width:1500px){.infraGroups{grid-template-columns:1fr}}
+.kpis{grid-template-columns:repeat(9,minmax(0,1fr))}
+.infraKpis.infraKpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.infraKpis.infraKpis4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1500px){.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.infraKpis.infraKpis3,.infraKpis.infraKpis4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.warnGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:900px){.warnGrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
