@@ -3052,7 +3052,7 @@ function quickActionsFor(parentId='', opts={}){
     actions.push(hierarchyAction('Anlagen-Stammdaten','master','master',`openAnlageModal('${parentId}')`,'Stammdaten'));
     actions.push(hierarchyAction('Ticket erstellen','ticket','ticket',`openTicketFor('${parentId}')`,'Ticket'));
     if(supportsQrNode(n))actions.push(hierarchyAction('QR-Code','qr','qr',`openQrModal('${parentId}')`,'QR'));
-    actions.push(hierarchyAction('Element hinzufügen','master','add',`openNodeModal('','${parentId}',true)`,'Element'));
+    actions.push(hierarchyAction('Komponente / Dokument hinzufügen','master','add',`openNodeModal('','${parentId}',true)`,'Element'));
   }else if(normalizedType(n)==='Raum / Bereich'){
     actions.push(hierarchyAction('Raum-Daten','document','document',`openRoomRecordsTab('${parentId}')`,'Raum-Daten'));
     actions.push(hierarchyAction('Anlage anlegen','master','add',`openAnlageModal('', '${parentId}')`,'Anlage'));
@@ -4398,7 +4398,7 @@ function renderWalkthrough(){
   if($('walkthroughBreadcrumb'))$('walkthroughBreadcrumb').innerHTML=walkthroughBreadcrumb(n);
   if($('walkthroughActions'))$('walkthroughActions').innerHTML=walkthroughActionButtons(currentId);
   if($('walkthroughHelp')){
-    $('walkthroughHelp').textContent=n?(isAssetNode(n)?`${normalizedType(n)} · ${displayCode(n)||'kein FM-Code'} · finales Anlagenblatt`:`${normalizedType(n)} · ${displayCode(n)||'kein FM-Code'} · ${direct.length} direkte Untereinträge`):'Standort auswählen und Schritt für Schritt durch Objekt, Etage, Raum und Anlage gehen.';
+    $('walkthroughHelp').textContent=n?(isAssetNode(n)?`${normalizedType(n)} · ${displayCode(n)||'kein FM-Code'}`:`${normalizedType(n)} · ${displayCode(n)||'kein FM-Code'} · ${direct.length} direkte Untereinträge`):'Standort auswählen und Schritt für Schritt durch Objekt, Etage, Raum und Anlage gehen.';
   }
   let cards=direct.map((c,idx)=>{
     let {anlagen,docs,tickets}=localCountsFor(c.id);
@@ -4419,8 +4419,8 @@ function renderWalkthrough(){
   }).join('');
   if(!cards){
     cards=`<div class="walkEmpty" style="grid-column:1/-1">
-      <strong>${isAssetNode(n)?'Anlage erreicht.':'Keine Untereinträge an dieser Stelle.'}</strong>
-      <p class="smallText" style="margin:6px 0 0;">${isAssetNode(n)?'Auf Anlage-Level endet die Objekt-Hierarchie. Nutzen Sie Stammdaten, Dokumente und Tickets.':'Nutzen Sie die lokalen Aktionen, um hier passend zum aktuellen Kontext weiter aufzubauen.'}</p>
+      <strong>${isAssetNode(n)?'Noch keine Komponenten.':'Keine Untereinträge an dieser Stelle.'}</strong>
+      <p class="smallText" style="margin:6px 0 0;">${isAssetNode(n)?'Baugruppen, Komponenten oder Dokumente über „Komponente / Dokument hinzufügen“ ergänzen.':'Nutzen Sie die lokalen Aktionen, um hier passend zum aktuellen Kontext weiter aufzubauen.'}</p>
     </div>`;
   }
   if($('walkthroughCards'))$('walkthroughCards').innerHTML=cards;
@@ -5404,8 +5404,9 @@ function renderContextActions(n) {
   let html = renderActionButtons(quickActionsFor(n.id,{roomMinimal:true}));
   if (t === 'Etage') return '';
   if (t === 'Raum / Bereich') return html;
-  let editLabel = isAssetNode(n) ? 'Anlage bearbeiten' : 'Bearbeiten';
-  html += `<button class="btn secondary" onclick="editContext()">${editLabel}</button>`;
+  // Bei Anlagen öffnet „Anlagen-Stammdaten“ schon die Bearbeitung.
+  if (isAssetNode(n)) return html;
+  html += `<button class="btn small secondary" onclick="editContext()">Bearbeiten</button>`;
   return html;
 }
 function openSearchDialog(){let d=$('searchDialog');if(!d)return;d.hidden=false;let input=$('globalSearch');if(input){input.focus();input.select()}}
@@ -5448,7 +5449,7 @@ function render(){
   renderWalkthrough();
   if($('detailBackBtn'))$('detailBackBtn').style.display=hasDesktopBackDepth(activeSection,n)?'inline-flex':'none';
   $('selTitle').textContent=n?label(n):'Kein Eintrag ausgewählt';
-  $('selMeta').textContent=n?(isAssetNode(n)?`${n.type} · ${displayCode(n)||'kein FM-Code'} · finales Anlagenblatt`:`${n.type} · ${displayCode(n)||'kein FM-Code'} · ${children(n.id).length} direkte Untereinträge`):'Öffne einen Eintrag aus der Übersicht.';
+  $('selMeta').textContent=n?(isAssetNode(n)?`${n.type} · ${displayCode(n)||'kein FM-Code'}`:`${n.type} · ${displayCode(n)||'kein FM-Code'} · ${children(n.id).length} direkte Untereinträge`):'Öffne einen Eintrag aus der Übersicht.';
   
   if ($('contextActions')) {
     $('contextActions').innerHTML = renderContextActions(n);
@@ -6404,7 +6405,7 @@ function renderPendingVacations() {
             </span>
             <p style="margin:6px 0 0 0; font-size:12px; color:#451a03; font-style:italic;">Notiz: "${esc(title)}"</p>
           </div>
-          <span class="badge orange" style="font-size:10px; font-weight:bold; background:rgba(245,158,11,0.15); color:#b45309;">PENDING</span>
+          <span class="badge orange" style="font-size:10px; font-weight:bold; background:rgba(245,158,11,0.15); color:#b45309;">Offen</span>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px; border-top:1px dashed rgba(217,119,6,0.25); padding-top:8px;">
           <button class="btn small secondary" onclick='rejectVacationGroup(${esc(JSON.stringify(idsJson))})' style="background:#fef2f2; color:#b91c1c;">Ablehnen</button>
