@@ -52,7 +52,7 @@
 .inspectionQueueEmpty{margin:7px 0 0}
 .inspectionPlanModal{width:min(480px,96vw)}
 .teamPlanCalendar{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
-.nav button[data-section="piketdienst"] span{font-size:12px;white-space:normal;line-height:1.25}
+.nav button[data-section="piketdienst"] span{white-space:nowrap}
 .titleRow{width:100%}.titleRow .headerTitleGroup{min-width:0}.titleRow #planNewBtn{margin-left:auto;white-space:nowrap;flex-shrink:0}#planNewBtn[hidden]{display:none!important}
 .piketPanel.planningCard{display:none}.piketPanel.planningCard.active{display:flex}
 .workMaterialToggle{display:block}.workMaterialToggle>summary{display:inline-flex;cursor:pointer;list-style:none}.workMaterialToggle>summary::-webkit-details-marker{display:none}.workMaterialToggle[open]>summary{margin-bottom:10px}.workMaterialToggle>label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}

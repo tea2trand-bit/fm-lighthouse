@@ -125,7 +125,7 @@ Pregled na portu 8891 koristi samo privremene primere, odvojene od lokalne i pro
 ## Meniji, jednostavniji formulari i dokumenti, 30.09.2026
 
 - Absenzen ima zaseban meni, nedeljni pregled i zahteve za odmor. Smena i odsustvo mogu postojati istog dana; odsustvo ostaje vidljivo u Arbeitsplan-u i Schichtplan-u.
-- Schichtplan / Piketdienst objedinjuje planiranje smena i postojeći Piket-kalendar u odvojenim karticama. Unos smene ne zahteva opis radnog naloga.
+- Schicht / Piketplan objedinjuje planiranje smena i postojeći Piket-kalendar u odvojenim karticama. Naziv je u jednom redu, a bočni meni je proširen sa 218 na 227 px (oko 4%). Unos smene ne zahteva opis radnog naloga.
 - Dugme + Arbeitsauftrag nalazi se desno uz glavni naslov Arbeitsplanung. Novi formular prikazuje zadatak, mesto, zaposlenog, termin i opis; Materialbedarf i Weitere Angaben otvaraju se po potrebi.
 - Claudeov patch prema main 85c948b objedinjen je za formular naloga, kompaktne kartice naloga i poravnat Brandschutz formular. Podrazumevani interval Brandschutz-a ostaje monatlich; sledeći datum računa se iz izabranog intervala i poslednje provere, uz mogućnost ručne izmene.
 - Dokumentenpool podvlači trenutni nivo u putanji. Umesto Zum Ort prikazuje Dokument öffnen ili Datei hinzufügen i jasno označava kada fajl nije priložen. Klik na naziv otvara podatke dokumenta.
