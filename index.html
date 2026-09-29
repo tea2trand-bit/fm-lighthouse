@@ -812,6 +812,34 @@ button.walkLocalKpi{cursor:pointer}
 #piketCalendarOverview>div:first-child>span:first-child{display:none}
 #piketCalendarOverview strong[id]{color:#2c3e4c!important}
 #piketCalendarOverview>div:nth-child(2)>div:nth-child(2){color:#c9d7e1!important}
+/* Tickets: Zähler als Filter, gegliederte Ticketkarten */
+#ticketPoolFilters,#localTicketFilters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+@media(max-width:700px){#ticketPoolFilters,#localTicketFilters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ticketFilterKpi{width:100%;font:inherit;cursor:pointer}
+.ticketFilterKpi.tone-all{--tone:#3f7692;--tone-dark:#2f6494}
+.ticketFilterKpi.tone-open{--tone:#c0392b;--tone-dark:#b03a2e}
+.ticketFilterKpi.tone-progress{--tone:#d9822b;--tone-dark:#b8691c}
+.ticketFilterKpi.tone-closed{--tone:#1f8a5b;--tone-dark:#1f7a52}
+.ticketFilterKpi.active{background:#f2f7fb;border-color:var(--tone);box-shadow:0 0 0 2px color-mix(in srgb,var(--tone) 22%,transparent)}
+.ticketCard{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start;background:#fff;border:1px solid var(--td-line);border-left:4px solid var(--prio,#3f7692);border-radius:12px;padding:14px 16px;margin-bottom:8px;box-shadow:0 1px 2px rgba(37,78,104,.04),0 10px 22px -18px rgba(37,78,104,.35)}
+.ticketCard.prio-crit{--prio:#c0392b}.ticketCard.prio-high{--prio:#d9822b}.ticketCard.prio-mid{--prio:#3f7692}.ticketCard.prio-low{--prio:#9fb3c2}
+.ticketMain{min-width:0;display:grid;gap:6px}
+.ticketHead{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ticketType{font-family:var(--font-nav);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#3f7692;margin-right:4px}
+.ticketBadge{font-size:11px;font-weight:600;line-height:1;padding:4px 8px;border-radius:999px;border:1px solid transparent}
+.ticketBadge.status-open{background:#fdecea;color:#b03a2e;border-color:#f5c6c0}
+.ticketBadge.status-progress{background:#fdf1e3;color:#a85d14;border-color:#f3d3ad}
+.ticketBadge.status-closed{background:#e6f4ec;color:#1f7a52;border-color:#bfe2cf}
+.ticketBadge.prio-crit{background:#c0392b;color:#fff}.ticketBadge.prio-high{background:#fdf1e3;color:#a85d14;border-color:#f3d3ad}
+.ticketBadge.prio-mid{background:#e9f1f9;color:#2f5f78;border-color:#d4e1e9}.ticketBadge.prio-low{background:#f1f4f7;color:#5f7380;border-color:#e1e8ee}
+.ticketTitle{font-size:16px;line-height:1.3;color:#28566e;font-weight:700}
+.ticketPath{font-size:12.5px;color:#5f7380}.ticketSep{margin:0 6px;color:#9fb3c2}
+.ticketFacts{display:flex;flex-wrap:wrap;gap:6px 18px;padding-top:6px;border-top:1px solid #edf2f6;font-size:12.5px;color:#2c3e4c}
+.ticketFacts span{display:inline-flex;gap:6px;align-items:baseline}
+.ticketFacts em{font-style:normal;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b8393}
+.ticketText{margin:0;font-size:13px;color:#2c3e4c;line-height:1.45}
+.ticketActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-self:center}
+@media(max-width:700px){.ticketCard{grid-template-columns:1fr}.ticketActions{justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -4138,6 +4166,7 @@ async function closeTicket(id){
   try{state=await api('PATCH',{collection:'tickets',item:t});render()}catch(e){alert('Ticket konnte nicht abgeschlossen werden.')}
 }
 function listDoc(d){let parentNode=node(d.parent);let folderText=isAssetNode(parentNode)?'Anlagen-Unterlage':esc(d.folder||'kein Ordner');let fileAction=d.blobKey?`<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" style="text-decoration:none;">Öffnen</a>`:'';return `<div class=item><div><strong>${esc(d.title)}</strong><span>${esc(d.type)} · ${folderText} · ${d.fileName?esc(d.fileName)+' · ':''}${d.parent?esc(path(d.parent)):'kein Ort'}</span></div><div class="itemActions">${fileAction}<button class="btn small secondary" onclick="openEntry('${escJsArg(d.parent)}')">Zum Ort</button></div></div>`}
+function ticketDate(v){let m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}.${m[2]}.${m[1]}`:(v||'')}
 function listTicket(t){
   let photos = state.photos ? state.photos.filter(p => p.ticketId === t.id) : [];
   let photoHtml = '';
@@ -4149,9 +4178,25 @@ function listTicket(t){
         </div>
       `).join('') + `</div>`;
   }
-  let closeAction=isClosedTicketStatus(t.status)?'':`<button class="btn small blue" onclick="closeTicket('${escJsArg(t.id)}')">Abschließen</button>`;
-  let completionMeta=[t.executionBy, t.costChf?`Kosten CHF ${t.costChf}`:'', t.invoiceReceived?`Rechnung: ${t.invoiceReceived}`:'', t.deliveryNoteReceived?`Lieferschein: ${t.deliveryNoteReceived}`:''].filter(Boolean).join(' · ');
-  return `<div class=item><div><strong>${esc(t.type)}: ${esc(t.title)}</strong><span>${esc(t.status)} · ${esc(t.prio)} · ${t.parent?esc(path(t.parent)):'kein Ort'} · ${esc(t.resp)||'ohne Verantwortlichen'}</span>${completionMeta?`<br><span>${esc(completionMeta)}</span>`:''}<br><span>${esc(t.text)||''}</span>${photoHtml}</div><div class="itemActions">${closeAction}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button><button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button></div></div>`;
+  let group=ticketStatusGroup(t.status);
+  let prioKey=({Kritisch:'crit',Hoch:'high',Mittel:'mid',Niedrig:'low'})[t.prio]||'mid';
+  let pathHtml=t.parent?nodeChain(t.parent).map(x=>esc(x.name)).join('<span class="ticketSep">›</span>'):'kein Ort';
+  let facts=[['Verantwortlich',t.resp||'–'],['Ausführung',t.executionBy],['Fällig',ticketDate(t.due)],['Erstellt',ticketDate(t.created)],['Kosten',t.costChf?`CHF ${t.costChf}`:''],['Rechnung',t.invoiceReceived],['Lieferschein',t.deliveryNoteReceived]].filter(([,v])=>v);
+  let factsHtml=facts.map(([k,v])=>`<span><em>${k}</em>${esc(v)}</span>`).join('');
+  let text=(t.text||'').trim();
+  let textHtml=text&&text!==(t.title||'').trim()?`<p class="ticketText">${esc(text)}</p>`:'';
+  let closeAction=isClosedTicketStatus(t.status)?'':`<button class="btn small" onclick="closeTicket('${escJsArg(t.id)}')">Abschließen</button>`;
+  let placeAction=t.parent?`<button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button>`:'';
+  return `<div class="ticketCard prio-${prioKey}">
+    <div class="ticketMain">
+      <div class="ticketHead"><span class="ticketType">${esc(t.type)}</span><span class="ticketBadge status-${group}">${esc(t.status)}</span><span class="ticketBadge prio-${prioKey}">${esc(t.prio)}</span></div>
+      <strong class="ticketTitle">${esc(t.title)}</strong>
+      <div class="ticketPath">${pathHtml}</div>
+      ${factsHtml?`<div class="ticketFacts">${factsHtml}</div>`:''}
+      ${textHtml}${photoHtml}
+    </div>
+    <div class="ticketActions">${placeAction}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button>${closeAction}</div>
+  </div>`;
 }
 function delDoc(id){let d=state.docs.find(x=>x.id===id);let parentId=d?.parent||selected||null;state.docs=state.docs.filter(d=>d.id!==id);selected=parentId;save()}function delTicket(id){let t=state.tickets.find(x=>x.id===id);let parentId=t?.parent||selected||null;state.tickets=state.tickets.filter(t=>t.id!==id);selected=parentId;save()}
 function moneyValue(v){let n=Number(String(v||'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0}
@@ -5396,7 +5441,7 @@ function renderTicketFilterChips(tickets,currentGroup='all',handler='setLocalTic
     ['open','Offen'],
     ['progress','In Arbeit'],
     ['closed','Abgeschlossen']
-  ].map(([group,labelText])=>`<button class="tab ${currentGroup===group?'active':''}" onclick="${handler}('${group}')">${labelText} (${esc(counts[group])})</button>`).join('');
+  ].map(([group,labelText])=>`<button type="button" class="kpi ticketFilterKpi tone-${group} ${currentGroup===group?'active':''}" aria-pressed="${currentGroup===group}" onclick="${handler}('${group}')"><b>${esc(counts[group])}</b><span>${labelText}</span></button>`).join('');
 }
 function renderContextActions(n) {
   if (!n) return '';
