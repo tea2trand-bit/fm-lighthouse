@@ -31,6 +31,7 @@ function app() {
   });
   vm.runInContext(declarations.join('\n'), ctx);
   vm.runInContext(readFileSync(new URL('../assets/work-orders.js', import.meta.url), 'utf8'), ctx);
+  vm.runInContext(readFileSync(new URL('../assets/team-planning.js', import.meta.url), 'utf8'), ctx);
   ctx.ticketDate=value=>value;
   ctx.isClosedTicketStatus=value=>/erledigt|abgeschlossen/i.test(value||'');
   const values = {planEmpSelect:'anna',planRangeType:'single',planDateSingle:'2026-09-29',planShiftType:'Normaldienst',planTask:'Lüftung prüfen',planWorkLocation:'Neubau / UG / Technikraum'};
@@ -130,4 +131,22 @@ test('absences need no workplace or task', async () => {
   await a.saveCalendarPlan();
   assert.equal(a.saves,1); assert.equal(a.state.shifts[0].shiftType,'Ferien Antrag');
   assert.equal(a.state.shifts[0].workLocation,'');
+});
+
+
+test('shift planning needs no work order description and absence can coexist with a planned shift', async () => {
+  const a=app();a.$('planEntryMode').value='schicht';a.$('planTask').value='';a.$('planWorkLocation').value='';a.$('planShiftType').value='Frühdienst';
+  await a.saveCalendarPlan();assert.equal(a.saves,1);assert.equal(a.state.shifts[0].shiftType,'Frühdienst');
+  a.$('planEntryMode').value='absenzen';a.$('planShiftType').value='Krank';
+  await a.saveCalendarPlan();assert.equal(a.saves,2);assert.equal(a.state.shifts.length,2);assert.equal(a.state.shifts.filter(s=>s.shiftType==='Frühdienst').length,1);
+  await a.saveCalendarPlan();assert.equal(a.saves,2,'a duplicate absence is rejected');assert.equal(a.state.shifts.length,2);
+});
+
+test('absence calendar excludes shifts and work orders while shift calendar displays absences', () => {
+  const a=app();vm.runInContext("teamPlanDates.absenzen=new Date(2026,8,29);teamPlanDates.schicht=new Date(2026,8,29)",a);
+  a.state.shifts=[{id:'s',employeeId:'anna',date:'2026-09-29',shiftType:'Frühdienst'},{id:'k',employeeId:'anna',date:'2026-09-29',shiftType:'Krank'}];
+  a.state.tickets=[{id:'t',title:'Reparatur',assignedEmployeeId:'anna',due:'2026-09-29'}];
+  const absences=a.renderTeamCalendar('absenzen'),shifts=a.renderTeamCalendar('schicht');
+  assert.match(absences,/Krank/);assert.doesNotMatch(absences,/Frühdienst|Reparatur/);
+  assert.match(shifts,/Frühdienst/);assert.match(shifts,/Krank/);assert.doesNotMatch(shifts,/Reparatur/);
 });

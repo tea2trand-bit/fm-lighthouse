@@ -38,7 +38,7 @@ Lokalni testovi ne koriste produkcionu bazu. Objava ide preko postojeće GitHub 
 .\fm-local.ps1 test-api
 ```
 
-`check` pokreće TypeScript proveru i 38 testova koji ne koriste bazu.
+`check` pokreće TypeScript proveru i 44 testa koji ne koriste bazu.
 `test-api` za svaki poziv pravi novu bazu u memoriji, primenjuje postojeće
 migracije i pokreće 33 API testa. Ta baza se gasi po završetku; razvojna
 i produkciona baza se ne koriste za testove.
@@ -49,7 +49,7 @@ Za njih koristiti pripremljenu komandu `test-api`, koja sama bira izolovanu bazu
 Rezultat pripreme:
 
 - TypeScript: uspešno.
-- Testovi bez baze: 38/38 uspešno.
+- Testovi bez baze: 44/44 uspešno.
 - API testovi: 33/33 uspešno.
 - Migracije: svih 26 uspešno primenjeno i u razvojnoj i u privremenoj testnoj bazi.
 - JavaScript unutar oba HTML fajla: uspešna sintaksna provera.
@@ -121,3 +121,13 @@ Pregled na portu 8891 koristi samo privremene primere, odvojene od lokalne i pro
 - Po završetku sledeća kontrola dolazi na listu za raspoređivanje; prethodni rezultat ostaje u istoriji. Telefon koristi planirani dan i trenutnu dodelu.
 - Novi nalog/kontrola nema Servicefirma & Abrechnung; taj odeljak ostaje u uređivanju postojećeg naloga. Materialbedarf se unosi tek po otvaranju posebnog dugmeta. Prazan odeljak materijala se ne prikazuje u detaljima.
 - Provereno u privremenoj bazi: planiranje 30.09. za rok 10.10, prikaz kod radnika, završetak kontrole i novi neraspoređeni rok 22.10. Produkcioni podaci nisu korišćeni za probe.
+
+## Meniji, jednostavniji formulari i dokumenti, 30.09.2026
+
+- Absenzen ima zaseban meni, nedeljni pregled i zahteve za odmor. Smena i odsustvo mogu postojati istog dana; odsustvo ostaje vidljivo u Arbeitsplan-u i Schichtplan-u.
+- Schichtplan / Piketdienst objedinjuje planiranje smena i postojeći Piket-kalendar u odvojenim karticama. Unos smene ne zahteva opis radnog naloga.
+- Dugme + Arbeitsauftrag nalazi se desno uz glavni naslov Arbeitsplanung. Novi formular prikazuje zadatak, mesto, zaposlenog, termin i opis; Materialbedarf i Weitere Angaben otvaraju se po potrebi.
+- Claudeov patch prema main 85c948b objedinjen je za formular naloga, kompaktne kartice naloga i poravnat Brandschutz formular. Podrazumevani interval Brandschutz-a ostaje monatlich; sledeći datum računa se iz izabranog intervala i poslednje provere, uz mogućnost ručne izmene.
+- Dokumentenpool podvlači trenutni nivo u putanji. Umesto Zum Ort prikazuje Dokument öffnen ili Datei hinzufügen i jasno označava kada fajl nije priložen. Klik na naziv otvara podatke dokumenta.
+- Dodavanje fajla postojećem dokumentu zadržava ID, mesto, naziv i beleške. Provereno čuvanje i preuzimanje probnog fajla bez duplikata; automatske provere pokrivaju i neuspešno čuvanje, otkazivanje i očuvanje postojećeg priloga.
+- Lokalno vizuelno provereni Arbeitsplan, Absenzen, Schichtplan/Piketdienst, formular i kartice naloga, Brandschutz i Dokumentenpool. Sve probne izmene izvršene su samo u privremenoj bazi na portu 8891.

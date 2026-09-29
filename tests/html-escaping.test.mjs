@@ -64,7 +64,7 @@ function unescapedValues(file) {
   return findings;
 }
 
-for (const file of ["index.html", "field.html", "assets/work-orders.js", "assets/field-work-orders.js"]) {
+for (const file of ["index.html", "field.html", "assets/work-orders.js", "assets/field-work-orders.js", "assets/team-planning.js"]) {
   test(`${file} escapes record values in HTML`, () => {
     // Counts and lengths are numbers and fine to insert as they are.
     const findings = unescapedValues(file).filter((finding) => !/\$\{(counts\[\w+\]|g\.(span|week)|\w+Str\.split\('-W'\)\[1\])\}$/.test(finding));

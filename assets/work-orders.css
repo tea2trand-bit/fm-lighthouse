@@ -51,5 +51,53 @@
 .inspectionDue{font-size:12px;white-space:nowrap;color:var(--muted)}.inspectionDue.late{color:#a84717}
 .inspectionQueueEmpty{margin:7px 0 0}
 .inspectionPlanModal{width:min(480px,96vw)}
+.teamPlanCalendar{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.nav button[data-section="piketdienst"] span{font-size:12px;white-space:normal;line-height:1.25}
+.titleRow{width:100%}.titleRow .headerTitleGroup{min-width:0}.titleRow #planNewBtn{margin-left:auto;white-space:nowrap;flex-shrink:0}#planNewBtn[hidden]{display:none!important}
+.piketPanel.planningCard{display:none}.piketPanel.planningCard.active{display:flex}
 .workMaterialToggle{display:block}.workMaterialToggle>summary{display:inline-flex;cursor:pointer;list-style:none}.workMaterialToggle>summary::-webkit-details-marker{display:none}.workMaterialToggle[open]>summary{margin-bottom:10px}.workMaterialToggle>label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 @media(max-width:600px){.planningSupportBar label{margin-left:0}.inspectionQueueRow{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}.inspectionQueueRow .inspectionDue{grid-column:1;grid-row:2}.inspectionQueueRow>.btn{grid-column:2;grid-row:1 / 3;min-height:42px}}
+
+
+/* Kompakter Arbeitsauftrag: nur das Nötige sichtbar, Optionen auf Knopfdruck */
+.workOrderModal{width:min(600px,96vw)}
+.workOrderModal.inspectionEditor{width:min(680px,96vw)}
+.workOrderForm{display:flex;flex-direction:column;gap:12px}
+.workFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.workFormGrid>.full{grid-column:1/-1}
+.workFormGrid .field{margin:0}
+.workFormGrid #ticketRecurrenceFields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.workFormGrid #ticketRecurrenceFields[hidden]{display:none}
+.workOptional{font-weight:400;color:var(--muted);font-size:11px;margin-left:4px}
+.workOptionRow{display:flex;gap:8px;flex-wrap:wrap}
+.workOption{border:1px dashed var(--line);background:#fff;color:#28566e;border-radius:999px;padding:6px 12px;font:600 12.5px var(--font-button,inherit);cursor:pointer}
+.workOption:hover,.workOption.active{border-style:solid;border-color:#3f7692;background:#e9f1f9}
+.workMoreFields{grid-template-columns:repeat(3,minmax(0,1fr));padding:10px;border:1px solid var(--line);border-radius:10px;background:#f8fbfd}
+.workMoreFields[hidden],.workOptionPanel[hidden]{display:none}
+.workOrderForm #ticketBillingFields{margin-top:0}
+.workFormFooter{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
+.workFormFooter .workError{margin:0 auto 0 0;flex:1 1 200px}
+.workFormFooter .workError:empty{display:none}
+@media(max-width:560px){.workFormGrid,.workFormGrid #ticketRecurrenceFields,.workMoreFields{grid-template-columns:1fr}.workFormFooter .btn{flex:1}}
+
+/* Kompakte Auftragszeile in „Tickets / Aufträge“ und an Objekten */
+.woCard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:10px 12px 10px 14px;margin-bottom:6px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--wo-prio,#3f7692);border-radius:10px}
+.woCard.prio-crit{--wo-prio:#c0392b}.woCard.prio-high{--wo-prio:#d9822b}.woCard.prio-mid{--wo-prio:#3f7692}.woCard.prio-low{--wo-prio:#9fb3c2}
+.woCard.closed{background:#f8fafb}.woCard.closed .woTitle{color:#5f7380}
+.woMain{min-width:0;display:grid;gap:3px}
+.woTop{display:flex;align-items:center;gap:10px;min-width:0}
+.woTitle{border:0;background:none;padding:0;font:700 15px var(--font-button,inherit);color:#28566e;text-align:left;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.woTitle:hover{text-decoration:underline}
+.woStatus{flex:0 0 auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#e9f1f9;color:#2f5f78}
+.woStatus.status-open{background:#fdecea;color:#b03a2e}.woStatus.status-progress{background:#fdf1e3;color:#a85d14}.woStatus.status-closed{background:#e6f4ec;color:#1f7a52}
+.woMeta{display:flex;flex-wrap:wrap;gap:2px 0;font-size:12.5px;color:#5f7380;min-width:0}
+.woMeta>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.woMeta>span+span::before{content:"·";margin:0 7px;color:#b5c4cf}
+.woKind{color:#3f7692;font-weight:600}
+.woDue.late,.woPrio.crit{color:#b03a2e;font-weight:600}.woPrio.high{color:#a85d14;font-weight:600}
+.woPhotos{display:flex;gap:4px;margin-top:4px}
+.woPhoto{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:5px;overflow:hidden;cursor:pointer;background:#fff}
+.woPhoto img{width:100%;height:100%;object-fit:cover;display:block}
+.woActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.woActions .btn{white-space:nowrap}
+@media(max-width:900px){.woCard{grid-template-columns:1fr}.woActions{justify-content:flex-start}}

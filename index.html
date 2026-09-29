@@ -958,8 +958,12 @@ button.walkLocalKpi{cursor:pointer}
 .docxIdent strong{color:#28566e;font-size:14px;overflow-wrap:anywhere}
 .docxIdent span{font-size:12px;color:#5f7380;overflow-wrap:anywhere}
 .docxIdent .docxPath{color:#3f7692}
+.docxTitle{border:0;background:transparent;padding:0;text-align:left;font:inherit;cursor:pointer}.docxTitle:hover strong{text-decoration:underline}
+#docPoolBreadcrumb .docxCurrent{position:relative;display:inline-block;padding-bottom:4px;font-weight:700;color:#28566e}
+#docPoolBreadcrumb .docxCurrent::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:2px;background:#3f7692}
 .docxRowActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:600px){.docxRow{grid-template-columns:40px minmax(0,1fr)}.docxRowActions{grid-column:1/-1;justify-content:flex-start}}
+.bsForm{display:grid;gap:10px;margin:4px 0 14px}.bsGroup{border:1px solid var(--line);border-radius:10px;padding:8px 12px 12px;margin:0;min-width:0}.bsGroup legend{padding:0 6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.bsOptional{font-weight:600;text-transform:none;letter-spacing:0}.bsRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;align-items:end}.bsRow input,.bsRow select{height:40px}.bsRow .field label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bsActions{display:flex;justify-content:flex-end}@media(max-width:600px){.bsRow{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="assets/work-orders.css">
 </head>
@@ -1004,8 +1008,9 @@ button.walkLocalKpi{cursor:pointer}
       <div class="navLabel">Betrieb</div>
       <button class="active" data-section="uebersicht" data-title="Übersicht"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Übersicht</span></button>
       <button data-section="tickets" data-title="Tickets / Aufträge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z"/><path d="M9 9h6"/><path d="M9 15h3"/></svg><span>Tickets / Aufträge</span></button>
-      <button data-section="piketdienst" data-title="Piketdienst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h4l2 5-2 1.5a12 12 0 0 0 5.5 5.5L18 14l5 2v4c0 .6-.4 1-1 1C11.5 21 3 12.5 3 2c0-.6.4-1 1-1h3v3Z"/><path d="M16 4c1.8.6 3.2 2 4 4"/></svg><span>Piketdienst</span></button>
+      <button data-section="piketdienst" data-title="Schichtplan / Piketdienst"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h4l2 5-2 1.5a12 12 0 0 0 5.5 5.5L18 14l5 2v4c0 .6-.4 1-1 1C11.5 21 3 12.5 3 2c0-.6.4-1 1-1h3v3Z"/><path d="M16 4c1.8.6 3.2 2 4 4"/></svg><span>Schichtplan / Piketdienst</span></button>
       <button data-section="mitarbeiter" data-title="Arbeitsplanung"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 10h18"/><path d="M9 15h.01"/><path d="M14 15h.01"/></svg><span>Arbeitsplanung</span></button>
+      <button data-section="absenzen" data-title="Absenzen"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 15h8"/></svg><span>Absenzen</span></button>
     </div>
     <div class="navGroup">
       <div class="navLabel">Sicherheit</div>
@@ -1054,6 +1059,7 @@ button.walkLocalKpi{cursor:pointer}
           <h1 id="pageTitle">Übersicht</h1>
           <div class="crumb" id="breadcrumb">FM Lighthouse 360 / Fust Oberbüren / Übersicht</div>
         </div>
+        <button class="btn" id="planNewBtn" onclick="openNewWorkOrder()" hidden>+ Arbeitsauftrag</button>
       </div>
     </div>
 
@@ -1154,19 +1160,8 @@ button.walkLocalKpi{cursor:pointer}
           <button class="btn small secondary" onclick="showCurrentPlanningWeek()">Heute</button>
           <span id="planningSummary" class="smallText" aria-live="polite"></span>
           <span id="planningReminders" class="workReminder" hidden></span>
-          <button class="btn" id="planNewBtn" onclick="openNewWorkOrder()">+ Arbeitsauftrag</button>
-          <button class="btn small secondary" onclick="openNewAbsence()">+ Abwesenheit</button>
-          <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferienanträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
         </div>
 
-          <div id="vacationPanel" class="vacationPanel" hidden>
-            <div class="planningSupportBar">
-              <h3>Offene Ferienanträge</h3>
-              <button class="btn small" onclick="openRequestVacationModal()">+ Ferienantrag</button>
-              <button class="btn small secondary" onclick="toggleVacationPanel(false)">Schließen</button>
-            </div>
-            <div id="pendingVacationsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"></div>
-          </div>
         <div id="calendarContainer" style="overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:white;"></div>
         <p id="planningStatus" class="smallText" role="status"></p>
         <section class="inspectionQueueSection" aria-labelledby="inspectionQueueHeading">
@@ -1177,16 +1172,28 @@ button.walkLocalKpi{cursor:pointer}
     </div>
   </section>
 
+  <section id="absenzen" class="section"><div class="card planningCard"><div class="planningCompactBar"><h2>Absenzen</h2><div class="planningPeriod"><button class="btn small secondary" aria-label="Vorherige Woche" onclick="navigateTeamPlan('absenzen',-1)">←</button><strong id="absenzenPeriod"></strong><button class="btn small secondary" aria-label="Nächste Woche" onclick="navigateTeamPlan('absenzen',1)">→</button></div><button class="btn small secondary" onclick="navigateTeamPlan('absenzen',0)">Heute</button><button class="btn" onclick="openTeamPlan('absenzen')">+ Absenz erfassen</button><button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferienanträge <span class="vacationCount" id="pendingVacationCount">0</span></button></div>          <div id="vacationPanel" class="vacationPanel" hidden>
+            <div class="planningSupportBar">
+              <h3>Offene Ferienanträge</h3>
+              <button class="btn small" onclick="openRequestVacationModal()">+ Ferienantrag</button>
+              <button class="btn small secondary" onclick="toggleVacationPanel(false)">Schließen</button>
+            </div>
+            <div id="pendingVacationsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"></div>
+          </div>
+<div id="absenzenCalendar" class="teamPlanCalendar"></div></div></section>
+
   <section id="piketdienst" class="section">
     <!-- Piket Dashboard Grid: Two main rows (Upper Row = 3 Cols, Lower Row = 2 Columns) -->
     
     <!-- Zwei Spalten, Karten stapeln sich ohne Lücken: links Plan und Einsätze, rechts Planung und Kontakte -->
     <div class="piketTabs" role="tablist">
-      <button type="button" class="tab active" data-piket-tab="plan" onclick="setPiketTab('plan')">Einsatzplan</button>
+      <button type="button" class="tab active" data-piket-tab="schicht" onclick="setPiketTab('schicht')">Schichtplan</button>
+      <button type="button" class="tab" data-piket-tab="plan" onclick="setPiketTab('plan')">Piketdienst</button>
       <button type="button" class="tab" data-piket-tab="einsaetze" onclick="setPiketTab('einsaetze')">Einsätze</button>
       <button type="button" class="tab" data-piket-tab="kontakte" onclick="setPiketTab('kontakte')">Notfallkontakte</button>
     </div>
-    <div class="piketPanel active" data-piket-panel="plan">
+    <div class="piketPanel active card planningCard" data-piket-panel="schicht"><div class="planningCompactBar"><h2>Schichtplan</h2><div class="planningPeriod"><button class="btn small secondary" aria-label="Vorherige Woche" onclick="navigateTeamPlan('schicht',-1)">←</button><strong id="schichtPeriod"></strong><button class="btn small secondary" aria-label="Nächste Woche" onclick="navigateTeamPlan('schicht',1)">→</button></div><button class="btn small secondary" onclick="navigateTeamPlan('schicht',0)">Heute</button><button class="btn" onclick="openTeamPlan('schicht')">+ Schicht planen</button></div><div id="schichtCalendar" class="teamPlanCalendar"></div></div>
+    <div class="piketPanel" data-piket-panel="plan">
       <!-- 1. Links: Kalender (piket-calendar-card) -->
       <div class="piket-calendar-card" style="display:flex; flex-direction:column;">
         <div class="piket-cal-header">
@@ -1376,53 +1383,32 @@ button.walkLocalKpi{cursor:pointer}
       <!-- Brandschutz-Systeme & Inspections -->
       <div class="card">
         <h2>Brandschutz-Systeme & gesetzliche Prüfungen</h2>
-        <p class="smallText">Zentrale Verwaltung aller Brandschutzanlagen, Sprinkler, Prüfintervalle und Zertifikate.</p>
-        <div class="formGrid" style="gap:8px; margin-bottom:14px;">
-          <div class="field">
-            <label>System-Typ</label>
-            <select id="bsType">
-              <option>Brandmeldeanlage (BMA)</option>
-              <option>Sprinklerzentrale</option>
-              <option>Rauchmelder</option>
-              <option>Feuerlöscher</option>
-              <option>Fluchtwege</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Systembezeichnung / Name</label>
-            <input id="bsName" placeholder="z.B. Securiton BMA">
-          </div>
-          <div class="field full">
-            <label>Genauer Standort im Gebäude</label>
-            <input id="bsLocation" placeholder="Genauer Standort im Gebäude">
-          </div>
-          <div class="field">
-            <label>Prüfintervall</label>
-            <select id="bsInterval">
-              <option>monatlich</option>
-              <option>halbjährlich</option>
-              <option>jährlich</option>
-              <option>zweijährlich</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Letzte Prüfung</label>
-            <input id="bsLast" type="date" value="2025-06-25">
-          </div>
-          <div class="field">
-            <label>Nächste Prüfung</label>
-            <input id="bsNext" type="date" value="2026-06-25">
-          </div>
-          <div class="field">
-            <label>Zertifikat / Dokument-Ref</label>
-            <input id="bsCertificate" placeholder="z.B. Prüfbericht_2025.pdf">
-          </div>
-          <div class="field full">
-            <label>Offene Mängel / Beanstandungen</label>
-            <input id="bsDefects" placeholder="Offene Mängel / Beanstandungen">
-          </div>
-          <button class="btn full" onclick="addBrandschutz()">+ System / Prüfung erfassen</button>
-        </div>
+        <form class="bsForm" onsubmit="event.preventDefault();addBrandschutz()">
+          <fieldset class="bsGroup">
+            <legend>System</legend>
+            <div class="bsRow">
+              <div class="field full"><label for="bsName">Bezeichnung</label><input id="bsName" required placeholder="z.B. Securiton BMA" autocomplete="off"></div>
+              <div class="field"><label for="bsType">Typ</label><select id="bsType"><option>Brandmeldeanlage (BMA)</option><option>Sprinklerzentrale</option><option>Rauchmelder</option><option>Feuerlöscher</option><option>Fluchtwege</option></select></div>
+              <div class="field"><label for="bsLocation">Standort</label><input id="bsLocation" placeholder="z.B. EG, Technikraum 012" autocomplete="off"></div>
+            </div>
+          </fieldset>
+          <fieldset class="bsGroup">
+            <legend>Prüfung</legend>
+            <div class="bsRow">
+              <div class="field full"><label for="bsInterval">Intervall</label><select id="bsInterval" onchange="updateBrandschutzNext()"><option>monatlich</option><option>halbjährlich</option><option>jährlich</option><option>zweijährlich</option></select></div>
+              <div class="field"><label for="bsLast">Letzte</label><input id="bsLast" type="date" onchange="updateBrandschutzNext()"></div>
+              <div class="field"><label for="bsNext">Nächste</label><input id="bsNext" type="date" title="Wird aus letzter Prüfung und Intervall berechnet, kann angepasst werden"></div>
+            </div>
+          </fieldset>
+          <fieldset class="bsGroup">
+            <legend>Nachweis <span class="bsOptional">optional</span></legend>
+            <div class="bsRow">
+              <div class="field"><label for="bsCertificate">Prüfbericht / Zertifikat</label><input id="bsCertificate" placeholder="z.B. Prüfbericht_2025.pdf"></div>
+              <div class="field"><label for="bsDefects">Offene Mängel</label><input id="bsDefects" placeholder="leer = keine"></div>
+            </div>
+          </fieldset>
+          <div class="bsActions"><button type="submit" class="btn">System erfassen</button></div>
+        </form>
         <div id="brandschutzList" class="list"></div>
       </div>
 
@@ -2057,7 +2043,7 @@ button.walkLocalKpi{cursor:pointer}
 
 <div class="modalBack" id="qrModal"><div class="modal" style="width:min(560px,96vw)"><div class="modalHead"><b>QR-Code</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody" id="qrModalBody"></div></div></div>
 
-<div class="modalBack" id="docModal"><div class="modal"><div class="modalHead"><b>Dokument hinzufügen</b><button class="btn secondary" onclick="closeDocumentModal()">Schließen</button></div><div class="modalBody">
+<div class="modalBack" id="docModal"><div class="modal"><div class="modalHead"><b id="docModalTitle">Dokument hinzufügen</b><button class="btn secondary" onclick="closeDocumentModal()">Schließen</button></div><div class="modalBody">
   <p class="smallText" id="docPath"></p><div class="formGrid"><select id="docType"><option>Bedienungsanleitung</option><option>Servicevertrag</option><option>Wartungsprotokoll</option><option>Schema / Plan</option><option>Prüfbericht</option><option>Zertifikat</option><option>Lieferschein</option><option>Rechnung</option><option>Foto</option><option>Sonstiges Dokument</option><option>Plan / Schema</option><option>Technisches Dokument</option><option>Vertrag</option><option>Servicebericht</option><option>Manual</option><option>Anlagen-Dokument</option><option>Sonstiges</option></select><input id="docTitle" placeholder="Dokumentname"><input id="docFolder" placeholder="Kategorie optional"><input id="docTags" placeholder="Tags optional"><div class="field full"><label>Datei hochladen</label><input id="docFileInput" type="file" onchange="previewDocumentFile(event)"><span class="smallText" id="docFileHint">PDF, Bild oder Office-Datei auswählen.</span></div><textarea class="full" id="docNote" placeholder="Notiz"></textarea></div><div class="divider"></div><button class="btn" id="docSaveBtn" onclick="saveDocument()">Dokument hochladen</button>
 </div></div></div>
 
@@ -2092,12 +2078,11 @@ button.walkLocalKpi{cursor:pointer}
 <div class="modalBack" id="kpiBreakdownModal" onclick="closeModals()"><div class="modal" onclick="event.stopPropagation()"><div class="modalHead"><b id="kpiBreakdownTitle">Kennzahl</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody" id="kpiBreakdownBody"></div></div></div>
 
 <div class="modalBack" id="ticketModal" role="dialog" aria-modal="true" aria-labelledby="ticketEditorTitle"><div class="modal workOrderModal"><div class="modalHead"><b id="ticketEditorTitle">Arbeitsauftrag erstellen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
-  <input type="hidden" id="ticketEditId"><input type="hidden" id="ticketPlanningKind"><input type="hidden" id="ticketRepeat"><p class="smallText" id="ticketPath"></p>
-  <form onsubmit="event.preventDefault();saveTicket()">
-    <div class="formGrid">
-      <div class="field full"><label for="ticketTitle">Aufgabe</label><input id="ticketTitle" required placeholder="z.B. Lift kontrollieren"></div>
+  <input type="hidden" id="ticketEditId"><input type="hidden" id="ticketPlanningKind"><input type="hidden" id="ticketRepeat"><p class="smallText" id="ticketPath" hidden></p>
+  <form class="workOrderForm" onsubmit="event.preventDefault();saveTicket()">
+    <div class="workFormGrid">
+      <div class="field full"><label for="ticketTitle">Aufgabe</label><input id="ticketTitle" required placeholder="z.B. Lampe im Büro ersetzen" autocomplete="off"></div>
       <div class="field full"><label for="ticketParent">Ort / Anlage</label><select id="ticketParent" required onchange="updateWorkOrderPath()"></select></div>
-      <div class="field" id="ticketTypeField"><label for="ticketType">Auftragsart</label><select id="ticketType"><option>Kontrolle / Prüfung</option><option>Reparatur</option><option>Störung / Ausfall</option><option>Wartung / Service</option><option>Sonstiges</option><option>Ersatzteil Bestellung</option></select></div>
       <div class="field" id="ticketAssignedField"><label for="ticketAssignedEmployee">Mitarbeiter</label><select id="ticketAssignedEmployee"></select></div>
       <div class="field"><label id="ticketDueLabel" for="ticketDue">Termin</label><input id="ticketDue" type="date" required></div>
       <div id="ticketRecurrenceFields" class="full formGrid" hidden>
@@ -2106,10 +2091,17 @@ button.walkLocalKpi{cursor:pointer}
         <div class="field full"><label for="ticketReminderManager">Chef für den Hinweis</label><select id="ticketReminderManager"></select></div>
         <p class="smallText full">Einmal einrichten: Nach jeder erledigten Kontrolle folgt der nächste Kontrolltermin. Die Ergebnisse bleiben als Historie erhalten.</p>
       </div>
-      <div class="field full"><label for="ticketText">Beschreibung / Kontrollpunkte</label><textarea id="ticketText" rows="4" placeholder="Was soll geprüft oder ausgeführt werden?"></textarea></div>
-      <details class="field full workMaterialToggle" id="ticketMaterialFields"><summary class="btn small secondary">+ Materialbedarf</summary><label for="ticketMaterial">Benötigtes Material</label><textarea id="ticketMaterial" rows="2" placeholder="Material, Menge und Hinweise zur Beschaffung"></textarea></details>
-      <div class="field"><label for="ticketStatus">Status</label><select id="ticketStatus"><option>Offen</option><option>In Arbeit</option><option>Warten auf Servicefirma</option><option>Warten auf Ersatzteil</option><option>Erledigt</option><option>Abgeschlossen</option></select></div>
-      <div class="field"><label for="ticketPrio">Priorität</label><select id="ticketPrio"><option>Niedrig</option><option>Mittel</option><option>Hoch</option><option>Kritisch</option></select></div>
+      <div class="field full"><label for="ticketText">Beschreibung <span class="workOptional">optional</span></label><textarea id="ticketText" rows="2" placeholder="Was genau ist zu tun oder zu prüfen?"></textarea></div>
+      <div class="workOptionRow full">
+        <button type="button" class="workOption" id="ticketMaterialToggle" aria-expanded="false" aria-controls="ticketMaterialFields" onclick="toggleWorkOrderSection('ticketMaterialFields')">+ Materialbedarf</button>
+        <button type="button" class="workOption" id="ticketMoreToggle" aria-expanded="false" aria-controls="ticketMoreFields" onclick="toggleWorkOrderSection('ticketMoreFields')">Weitere Angaben</button>
+      </div>
+      <div class="field full workOptionPanel" id="ticketMaterialFields" hidden><label for="ticketMaterial">Materialbedarf</label><textarea id="ticketMaterial" rows="2" placeholder="Material, Menge, Hinweis"></textarea></div>
+      <div class="full workFormGrid workOptionPanel workMoreFields" id="ticketMoreFields" hidden>
+        <div class="field" id="ticketTypeField"><label for="ticketType">Auftragsart</label><select id="ticketType"><option>Kontrolle / Prüfung</option><option>Reparatur</option><option>Störung / Ausfall</option><option>Wartung / Service</option><option>Sonstiges</option><option>Ersatzteil Bestellung</option></select></div>
+        <div class="field"><label for="ticketPrio">Priorität</label><select id="ticketPrio"><option>Niedrig</option><option>Mittel</option><option>Hoch</option><option>Kritisch</option></select></div>
+        <div class="field"><label for="ticketStatus">Status</label><select id="ticketStatus"><option>Offen</option><option>In Arbeit</option><option>Warten auf Servicefirma</option><option>Warten auf Ersatzteil</option><option>Erledigt</option><option>Abgeschlossen</option></select></div>
+      </div>
     </div>
     <details class="workDetailSection" id="ticketBillingFields"><summary>Servicefirma &amp; Abrechnung</summary><div class="formGrid" style="margin-top:12px">
       <div class="field"><label for="ticketExecutionBy">Ausführung durch</label><select id="ticketExecutionBy"><option>Intern (Hausdienst / FM)</option><option>Extern (Servicefirma)</option><option>Kombiniert</option></select></div>
@@ -2118,9 +2110,10 @@ button.walkLocalKpi{cursor:pointer}
       <div class="field"><label for="ticketInvoiceReceived">Rechnung erhalten</label><select id="ticketInvoiceReceived"><option value="">Offen</option><option>Ja</option><option>Nein</option></select></div>
       <div class="field"><label for="ticketDeliveryNoteReceived">Lieferschein erhalten</label><select id="ticketDeliveryNoteReceived"><option value="">Offen</option><option>Ja</option><option>Nein</option></select></div>
     </div></details>
-    <p id="ticketSaveError" class="workError" role="alert"></p><button type="submit" id="ticketSaveBtn" class="btn">Arbeitsauftrag speichern</button>
+    <div class="workFormFooter"><p id="ticketSaveError" class="workError" role="alert"></p><button type="button" class="btn secondary" onclick="closeModals()">Abbrechen</button><button type="submit" id="ticketSaveBtn" class="btn">Arbeitsauftrag speichern</button></div>
   </form>
 </div></div></div>
+
 <div class="modalBack" id="inspectionPlanModal" role="dialog" aria-modal="true" aria-labelledby="inspectionPlanHeading"><div class="modal inspectionPlanModal"><div class="modalHead"><b id="inspectionPlanHeading">Kontrolle einplanen</b><button type="button" class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
   <strong id="inspectionPlanTitle"></strong><p id="inspectionPlanDue" class="smallText"></p>
   <form onsubmit="event.preventDefault();saveInspectionPlanning()">
@@ -2173,7 +2166,7 @@ button.walkLocalKpi{cursor:pointer}
     </div>
     <div class="modalBody" style="padding: 16px; overflow-y: auto;">
       <form id="calendarPlanForm" onsubmit="saveCalendarPlan(event)" style="display:flex; flex-direction:column; gap:12px;">
-        <input type="hidden" id="planEditId">
+        <input type="hidden" id="planEditId"><input type="hidden" id="planEntryMode">
         <input type="hidden" id="planEmpId">
 
         <div class="field" id="planEmpSelectGroup">
@@ -2213,7 +2206,7 @@ button.walkLocalKpi{cursor:pointer}
         </div>
 
         <div class="field" id="planWorkLocationGroup">
-          <label for="planWorkLocation">Arbeitsort</label>
+          <label for="planWorkLocation" id="planWorkLocationLabel">Arbeitsort</label>
           <input id="planWorkLocation" type="text" list="planningLocations" placeholder="z.B. Hauptgebäude, EG" maxlength="300">
           <datalist id="planningLocations"></datalist>
         </div>
@@ -2226,7 +2219,7 @@ button.walkLocalKpi{cursor:pointer}
         <div class="field">
           <label for="planShiftType">Eintrag</label>
           <select id="planShiftType" onchange="updatePlanningFields()" style="width:100%;">
-            <option value="Normaldienst">Arbeitseinsatz</option>
+            <option value="Normaldienst">Tagdienst</option><option value="Frühdienst">Frühdienst</option><option value="Spätdienst">Spätdienst</option><option value="Nachtdienst">Nachtdienst</option>
             <option value="Ferien Antrag">Ferien Antrag (ausstehend)</option>
             <option value="Ferien genehmigt">Ferien genehmigt</option>
             <option value="Krank">Abwesend (Krankheit)</option>
@@ -2389,6 +2382,7 @@ button.walkLocalKpi{cursor:pointer}
 </div>
 
 <script src="assets/work-orders.js"></script>
+<script src="assets/team-planning.js"></script>
 <script>
 if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}
 const API='/api/fm360';
@@ -2585,7 +2579,7 @@ function docPoolSetType(t){ docPoolTypeFilter = docPoolTypeFilter === t ? '' : t
 function docPoolBreadcrumb(n){
   let parts=[`<button onclick="docPoolOpen('')">Alle Dokumente</button>`];
   if(n){
-    parts=parts.concat(nodeChain(n.id).map(x=>`<button data-id="${esc(x.id)}" onclick="docPoolOpen(this.dataset.id)">${esc(label(x))}</button>`));
+    parts=parts.concat(nodeChain(n.id).map(x=>x.id===n.id?`<span class="docxCurrent" aria-current="location">${esc(label(x))}</span>`:`<button data-id="${esc(x.id)}" onclick="docPoolOpen(this.dataset.id)">${esc(label(x))}</button>`));
   }
   return parts.join('<span class="separator">&gt;</span>');
 }
@@ -2603,7 +2597,7 @@ function docPoolMatches(d, q){
 }
 function docFileKind(d){
   let ext = String(d.fileName || '').split('.').pop().toLowerCase(), mime = String(d.contentType || '');
-  if (!d.blobKey) return ['none', 'Info'];
+  if (!d.blobKey) return ['none', '–'];
   if (ext === 'pdf' || mime === 'application/pdf') return ['pdf', 'PDF'];
   if (/^(doc|docx|odt|rtf)$/.test(ext)) return ['word', 'DOC'];
   if (/^(xls|xlsx|ods|csv)$/.test(ext)) return ['excel', 'XLS'];
@@ -2613,13 +2607,12 @@ function docFileKind(d){
 function docPoolRow(d, n){
   let [kind, kindLabel] = docFileKind(d);
   let showPath = !n || d.parent !== n.id;
-  let meta = [d.type, d.folder, d.fileName].filter(Boolean).map(esc).join(' · ');
-  let open = d.blobKey ? `<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" rel="noopener" style="text-decoration:none;">Öffnen</a>` : '';
-  let place = d.parent && node(d.parent) ? `<button class="btn small secondary" onclick="docPoolOpen('${escJsArg(d.parent)}')">Zum Ort</button>` : '';
+  let meta = [d.type, d.folder, d.fileName, !d.blobKey?'Keine Datei hinterlegt':''].filter(Boolean).map(esc).join(' · ');
+  let action = d.blobKey ? `<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" rel="noopener" style="text-decoration:none;">Dokument öffnen</a>` : `<button class="btn small secondary" onclick="openDocumentRecord('${escJsArg(d.id)}')">Datei hinzufügen</button>`;
   return `<div class="docxRow">
-    <span class="docxKind ${kind}" title="${kind === 'none' ? 'Eintrag ohne Datei' : esc(d.fileName || '')}">${kindLabel}</span>
-    <div class="docxIdent"><strong>${esc(d.title)}</strong><span>${meta || 'ohne Angaben'}</span>${showPath ? `<span class="docxPath">${d.parent && node(d.parent) ? esc(path(d.parent)) : 'Ohne Zuordnung'}</span>` : ''}</div>
-    <div class="docxRowActions">${open}${place}</div>
+    <span class="docxKind ${kind}" title="${kind === 'none' ? 'Keine Datei hinterlegt' : esc(d.fileName || '')}">${kindLabel}</span>
+    <div class="docxIdent"><button class="docxTitle" onclick="openDocumentRecord('${escJsArg(d.id)}')" title="Dokumentdetails bearbeiten"><strong>${esc(d.title)}</strong></button><span>${meta || 'ohne Angaben'}</span>${showPath ? `<span class="docxPath">${d.parent && node(d.parent) ? esc(path(d.parent)) : 'Ohne Zuordnung'}</span>` : ''}</div>
+    <div class="docxRowActions">${action}</div>
   </div>`;
 }
 function docPoolTreeRows(parentId, depth){
@@ -3071,6 +3064,7 @@ function resetPiketdienstStartPosition(){
 }
 function updateKpiHeaderVisibility(sec){
   let show=sec==='uebersicht'||sec==='navigator';
+  if($('planNewBtn'))$('planNewBtn').hidden=sec!=='mitarbeiter';
   ['globalMetricsHeader','infraStatusWidget'].forEach(id=>{
     let el=$(id);
     if(el)el.hidden=!show;
@@ -4249,8 +4243,11 @@ let uploadDocContentType = '';
 let uploadDocFileName = '';
 let documentParentId = '';
 let documentReturnAnlage = '';
+let documentEditingId = '';
 function openDocModal(parentId=selected){
   let n=node(parentId);if(!n){alert('Bitte zuerst einen Eintrag auswählen.');return;}
+  documentEditingId='';
+  $('docModalTitle').textContent='Dokument hinzufügen';$('docSaveBtn').textContent='Dokument hochladen';$('docSaveBtn').disabled=false;
   documentParentId=parentId;
   documentReturnAnlage=$('anlageModal').style.display==='flex'?$('anlageEditId').value:'';
   if(documentReturnAnlage)$('anlageModal').style.display='none';
@@ -4258,9 +4255,18 @@ function openDocModal(parentId=selected){
   uploadDocBase64=null;uploadDocContentType='';uploadDocFileName='';
   $('docType').value=isAssetNode(n)?'Bedienungsanleitung':'Sonstiges Dokument';$('docFolder').placeholder=isAssetNode(n)?'Dokumenttyp/Kategorie, keine Unterordner-Struktur':'Kategorie optional';$('docModal').style.display='flex';
 }
+function openDocumentRecord(id){
+  const doc=(state.docs||[]).find(d=>d.id===id);
+  if(!doc||!node(doc.parent)){alert('Die Zuordnung dieses Dokuments ist nicht mehr vorhanden.');return;}
+  openDocModal(doc.parent);documentEditingId=doc.id;
+  $('docModalTitle').textContent=doc.blobKey?'Dokument bearbeiten':'Datei hinzufügen';
+  $('docSaveBtn').textContent='Speichern';
+  for(const [field,key] of [['docTitle','title'],['docType','type'],['docFolder','folder'],['docTags','tags'],['docNote','note']])$(field).value=doc[key]||'';
+  $('docFileHint').textContent=doc.blobKey?'Vorhanden: '+(doc.fileName||doc.title)+'. Eine neue Datei ersetzt die bisherige.':'Keine Datei hinterlegt. Datei auswählen und speichern.';
+}
 function closeDocumentModal(){
   $('docModal').style.display='none';
-  const returnId=documentReturnAnlage;documentReturnAnlage='';documentParentId='';
+  const returnId=documentReturnAnlage;documentReturnAnlage='';documentParentId='';documentEditingId='';
   if(returnId && node(returnId)){
     renderAnlageRelated(returnId);
     $('anlageModal').style.display='flex';
@@ -4279,21 +4285,26 @@ function previewDocumentFile(e){
   reader.readAsDataURL(file);
 }
 async function saveDocument(){
+  if($('docSaveBtn').disabled)return;
   let title=$('docTitle').value.trim();
   if(!title){alert('Bitte Dokumentname eingeben.');return;}
   if($('docFileInput').files[0] && !uploadDocBase64){alert('Datei wird noch gelesen. Bitte erneut speichern.');return;}
-  let id=uid();
-  let item={id,parent:documentParentId,type:$('docType').value,title,folder:$('docFolder').value,tags:$('docTags').value,note:$('docNote').value};
+  const existing=documentEditingId?(state.docs||[]).find(d=>d.id===documentEditingId):null;
+  if(documentEditingId&&!existing){alert('Dieses Dokument ist nicht mehr vorhanden. Bitte die Ansicht aktualisieren.');return;}
+  let id=existing?.id||uid();
+  let item={...existing,id,parent:documentParentId,type:$('docType').value,title,folder:$('docFolder').value,tags:$('docTags').value,note:$('docNote').value};
   if(uploadDocBase64){
     item.blobKey=`documents/${id}/${uploadDocFileName||'upload'}`;
     item.contentType=uploadDocContentType||'application/octet-stream';
     item.fileName=uploadDocFileName||title;
     item.base64=uploadDocBase64;
   }
+  $('docSaveBtn').disabled=true;
   try{
     state=await api('PATCH',{collection:'docs',item});
     render(); closeDocumentModal();
-  }catch(e){alert('Dokument konnte nicht hochgeladen werden.');}
+  }catch(e){alert('Dokument konnte nicht gespeichert werden.');}
+  finally{$('docSaveBtn').disabled=false;}
 }
 function updateTicketTypeFields(){
   let type=$('ticketType')?.value||'';
@@ -4343,35 +4354,31 @@ async function closeTicket(id){
 }
 function listDoc(d){let parentNode=node(d.parent);let folderText=isAssetNode(parentNode)?'Anlagen-Unterlage':esc(d.folder||'kein Ordner');let fileAction=d.blobKey?`<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" style="text-decoration:none;">Öffnen</a>`:'';return `<div class=item><div><strong>${esc(d.title)}</strong><span>${esc(d.type)} · ${folderText} · ${d.fileName?esc(d.fileName)+' · ':''}${d.parent?esc(path(d.parent)):'kein Ort'}</span></div><div class="itemActions">${fileAction}<button class="btn small secondary" onclick="openEntry('${escJsArg(d.parent)}')">Zum Ort</button></div></div>`}
 function ticketDate(v){let m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}.${m[2]}.${m[1]}`:(v||'')}
+// Kompakte Auftragszeile: Titel und Status, eine Infozeile, Aktionen. Details im Auftragsfenster.
 function listTicket(t){
-  let photos = state.photos ? state.photos.filter(p => p.ticketId === t.id) : [];
-  let photoHtml = '';
-  if (photos.length > 0) {
-    photoHtml = `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">` + 
-      photos.map(p => `
-        <div style="width:40px; height:40px; border-radius:4px; overflow:hidden; border:1px solid var(--line); cursor:pointer;" onclick="showLargePhoto('${escJsArg(p.id)}')">
-          <img src="/api/fm360?photoId=${esc(p.id)}" style="width:100%; height:100%; object-fit:cover;" title="${esc(p.description)}">
-        </div>
-      `).join('') + `</div>`;
-  }
-  let group=ticketStatusGroup(t.status);
-  let prioKey=({Kritisch:'crit',Hoch:'high',Mittel:'mid',Niedrig:'low'})[t.prio]||'mid';
-  let pathHtml=t.parent?nodeChain(t.parent).map(x=>esc(x.name)).join('<span class="ticketSep">›</span>'):'kein Ort';
-  let facts=[['Verantwortlich',t.resp||'–'],['Ausführung',t.executionBy],['Fällig',ticketDate(t.due)],['Erstellt',ticketDate(t.created)],['Kosten',t.costChf?`CHF ${t.costChf}`:''],['Rechnung',t.invoiceReceived],['Lieferschein',t.deliveryNoteReceived]].filter(([,v])=>v);
-  let factsHtml=facts.map(([k,v])=>`<span><em>${k}</em>${esc(v)}</span>`).join('');
-  let text=(t.text||'').trim();
-  let textHtml=text&&text!==(t.title||'').trim()?`<p class="ticketText">${esc(text)}</p>`:'';
-  let closeAction=isClosedTicketStatus(t.status)?'':`<button class="btn small" onclick="closeTicket('${escJsArg(t.id)}')">Abschließen</button>`;
-  let placeAction=t.parent?`<button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button>`:'';
-  return `<div class="ticketCard prio-${prioKey}">
-    <div class="ticketMain">
-      <div class="ticketHead"><span class="ticketType">${esc(workItemLabel(t))} · ${esc(t.type)}</span><span class="ticketBadge status-${group}">${esc(t.status)}</span><span class="ticketBadge prio-${prioKey}">${esc(t.prio)}</span></div>
-      <strong class="ticketTitle">${esc(t.title)}</strong>
-      <div class="ticketPath">${pathHtml}</div>
-      ${factsHtml?`<div class="ticketFacts">${factsHtml}</div>`:''}
-      ${textHtml}${photoHtml}
+  const photos=(state.photos||[]).filter(p=>p.ticketId===t.id);
+  const closed=isClosedTicketStatus(t.status);
+  const group=ticketStatusGroup(t.status);
+  const prioKey=({Kritisch:'crit',Hoch:'high',Mittel:'mid',Niedrig:'low'})[t.prio]||'mid';
+  const place=node(t.parent);
+  const today=toLocalDateString(getTodayDate());
+  const late=!closed&&t.due&&t.due<today;
+  const inspection=workItemKind(t)==='inspection';
+  const meta=[
+    `<span class="woKind">${inspection?'↻ Inspektion':esc(t.type||'Arbeitsauftrag')}</span>`,
+    place?`<span class="woPlace" title="${esc(path(place.id))}">${esc(place.name)}</span>`:'<span class="woPlace">kein Ort</span>',
+    t.due?`<span class="woDue${late?' late':''}">${late?'Überfällig ':''}${esc(ticketDate(t.due))}</span>`:'',
+    `<span class="woWho">${esc(workOrderAssignee(t))}</span>`,
+    prioKey==='crit'||prioKey==='high'?`<span class="woPrio ${prioKey}">${esc(t.prio)}</span>`:'',
+    t.costChf?`<span>CHF ${esc(t.costChf)}</span>`:'',
+  ].filter(Boolean).join('');
+  const thumbs=photos.length?`<div class="woPhotos">${photos.map(p=>`<button type="button" class="woPhoto" onclick="showLargePhoto('${escJsArg(p.id)}')" title="${esc(p.description||'Foto')}"><img src="/api/fm360?photoId=${esc(p.id)}" alt=""></button>`).join('')}</div>`:'';
+  return `<div class="woCard prio-${prioKey}${closed?' closed':''}">
+    <div class="woMain">
+      <div class="woTop"><button type="button" class="woTitle" onclick="openWorkOrder('${escJsArg(t.id)}')" title="Auftrag öffnen">${esc(t.title||t.type||'Auftrag')}</button><span class="woStatus status-${group}">${esc(t.status)}</span></div>
+      <div class="woMeta">${meta}</div>${thumbs}
     </div>
-    <div class="ticketActions"><button class="btn small" onclick="openWorkOrder('${escJsArg(t.id)}')">Auftrag öffnen</button>${placeAction}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button>${closeAction}</div>
+    <div class="woActions"><button class="btn small" onclick="openWorkOrder('${escJsArg(t.id)}')">Öffnen</button>${t.parent?`<button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button>`:''}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button>${closed?'':`<button class="btn small secondary" onclick="closeTicket('${escJsArg(t.id)}')">Abschließen</button>`}</div>
   </div>`;
 }
 function delDoc(id){let d=state.docs.find(x=>x.id===id);let parentId=d?.parent||selected||null;state.docs=state.docs.filter(d=>d.id!==id);selected=parentId;save()}function delTicket(id){let t=state.tickets.find(x=>x.id===id);let parentId=t?.parent||selected||null;state.tickets=state.tickets.filter(t=>t.id!==id);selected=parentId;save()}
@@ -5872,15 +5879,18 @@ function togglePlanRange() {
 function updatePlanningFields() {
   const working = !['Krank','Ferien Antrag','Ferien genehmigt','Ferien approved'].includes($('planShiftType').value);
   $('planWorkLocationGroup').style.display = working ? 'block' : 'none';
-  $('planWorkLocation').required = working;
-  $('planTask').required = working;
-  $('planTaskLabel').textContent = working ? 'Aufgabe' : 'Notiz (optional)';
-  $('planTask').placeholder = working ? 'z.B. Lüftung kontrollieren' : 'Optionale Notiz';
+  const shiftMode=$('planEntryMode').value==='schicht';
+  $('planWorkLocationLabel').textContent=shiftMode?'Arbeitsort (optional)':'Arbeitsort';
+  $('planWorkLocation').required = working&&!shiftMode;
+  $('planTask').required = working&&!shiftMode;
+  $('planTaskLabel').textContent = working&&!shiftMode ? 'Aufgabe' : 'Notiz (optional)';
+  $('planTask').placeholder = working&&!shiftMode ? 'z.B. Lüftung kontrollieren' : 'Optionale Notiz';
 }
 
 function preparePlanningForm() {
   $('calendarPlanForm').reset();
-  Array.from($('planShiftType').options).forEach(option=>option.hidden=false);
+  $('planEntryMode').value='';
+  Array.from($('planShiftType').options).forEach(option=>{option.hidden=false;option.disabled=false;});
   $('planFormError').hidden = true;
   $('planEditId').value = '';
   $('planEmpId').value = '';
@@ -5913,14 +5923,7 @@ function openNewWorkPlan(dateStr) {
   $('planEmpSelect').focus();
 }
 
-function openNewAbsence() {
-  if (!operationalEmployees().length) { openPlanningTeam(); return; }
-  openNewWorkPlan();
-  $('planModalTitle').textContent = 'Abwesenheit eintragen';
-  Array.from($('planShiftType').options).forEach(option=>option.hidden=!['Krank','Ferien genehmigt'].includes(option.value));
-  $('planShiftType').value = 'Krank';
-  updatePlanningFields();
-}
+function openNewAbsence() { openTeamPlan('absenzen'); }
 
 // Interactive cell click: open modal
 function openCalendarPlan(empId, dateStr, shiftId = null) {
@@ -6010,6 +6013,8 @@ function openRequestVacationModal() {
   $('planDateEnd').value = endStr;
   $('planDateSingle').value = startStr;
 
+  $('planEntryMode').value='absenzen';
+  Array.from($('planShiftType').options).forEach(option=>option.hidden=option.value!=='Ferien Antrag');
   $('planShiftType').value = 'Ferien Antrag';
   $('planTask').value = '';
   $('planDeleteBtn').style.display = 'none';
@@ -6030,7 +6035,7 @@ async function saveCalendarPlan(e) {
   const workLocation = $('planWorkLocation').value.trim();
   const editId = $('planEditId').value;
   const away = ['Krank','Ferien Antrag','Ferien genehmigt','Ferien approved'].includes(shiftType);
-  if (!away && (!task || !workLocation)) { error('Bitte Arbeitsort und Aufgabe eintragen.'); return; }
+  if (!away && $('planEntryMode').value!=='schicht' && (!task || !workLocation)) { error('Bitte Arbeitsort und Aufgabe eintragen.'); return; }
   const start = rangeType === 'single' ? $('planDateSingle').value : $('planDateStart').value;
   const end = rangeType === 'single' ? start : $('planDateEnd').value;
   const dates = planningDates(start, end, rangeType === 'range' && start !== end && $('planSkipWeekends').checked);
@@ -6038,7 +6043,7 @@ async function saveCalendarPlan(e) {
   const previous = state.shifts || [];
   const original = previous.find(s => s.id === editId);
   if (editId && !original) { error('Dieser Eintrag ist nicht mehr vorhanden. Bitte den Plan neu öffnen.'); return; }
-  const conflict = previous.find(s => s.employeeId === empId && dates.includes(s.date) && s.id !== editId);
+  const conflict = previous.find(s => s.employeeId === empId && dates.includes(s.date) && s.id !== editId && (!['schicht','absenzen'].includes($('planEntryMode').value) || ['Krank','Ferien Antrag','Ferien genehmigt','Ferien approved'].includes(s.shiftType) === away));
   if (conflict) {
     error(`Am ${conflict.date.split('-').reverse().join('.')} besteht bereits ein Eintrag für diesen Mitarbeiter. Bitte diesen Eintrag im Wochenplan bearbeiten oder einen anderen Tag wählen.`);
     return;
@@ -6055,6 +6060,7 @@ async function saveCalendarPlan(e) {
       const [year, month, day] = start.split('-').map(Number);
       currentCalendarDate = new Date(year, month - 1, day);
       clearCalendarFilters();
+      if(typeof teamPlanDates!=='undefined'&&teamPlanDates[$('planEntryMode').value]){teamPlanDates[$('planEntryMode').value]=new Date(year,month-1,day);renderTeamPlans();}
       closeModals();
     } else {
       state.shifts = previous;
@@ -6167,6 +6173,7 @@ function renderMitarbeiter() {
   // Render main calendar planner and pending vacations list
   renderCalendar();
   renderPendingVacations();
+  renderTeamPlans();
 }
 
 function renderAdminEmployees() {
@@ -6234,7 +6241,6 @@ function renderCalendar() {
   renderInspectionQueue();
   $('planningWeekBtn').classList.toggle('active', currentCalendarView === 'week');
   $('planningMonthBtn').classList.toggle('active', currentCalendarView === 'month');
-  $('planNewBtn').style.display = 'inline-flex';
   $('planningSummary').textContent = allEmps.length ? `${allEmps.length} Mitarbeiter` : '';
   $('calendarPeriodLabel').textContent = currentCalendarView === 'week'
     ? `KW ${getISOWeekAndYear(weekStart).week} · ${period.start.split('-').reverse().join('.')} – ${period.end.split('-').reverse().join('.')}`
@@ -7873,6 +7879,17 @@ function deleteContact(id) {
   if (!confirm('Kontakt wirklich löschen?')) return;
   state.emergencyContacts = (state.emergencyContacts || []).filter(c => c.id !== id);
   save();
+}
+
+// Nächste Prüfung = letzte Prüfung + Intervall (bleibt manuell änderbar).
+function updateBrandschutzNext() {
+  let last = $('bsLast').value;
+  if (!last) return;
+  let months = ({ monatlich: 1, 'halbjährlich': 6, 'jährlich': 12, 'zweijährlich': 24 })[$('bsInterval').value] || 12;
+  let [y, m, d] = last.split('-').map(Number);
+  let next = new Date(y, m - 1 + months, 1);
+  next.setDate(Math.min(d, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()));
+  $('bsNext').value = toLocalDateString(next);
 }
 
 function addBrandschutz() {

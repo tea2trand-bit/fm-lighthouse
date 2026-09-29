@@ -37,7 +37,7 @@ function workCalendarEmployees(employees){
 function workLineHtml(entry,showName=false){
   const employee=(state.employees||[]).find(e=>e.id===entry.employeeId);
   const title=(showName?(employee?.name||'Nicht zugeteilt')+' · ':'')+entry.title;
-  const action=entry.kind==='ticket'?`openWorkOrder('${escJsArg(entry.id)}')`:`openCalendarPlan('${escJsArg(entry.employeeId)}','${escJsArg(entry.date)}','${escJsArg(entry.id)}')`;
+  const action=entry.kind==='ticket'?`openWorkOrder('${escJsArg(entry.id)}')`:`openTeamPlan('${entry.away?'absenzen':'schicht'}','${escJsArg(entry.employeeId)}','${escJsArg(entry.date)}','${escJsArg(entry.id)}')`;
   return `<button class="workLine ${entry.done?'done':''} ${entry.away?'away':''} ${entry.inspection?'inspection':''}" title="${esc(title)}" aria-label="${esc(title)}" onclick="${action}">${entry.done?'✓ ':entry.inspection?'↻ ':''}${esc(title)}</button>`;
 }
 function workDayCell(entries,employeeId,date,showName=false){
@@ -164,7 +164,10 @@ function openWorkOrderEditor(id='',options={}){
   $('ticketAssignedEmployee').value=t?.assignedEmployeeId||(!inspection?options.employeeId:'')||'';
   const defaults={ticketTitle:t?.title||'',ticketType:t?.type||(inspection?'Kontrolle / Prüfung':options.kind==='maintenance'?'Wartung / Service':options.kind==='repair'?'Störung / Ausfall':'Reparatur'),ticketDue:t?.due||options.date||'',ticketText:t?.text||'',ticketStatus:t?.status||'Offen',ticketPrio:t?.prio||'Mittel',ticketResp:t?.resp||'',ticketExecutionBy:t?.executionBy||'Intern (Hausdienst / FM)',ticketCostChf:t?.costChf||'',ticketInvoiceReceived:t?.invoiceReceived||'',ticketDeliveryNoteReceived:t?.deliveryNoteReceived||'',ticketMaterial:t?.materialNeeded||'',ticketIntervalType:'',ticketInterval:'',ticketPart:'',ticketQuantity:'',ticketFailureState:'',ticketClosedAt:'',ticketMeasure:'',ticketCloseNote:''};
   Object.entries(defaults).forEach(([key,value])=>{if($(key))$(key).value=value;});
-  $('ticketMaterialFields').open=!!t?.materialNeeded;
+  // Optionale Bereiche: Material nur wenn erfasst, weitere Angaben beim Bearbeiten.
+  setWorkOrderSection('ticketMaterialFields',!!t?.materialNeeded);
+  setWorkOrderSection('ticketMoreFields',!!t);
+  $('ticketModal').querySelector?.('.workOrderModal')?.classList.toggle('inspectionEditor',inspection);
   Array.from($('ticketStatus').options||[]).forEach(option=>{if(option.value==='Abgeschlossen')option.hidden=option.disabled=!t;});
   const managers=(state.employees||[]).filter(e=>/admin|chef/i.test(e.role||''));
   const session=storedSessionEmployee();
@@ -178,6 +181,17 @@ function openWorkOrderEditor(id='',options={}){
   $('ticketSaveError').textContent='';$('ticketSaveBtn').disabled=false;
   updateWorkOrderRepeat();updateWorkOrderPath();
   $('ticketModal').style.display='flex';$('ticketTitle').focus();
+}
+const WORK_ORDER_SECTION_TOGGLES={ticketMaterialFields:'ticketMaterialToggle',ticketMoreFields:'ticketMoreToggle'};
+function setWorkOrderSection(id,open){
+  const panel=$(id),toggle=$(WORK_ORDER_SECTION_TOGGLES[id]);
+  if(panel)panel.hidden=!open;
+  if(toggle){toggle.setAttribute?.('aria-expanded',String(open));toggle.classList?.toggle('active',open);}
+}
+function toggleWorkOrderSection(id){
+  const open=$(id).hidden;
+  setWorkOrderSection(id,open);
+  if(open)$(id).querySelector?.('textarea,select,input')?.focus();
 }
 function updateWorkOrderPath(){$('ticketPath').textContent=$('ticketParent').value?'Zugeordnet zu: '+path($('ticketParent').value):'Den vorhandenen Ort oder die Anlage auswählen.';}
 function updateWorkOrderRepeat(){
