@@ -705,6 +705,30 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .projectKpi b,.controlKpi b{display:block;font-size:24px;line-height:1.1;font-weight:700;letter-spacing:-.02em;color:#2f6494;white-space:nowrap;font-variant-numeric:tabular-nums}
 .projectKpi span,.controlKpi span{display:block;margin-top:5px;font-family:var(--font-button);font-size:12px;font-weight:500;color:#6b8393}
 @media(max-width:760px){.projectKpis{grid-template-columns:repeat(2,1fr)}}
+
+/* Suche wie in TD: Lupe im Kopf, Suche im Dialog */
+.appHeader{grid-template-columns:minmax(200px,1fr) auto minmax(200px,1fr)}
+@media(max-width:1440px){.appHeaderDate{display:inline}}
+@media(max-width:1100px){.appHeader{grid-template-columns:1fr auto}.appHeaderDate{display:none}}
+.appHeaderBadge{background:#d23c47}
+.searchDialog{position:fixed;inset:0;z-index:200;background:rgba(15,28,38,.38);backdrop-filter:blur(2px);display:grid;justify-items:center;align-items:start;padding:9vh 16px 16px}
+.searchDialog[hidden]{display:none}
+.searchDialogCard{width:min(760px,100%);max-height:78vh;overflow:auto;background:#fff;border:1px solid var(--td-line);border-radius:16px;box-shadow:0 30px 70px -24px rgba(10,18,27,.46);padding:18px 20px 20px}
+.searchDialogHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.searchDialogKicker{display:block;font-family:var(--font-nav);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#5f7380}
+.searchDialogHead h2{margin:2px 0 0;font-size:20px}
+.searchDialogField{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;border:1px solid #c7d4e2;border-radius:11px;background:#fff;color:#31586b}
+.searchDialogField:focus-within{border-color:var(--td-petrol);box-shadow:0 0 0 3px rgba(63,118,146,.14)}
+.searchDialogField svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+.searchDialogField input{flex:1;border:0;padding:0;height:100%;font-size:15px;background:transparent;box-shadow:none!important;outline:none}
+.searchDialogHelp{margin:10px 0 12px;font-size:12.5px;color:#5f7380}
+
+/* Warnungen als Kachelraster statt bildschirmbreiter Balken */
+.warnGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;align-items:stretch}
+.warnCard{background:#fff!important;border-top:1px solid var(--td-line);border-right:1px solid var(--td-line);border-bottom:1px solid var(--td-line);border-radius:12px;padding:12px 14px;box-shadow:0 1px 2px rgba(37,78,104,.04),0 10px 22px -18px rgba(37,78,104,.35)}
+.warnCard .itemActions{margin-top:auto!important;padding-top:8px;justify-content:flex-start;flex-wrap:wrap}
+.warnCard > div:nth-child(2){color:#5f7380!important}
+#dynamicWarningsList{max-height:none!important;overflow:visible!important}
 </style>
 </head>
 <body>
@@ -788,7 +812,7 @@ label.btn{font-size:13px;font-family:var(--font-button)}
       <div class="appHeaderTools">
         <span class="appHeaderDate" id="headerDate"></span>
         <button class="appHeaderIcon" type="button" onclick="openTicketsOverview('active')" title="Offene Tickets" aria-label="Offene Tickets"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="appHeaderBadge" id="headerOpenTickets" hidden></span></button>
-        <label class="appHeaderSearch" title="Suche"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.2 4.2"/></svg><input id="globalSearch" type="search" placeholder="Anlagen, Räume, Dokumente, Tickets suchen..." oninput="renderSearch()" autocomplete="off" aria-label="Suchen"></label>
+        <button class="appHeaderIcon" type="button" onclick="openSearchDialog()" title="Suche öffnen" aria-label="Suche öffnen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.2 4.2"/></svg></button>
       </div>
     </header>
     <div class="top">
@@ -842,7 +866,6 @@ label.btn{font-size:13px;font-family:var(--font-button)}
   </div>
 
   <section id="uebersicht" class="section active">
-    <div class="card" id="searchCard" style="display:none;margin-bottom:14px"><h2>Suchergebnisse</h2><div id="searchResults" class="list"></div></div>
 
     <div class="card" id="walkthroughCard">
       <div class="walkthroughHead">
@@ -5140,7 +5163,7 @@ function renderWarnings() {
       </div>
     `;
 
-    groupHtml += list.map(w => {
+    groupHtml += '<div class="warnGrid">' + list.map(w => {
       let bg, border, accent, text, mutedText;
       let badgeB, badgeTxt, badgeBrd;
 
@@ -5189,7 +5212,7 @@ function renderWarnings() {
       }
 
       return `
-        <div style="background: ${bg}; border: 1px solid ${border}; border-left: 5px solid ${accent}; padding: 12px; border-radius: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 6px;" 
+        <div class="warnCard" style="--warn-accent:${accent}; border-left: 4px solid ${accent}; font-size: 13px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-bottom: 6px;" 
              onclick="openEntry('${esc(w.nodeId)}')" 
              onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';" 
              onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
@@ -5211,14 +5234,14 @@ function renderWarnings() {
           ${actions}
         </div>
       `;
-    }).join('');
+    }).join('') + '</div>';
 
     return groupHtml;
   }
 
-  html += renderGroup('🔴 Kritisch', kritischList, '#dc2626', '#fef2f2', '#dc2626', '#fca5a5');
-  html += renderGroup('🟠 Mittel', mittelList, '#ea580c', '#fffbeb', '#ea580c', '#fed7aa');
-  html += renderGroup('🔵 Info / Hinweis', infoList, '#0284c7', '#f0f9ff', '#0284c7', '#bae6fd');
+  html += renderGroup('Kritisch', kritischList, '#dc2626', '#fef2f2', '#dc2626', '#fca5a5');
+  html += renderGroup('Mittel', mittelList, '#ea580c', '#fffbeb', '#ea580c', '#fed7aa');
+  html += renderGroup('Info / Hinweis', infoList, '#0284c7', '#f0f9ff', '#0284c7', '#bae6fd');
 
   if (totalWarnings > visibleWarnings.length) {
     html += `<button class="btn small secondary" style="margin-top:8px;align-self:flex-start" onclick="showAllWarnings=true;renderWarnings()">Alle anzeigen (${totalWarnings})</button>`;
@@ -5322,7 +5345,11 @@ function renderContextActions(n) {
   html += `<button class="btn secondary" onclick="editContext()">${editLabel}</button>`;
   return html;
 }
-function focusGlobalSearch(){let input=$('globalSearch');if(input){input.focus();input.select()}}
+function openSearchDialog(){let d=$('searchDialog');if(!d)return;d.hidden=false;let input=$('globalSearch');if(input){input.focus();input.select()}}
+function closeSearchDialog(){let d=$('searchDialog');if(d)d.hidden=true}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSearchDialog()});
+document.addEventListener('click',e=>{if(e.target.closest('#searchResults')&&e.target.closest('button,a,[onclick]'))setTimeout(closeSearchDialog,0)},true);
+function focusGlobalSearch(){openSearchDialog()}
 // TD-style header: logged-in user, date and open ticket count.
 function renderAppHeader(){
   let emp=storedSessionEmployee();
@@ -7999,5 +8026,16 @@ function updateInfraFilterList() {
 
 initDesktopSession();
 </script>
+<div id="searchDialog" class="searchDialog" hidden onclick="if(event.target===this)closeSearchDialog()">
+  <section class="searchDialogCard" role="dialog" aria-modal="true" aria-labelledby="searchDialogTitle">
+    <div class="searchDialogHead">
+      <div><span class="searchDialogKicker">FM Lighthouse 360</span><h2 id="searchDialogTitle">Suche</h2></div>
+      <button type="button" class="btn secondary small" onclick="closeSearchDialog()">Schließen</button>
+    </div>
+    <label class="searchDialogField"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.2 4.2"/></svg><input id="globalSearch" type="search" placeholder="Anlagen, Räume, Dokumente oder Tickets suchen..." oninput="renderSearch()" autocomplete="off"></label>
+    <p class="searchDialogHelp">Suche nach Standorten, Gebäuden, Räumen, Anlagen, Dokumenten und Tickets.</p>
+    <div id="searchCard" style="display:none"><div id="searchResults" class="list"></div></div>
+  </section>
+</div>
 </body>
 </html>
