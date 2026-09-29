@@ -81,6 +81,11 @@ button,.action{font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Helv
 .taskTabs{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
 .taskTabs button{white-space:normal;text-align:left;font-weight:600;border-radius:12px;justify-content:flex-start}
 .taskTabs button .taskCount{margin-left:auto}
+/* Anlagendaten: auf dem Telefon 2 pro Zeile; Tablet quer: Schnellaktionen nicht strecken */
+@media(max-width:480px){.assetGrid{grid-template-columns:1fr 1fr!important}.assetGrid .fact b{font-size:14px}}
+.hero{align-items:start}
+#quickActions{align-content:start;grid-auto-rows:min-content}
+#quickActions .action{min-height:52px!important;height:auto}
 </style>
 </head>
 <body>
@@ -403,7 +408,9 @@ function serviceCompany(){let a=current?.anlage||{};let contact=state.emergencyC
 function servicePerson(){let a=current?.anlage||{};return a.kontakt||a.ansprechpartner||'Ansprechpartner nicht hinterlegt'}
 function showSection(id,{scroll=true}={}){activeSection=id;document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));rememberCurrent();if(scroll)window.scrollTo({top:0,behavior:'smooth'})}
 function renderNav(){let html=tabDefs.map(([id,label])=>`<button class="tab" data-tab="${id}" onclick="showSection('${id}')">${label}</button>`).join('');$('tabs').innerHTML=html;$('mobileBar').innerHTML=html}
-function assetFactRows(){let a=current.anlage||{};return [['Typ',a.typ||current.type],['Hersteller',a.hersteller||'-'],['Seriennummer',a.serial||'-'],['Letzte Wartung',a.letzte||'-'],['Nächste Wartung',a.naechste||'-'],['Intervall',a.intervall||'-'],['Servicefirma',a.lieferant||a.servicefirma||'-'],['Servicevertrag',a.servicevertrag||'-'],['Vertragsnummer',a.vertragsnummer||a.contractNumber||'-'],['Notizen',current.notes||a.notizen||a.notes||'-']]}
+function fieldDate(v){let m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}.${m[2]}.${m[1]}`:(v||'')}
+// Nur ausgefüllte Angaben zeigen; Feldnamen wie in der Desktop-App (vertragNr, note, inspektion*)
+function assetFactRows(){let a=current.anlage||{};let rows=[['Typ',a.typ||current.type],['Hersteller',a.hersteller],['Modell',a.model||a.modell],['Seriennummer',a.serial],['Letzte Wartung',fieldDate(a.letzte)],['Nächste Wartung',fieldDate(a.naechste)],['Wartungsintervall',a.intervall],['Inspektion',a.inspektionArt],['Letzte Inspektion',fieldDate(a.inspektionLetzte)],['Nächste Inspektion',fieldDate(a.inspektionNaechste)],['Inspektionsintervall',a.inspektionIntervall],['Prüfstelle',a.inspektionStelle],['Servicefirma',a.lieferant||a.servicefirma],['Servicevertrag',a.servicevertrag],['Vertragsnummer',a.vertragNr||a.vertragsnummer||a.contractNumber],['Notizen',a.note||current.notes||a.notizen||a.notes]];return rows.filter(([,v])=>v&&v!=='-')}
 function toggleAssetDetails(){assetDetailsOpen=!assetDetailsOpen;renderHeader()}
 function renderHeader(){let code=displayCode(current)||current.type;$('pageTitle').textContent=current.name;$('objectName').textContent=current.name;$('objectPath').innerHTML=`<div>${esc(path(current.id))}</div><div class="codeLine"><span>FM-Code</span><b>${esc(code)}</b></div><button class="assetToggle" onclick="toggleAssetDetails()">${isAsset(current)?(assetDetailsOpen?'Anlagendaten schließen':'Anlagendaten öffnen'):(assetDetailsOpen?'Raumdaten schließen':'Raumdaten öffnen')}</button>`;let facts=assetFactRows();$('assetFacts').classList.toggle('open',assetDetailsOpen);$('assetFacts').innerHTML=facts.map(([k,v])=>`<div class="fact"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}
 function renderHierarchyHeader(){
