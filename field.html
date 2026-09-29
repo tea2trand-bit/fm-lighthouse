@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>FM Lighthouse 360 · Mitarbeiter App</title>
-<link rel="icon" href="data:,">
+<link rel="icon" type="image/svg+xml" href="assets/brand/lighthouse.svg">
 <script>
 (function(){
   var params=new URLSearchParams(location.search);
@@ -49,6 +49,13 @@ h1,h2,h3,.title{font-family:"Sora","Hanken Grotesk",-apple-system,"Segoe UI",Rob
 button,.action{font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Helvetica,sans-serif}
 .action:not(.secondary):not(.blue){background:linear-gradient(135deg,#3f7692,#2f5f78);box-shadow:0 8px 18px -10px rgba(47,95,120,.7)}
 .loginPanel .submit{background:linear-gradient(135deg,#0d1a22,#12323b);box-shadow:0 14px 28px -14px rgba(8,20,26,.8),inset 0 1px 0 rgba(255,255,255,.12)}
+
+/* TD-Leuchtturm als Logo */
+.loginIcon{width:52px;height:52px;border-radius:14px;background:#fff;border:1px solid rgba(255,255,255,.7);box-shadow:0 12px 26px -14px rgba(0,0,0,.6)}
+.loginIcon img{width:40px;height:40px;display:block}
+.loginLogo360::before,.loginLogo360::after{display:none}
+.brandLockup{display:flex;align-items:center;gap:9px}.brandLogo{width:30px;height:33px;flex:0 0 auto}
+.brandTitle{color:#315771;font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Helvetica,sans-serif;font-weight:700}.brandFm{color:#3c7ed2;font-weight:820}.brandDegree{color:#2165c7}.brandSub{color:#5f7380}
 </style>
 </head>
 <body>
@@ -56,8 +63,8 @@ button,.action{font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Helv
   <form class="loginPanel" onsubmit="login(event)">
     <div class="loginBrandPane">
       <div class="loginBrandMark">
-        <div class="loginIcon" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M12 28h8M13 24h6M14 11h4M11 28l2-17h6l2 17M10 8h12l-3 3h-6l-3-3M16 4v4M7 13l-3 2M25 13l3 2"/></svg></div>
-        <div class="loginLogo">FM Lighthouse <span class="loginLogo360">360</span></div>
+        <div class="loginIcon" aria-hidden="true"><img src="assets/brand/lighthouse.svg" alt=""></div>
+        <div class="loginLogo">FM Lighthouse <span class="loginLogo360">360°</span></div>
       </div>
       <div class="loginBrandCopy">
         <h2>Vor Ort verbunden.</h2>
@@ -82,8 +89,9 @@ button,.action{font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Helv
   <header class="top">
     <div class="globalBrand" aria-label="FM Lighthouse 360">
       <div class="brandLockup">
+        <img class="brandLogo" src="assets/brand/lighthouse.svg" alt="">
         <div class="brandText">
-          <span class="brandTitle">FM Lighthouse 360</span>
+          <span class="brandTitle"><b class="brandFm">FM</b> Lighthouse <span class="brandDegree">360°</span></span>
           <span class="brandSub">FUST OBERBÜREN</span>
         </div>
       </div>

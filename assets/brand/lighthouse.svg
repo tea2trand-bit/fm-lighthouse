@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 174" role="img" aria-labelledby="title">
+  <title id="title">TD Lighthouse — roter Leuchtturm mit weissem Kreuz und blauem 360-Grad-Ring</title>
+  <ellipse cx="80" cy="153" rx="70" ry="14" fill="none" stroke="#0076cf" stroke-width="3.6"/>
+  <path d="M56 67H104L108 128Q110 143 122 151Q80 160 38 151Q50 143 52 128Z" fill="#f05252"/>
+  <path id="white-cross" d="M75 91H85V101H95V111H85V121H75V111H65V101H75Z" fill="#fff"/>
+  <path d="M59 36H101V59H59Z" fill="#ccebf8"/>
+  <path d="M59 36V59M73 36V59M87 36V59M101 36V59" fill="none" stroke="#fff" stroke-width="2.5"/>
+  <path d="M55 34Q62 19 80 18Q98 19 105 34Z" fill="#f05252"/>
+  <circle cx="80" cy="11" r="4.5" fill="#f05252"/>
+  <path d="M54 60H106V68H54Z" fill="#fff"/>
+  <g fill="none" stroke="#0076cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="80" cy="60" rx="28" ry="4"/>
+    <path d="M52 60V72M108 60V72M61 64V74M80 64V74M99 64V74M52 69Q80 77 108 69"/>
+  </g>
+</svg>
