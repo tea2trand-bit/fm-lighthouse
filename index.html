@@ -800,6 +800,18 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .walkStats span{display:grid;gap:1px;font-size:11px;color:#6b8393;line-height:1.2}
 .walkStats b{font-size:17px;font-weight:700;color:#2f6494;font-variant-numeric:tabular-nums}
 .walkCardActions{margin-top:auto;justify-content:flex-end;gap:6px}
+/* Kennzahlen im Rundgang wie KPI-Kacheln, leerer Zustand kompakt */
+#walkthroughLocal{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.walkLocalKpi{width:100%;font:inherit;cursor:default}
+button.walkLocalKpi{cursor:pointer}
+.walkEmpty{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:10px 14px;border:1px dashed var(--td-line);border-radius:12px;background:#f7fafc}
+.walkEmpty strong{color:#28566e;font-size:14px}.walkEmpty p{margin:0!important}
+/* Piket-Hinweis in der Mitarbeiterplanung im TD-Stil */
+#piketCalendarOverview{background:#fff!important;border:1px solid var(--td-line)!important;border-left:3px solid #3f7692!important;border-radius:12px!important;padding:10px 14px!important}
+#piketCalendarOverview>div:first-child{color:#28566e!important}
+#piketCalendarOverview>div:first-child>span:first-child{display:none}
+#piketCalendarOverview strong[id]{color:#2c3e4c!important}
+#piketCalendarOverview>div:nth-child(2)>div:nth-child(2){color:#c9d7e1!important}
 </style>
 </head>
 <body>
@@ -4406,7 +4418,7 @@ function renderWalkthrough(){
     </div>`;
   }).join('');
   if(!cards){
-    cards=`<div style="grid-column:1/-1;text-align:center;padding:28px;border:1px dashed var(--line);border-radius:12px;background:#fbfcff">
+    cards=`<div class="walkEmpty" style="grid-column:1/-1">
       <strong>${isAssetNode(n)?'Anlage erreicht.':'Keine Untereinträge an dieser Stelle.'}</strong>
       <p class="smallText" style="margin:6px 0 0;">${isAssetNode(n)?'Auf Anlage-Level endet die Objekt-Hierarchie. Nutzen Sie Stammdaten, Dokumente und Tickets.':'Nutzen Sie die lokalen Aktionen, um hier passend zum aktuellen Kontext weiter aufzubauen.'}</p>
     </div>`;
@@ -4432,7 +4444,7 @@ function renderWalkthrough(){
       if(directAssets.length||normalizedType(n)==='Raum / Bereich')rows.push(['Anlagen',directAssets.length,'tabAnlagen']);
       rows.push(['Dokumente',counts.docs,'tabDocs'],['Erstellte Tickets',counts.tickets,'tabTickets']);
     }
-    local=rows.map(([labelText,count,tab])=>`<div class="walkLocalCard"><h3>${labelText}</h3><b style="font-size:22px">${count}</b>${tab?`<div style="margin-top:8px"><button class="btn small secondary" onclick="openContextTab('${currentId}','${tab}')">Öffnen</button></div>`:''}</div>`).join('');
+    local=rows.map(([labelText,count,tab])=>tab?`<button type="button" class="kpi walkLocalKpi" onclick="openContextTab('${escJsArg(currentId)}','${tab}')" title="Öffnen"><b>${count}</b><span>${esc(labelText)}</span></button>`:`<div class="kpi walkLocalKpi"><b>${count}</b><span>${esc(labelText)}</span></div>`).join('');
   }
   if($('walkthroughLocal'))$('walkthroughLocal').innerHTML=local;
 }
