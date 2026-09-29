@@ -1155,70 +1155,24 @@ button.walkLocalKpi{cursor:pointer}
           <span id="planningSummary" class="smallText" aria-live="polite"></span>
           <span id="planningReminders" class="workReminder" hidden></span>
           <button class="btn" id="planNewBtn" onclick="openNewWorkOrder()">+ Arbeitsauftrag</button>
+          <button class="btn small secondary" onclick="openNewAbsence()">+ Abwesenheit</button>
+          <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferienanträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
         </div>
 
-        <div id="planningFilterNotice" class="planningFilterNotice" hidden>Filter aktiv <button class="btn small secondary" onclick="clearCalendarFilters()">Alle Mitarbeiter anzeigen</button></div>
+          <div id="vacationPanel" class="vacationPanel" hidden>
+            <div class="planningSupportBar">
+              <h3>Offene Ferienanträge</h3>
+              <button class="btn small" onclick="openRequestVacationModal()">+ Ferienantrag</button>
+              <button class="btn small secondary" onclick="toggleVacationPanel(false)">Schließen</button>
+            </div>
+            <div id="pendingVacationsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px"></div>
+          </div>
         <div id="calendarContainer" style="overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:white;"></div>
-
-        <details class="planningOptions" id="planningOptions">
-          <summary>Dienste, Abwesenheiten &amp; Filter</summary><button class="btn small secondary" onclick="openNewWorkPlan()">+ Dienst / Abwesenheit</button>
-          <div class="planningToolbar">
-            <label for="planningViewSelect">Ansicht</label>
-            <select id="planningViewSelect" onchange="setCalendarView(this.value)">
-              <option value="week">Woche</option><option value="month">Monat</option><option value="quarter">Quartal</option><option value="year">Jahr</option>
-            </select>
-            <button class="tab vacationToggle" id="vacationToggleBtn" type="button" onclick="toggleVacationPanel()">Ferien-Anträge <span class="vacationCount" id="pendingVacationCount">0</span></button>
-            <button class="btn small secondary" onclick="openPlanningTeam()">Mitarbeiter verwalten</button>
-          </div>
-
-        <!-- Vacation Request Workflow Panel -->
-        <div id="vacationPanel" class="vacationPanel" hidden>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
-              <span>Ausstehende Ferien-Anträge</span>
-            </h3>
-            <div style="display:flex;gap:8px"><button class="btn small" onclick="openRequestVacationModal()">+ Neuen Ferienantrag erfassen</button><button class="btn small secondary" onclick="toggleVacationPanel(false)">Schließen</button></div>
-          </div>
-          <p class="smallText" style="margin-top:0; margin-bottom:12px;">Anträge müssen vom Betriebsleiter genehmigt werden, bevor sie als feste Ferien im Kalender eingetragen werden.</p>
-          <div id="pendingVacationsList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px;">
-            <!-- Will be rendered dynamically -->
-          </div>
-        </div>
-
-        <!-- Color Legend -->
-        <div id="planningLegend" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:12px; padding:8px 12px; background:#f8fafc; border-radius:10px; border:1px solid var(--line);">
-          <span style="font-weight:700; color:var(--muted)">Legende:</span>
-          <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-normal"></span> Normaldienst</span>
-          <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-vacation-approved"></span> Ferien genehmigt</span>
-          <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-vacation-pending"></span> Ferien Antrag</span>
-          <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-sick"></span> Abwesend</span>
-          <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-holiday"></span> Feiertag (St. Gallen)</span>
-          <span style="display:inline-flex; align-items:center; gap:4px;"><span class="legend-box cell-piket-indicator"></span> Piketdienst (Woche)</span>
-        </div>
-
-        <!-- Piketdienst Quick-Info Banner -->
-        <div id="piketCalendarOverview" style="display:flex; gap:16px; flex-wrap:wrap; padding:12px; background:linear-gradient(135deg, #fffbeb 0%, #ffedd5 100%); border:1px solid #f97316; border-radius:10px; font-size:13px; align-items:center;">
-          <div style="font-weight:700; color:#c2410c; display:flex; align-items:center; gap:6px;">
-            <span style="font-size:16px;">🟠</span> <strong>Piketdienst-Übersicht:</strong>
-          </div>
-          <div style="display:flex; gap:16px; flex-wrap:wrap; flex:1;">
-            <div>Diese Woche: <strong id="piketThisWeekName" style="color:#7c2d12;">—</strong></div>
-            <div style="color: #ea580c; font-weight: 300;">|</div>
-            <div>Nächste Woche: <strong id="piketNextWeekName" style="color:#7c2d12;">—</strong></div>
-          </div>
-        </div>
-
-        <!-- Filter Bar for employees -->
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; padding:10px 14px; background:#f8fafc; border-radius:10px; border:1px solid var(--line); margin-top: 4px;">
-          <span style="font-weight:700; color:var(--muted)">Mitarbeiter filtern:</span>
-          <button class="tab" id="filterPiketBtn" onclick="toggleCalendarFilter('piketEligible')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Piketfähig</button>
-          <button class="tab" id="filterAbsentBtn" onclick="toggleCalendarFilter('absent')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Abwesend</button>
-          <button class="tab" id="filterVacationBtn" onclick="toggleCalendarFilter('vacation')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Ferien</button>
-          <button class="tab" id="filterTasksBtn" onclick="toggleCalendarFilter('assignedTasks')" style="padding: 5px 12px; font-size: 12px; margin: 0; background: white; border-radius: 999px;">Mit Aufgabe</button>
-          <button class="btn small secondary" onclick="clearCalendarFilters()" style="padding: 5px 10px; font-size: 12px; border-radius: 999px; margin-left: auto;">Zurücksetzen</button>
-        </div>
-
-        </details>
+        <p id="planningStatus" class="smallText" role="status"></p>
+        <section class="inspectionQueueSection" aria-labelledby="inspectionQueueHeading">
+          <h3 id="inspectionQueueHeading">Kontrollen einplanen <span id="inspectionQueueCount"></span></h3>
+          <div id="inspectionQueue"></div>
+        </section>
 
     </div>
   </section>
@@ -2144,7 +2098,7 @@ button.walkLocalKpi{cursor:pointer}
       <div class="field full"><label for="ticketTitle">Aufgabe</label><input id="ticketTitle" required placeholder="z.B. Lift kontrollieren"></div>
       <div class="field full"><label for="ticketParent">Ort / Anlage</label><select id="ticketParent" required onchange="updateWorkOrderPath()"></select></div>
       <div class="field" id="ticketTypeField"><label for="ticketType">Auftragsart</label><select id="ticketType"><option>Kontrolle / Prüfung</option><option>Reparatur</option><option>Störung / Ausfall</option><option>Wartung / Service</option><option>Sonstiges</option><option>Ersatzteil Bestellung</option></select></div>
-      <div class="field"><label for="ticketAssignedEmployee">Mitarbeiter</label><select id="ticketAssignedEmployee"></select></div>
+      <div class="field" id="ticketAssignedField"><label for="ticketAssignedEmployee">Mitarbeiter</label><select id="ticketAssignedEmployee"></select></div>
       <div class="field"><label id="ticketDueLabel" for="ticketDue">Termin</label><input id="ticketDue" type="date" required></div>
       <div id="ticketRecurrenceFields" class="full formGrid" hidden>
         <div class="field"><label for="ticketRepeatEvery">Wiederholen alle</label><div class="workInline"><input id="ticketRepeatEvery" type="number" min="1" max="3650" value="1"><select id="ticketRepeatUnit" onchange="updateWorkOrderRepeat()" aria-label="Intervalleinheit"><option value="days">Tage</option><option value="weeks">Wochen</option><option value="months">Monate</option></select></div></div>
@@ -2153,11 +2107,11 @@ button.walkLocalKpi{cursor:pointer}
         <p class="smallText full">Einmal einrichten: Nach jeder erledigten Kontrolle folgt der nächste Kontrolltermin. Die Ergebnisse bleiben als Historie erhalten.</p>
       </div>
       <div class="field full"><label for="ticketText">Beschreibung / Kontrollpunkte</label><textarea id="ticketText" rows="4" placeholder="Was soll geprüft oder ausgeführt werden?"></textarea></div>
-      <div class="field full"><label for="ticketMaterial">Materialbedarf</label><textarea id="ticketMaterial" rows="2" placeholder="Material, Menge und Hinweise zur Beschaffung"></textarea></div>
+      <details class="field full workMaterialToggle" id="ticketMaterialFields"><summary class="btn small secondary">+ Materialbedarf</summary><label for="ticketMaterial">Benötigtes Material</label><textarea id="ticketMaterial" rows="2" placeholder="Material, Menge und Hinweise zur Beschaffung"></textarea></details>
       <div class="field"><label for="ticketStatus">Status</label><select id="ticketStatus"><option>Offen</option><option>In Arbeit</option><option>Warten auf Servicefirma</option><option>Warten auf Ersatzteil</option><option>Erledigt</option><option>Abgeschlossen</option></select></div>
       <div class="field"><label for="ticketPrio">Priorität</label><select id="ticketPrio"><option>Niedrig</option><option>Mittel</option><option>Hoch</option><option>Kritisch</option></select></div>
     </div>
-    <details class="workDetailSection"><summary>Servicefirma &amp; Abrechnung</summary><div class="formGrid" style="margin-top:12px">
+    <details class="workDetailSection" id="ticketBillingFields"><summary>Servicefirma &amp; Abrechnung</summary><div class="formGrid" style="margin-top:12px">
       <div class="field"><label for="ticketExecutionBy">Ausführung durch</label><select id="ticketExecutionBy"><option>Intern (Hausdienst / FM)</option><option>Extern (Servicefirma)</option><option>Kombiniert</option></select></div>
       <div class="field"><label for="ticketResp">Verantwortlicher / Firma</label><input id="ticketResp"></div>
       <div class="field"><label for="ticketCostChf">Kosten CHF</label><input id="ticketCostChf"></div>
@@ -2165,6 +2119,17 @@ button.walkLocalKpi{cursor:pointer}
       <div class="field"><label for="ticketDeliveryNoteReceived">Lieferschein erhalten</label><select id="ticketDeliveryNoteReceived"><option value="">Offen</option><option>Ja</option><option>Nein</option></select></div>
     </div></details>
     <p id="ticketSaveError" class="workError" role="alert"></p><button type="submit" id="ticketSaveBtn" class="btn">Arbeitsauftrag speichern</button>
+  </form>
+</div></div></div>
+<div class="modalBack" id="inspectionPlanModal" role="dialog" aria-modal="true" aria-labelledby="inspectionPlanHeading"><div class="modal inspectionPlanModal"><div class="modalHead"><b id="inspectionPlanHeading">Kontrolle einplanen</b><button type="button" class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
+  <strong id="inspectionPlanTitle"></strong><p id="inspectionPlanDue" class="smallText"></p>
+  <form onsubmit="event.preventDefault();saveInspectionPlanning()">
+    <input id="inspectionPlanTicket" type="hidden">
+    <div class="formGrid">
+      <div class="field full"><label for="inspectionPlanEmployee">Mitarbeiter</label><select id="inspectionPlanEmployee" required></select></div>
+      <div class="field full"><label for="inspectionPlanDate">Tag im Kalender</label><input id="inspectionPlanDate" type="date" required></div>
+    </div>
+    <p id="inspectionPlanError" class="workError" role="alert"></p><button id="inspectionPlanSave" type="submit" class="btn">Im Kalender einplanen</button>
   </form>
 </div></div></div>
 <div class="modalBack" id="workOrderDetail" role="dialog" aria-modal="true" aria-label="Arbeitsauftrag"><div class="modal workOrderModal"><div class="modalHead"><b id="workOrderHeading">Arbeitsauftrag</b><button id="workOrderClose" class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody"><div id="workOrderContent"></div><div id="workOrderActions" class="workActions"></div></div></div></div>
@@ -2782,7 +2747,7 @@ function hasShiftInPeriod(empId, shiftType) {
 
 function hasTaskInPeriod(empId) {
   const { start, end } = planningPeriod();
-  return (state.tickets||[]).some(t=>workOrderEmployeeIds(t).includes(empId)&&t.due>=start&&t.due<=end) || (state.shifts || []).some(s => s.employeeId === empId && s.date >= start && s.date <= end && s.taskAssignment && s.taskAssignment !== '-' && s.taskAssignment.trim());
+  return workCalendarEntries(start,end).some(e=>e.kind==='ticket'&&e.employeeId===empId) || (state.shifts || []).some(s => s.employeeId === empId && s.date >= start && s.date <= end && s.taskAssignment && s.taskAssignment !== '-' && s.taskAssignment.trim());
 }
 
 function updateFilterButtons() {
@@ -5862,7 +5827,6 @@ function getStGallenHolidays(year) {
 function setCalendarView(view) {
   if (!['week','month','quarter','year'].includes(view)) return;
   currentCalendarView = view;
-  $('planningViewSelect').value = view;
   renderCalendar();
 }
 
@@ -5916,6 +5880,7 @@ function updatePlanningFields() {
 
 function preparePlanningForm() {
   $('calendarPlanForm').reset();
+  Array.from($('planShiftType').options).forEach(option=>option.hidden=false);
   $('planFormError').hidden = true;
   $('planEditId').value = '';
   $('planEmpId').value = '';
@@ -5946,6 +5911,15 @@ function openNewWorkPlan(dateStr) {
   togglePlanRange(); updatePlanningFields();
   $('calendarPlanModal').style.display = 'flex';
   $('planEmpSelect').focus();
+}
+
+function openNewAbsence() {
+  if (!operationalEmployees().length) { openPlanningTeam(); return; }
+  openNewWorkPlan();
+  $('planModalTitle').textContent = 'Abwesenheit eintragen';
+  Array.from($('planShiftType').options).forEach(option=>option.hidden=!['Krank','Ferien genehmigt'].includes(option.value));
+  $('planShiftType').value = 'Krank';
+  updatePlanningFields();
 }
 
 // Interactive cell click: open modal
@@ -6257,20 +6231,16 @@ function renderCalendar() {
   const weekStart = planningWeekStart(currentCalendarDate);
   const titles = {week:'Wochenplan',month:'Monatsplan',quarter:'Quartalsplan',year:'Jahresplan'};
   $('planningViewTitle').textContent = titles[currentCalendarView];
-  $('planningViewSelect').value = currentCalendarView;
+  renderInspectionQueue();
   $('planningWeekBtn').classList.toggle('active', currentCalendarView === 'week');
   $('planningMonthBtn').classList.toggle('active', currentCalendarView === 'month');
-  $('planningLegend').style.display = currentCalendarView === 'week' ? 'none' : 'flex';
-  $('planningOptions').hidden = !allEmps.length;
   $('planNewBtn').style.display = 'inline-flex';
   $('planningSummary').textContent = allEmps.length ? `${allEmps.length} Mitarbeiter` : '';
-  $('planningFilterNotice').hidden = !allEmps.length || !Object.values(calendarFilters).some(Boolean);
   $('calendarPeriodLabel').textContent = currentCalendarView === 'week'
     ? `KW ${getISOWeekAndYear(weekStart).week} · ${period.start.split('-').reverse().join('.')} – ${period.end.split('-').reverse().join('.')}`
     : currentCalendarView === 'quarter' ? `Q${Math.floor(currentCalendarDate.getMonth()/3)+1} ${currentCalendarDate.getFullYear()}`
     : currentCalendarView === 'year' ? String(currentCalendarDate.getFullYear())
     : currentCalendarDate.toLocaleDateString('de-CH', {month:'long',year:'numeric'});
-  updateFilterButtons();
 
   if (allEmps.length === 0) {
     container.innerHTML = `
@@ -6278,39 +6248,13 @@ function renderCalendar() {
         <h3>Starten Sie mit Ihrem Team</h3>
         <p>Für die Arbeitsplanung ist noch kein Mitarbeiter erfasst.<br>Fügen Sie Ihr Team hinzu oder erstellen Sie zunächst einen noch nicht zugeteilten Arbeitsauftrag.</p>
         <button class="btn" onclick="openPlanningTeam()">+ Mitarbeiter hinzufügen</button>
-        <p class="exampleLabel" style="margin-top:24px">Beispiel: So lesen Sie einen Einsatz im Wochenplan.</p>
-        <div class="planningExample">
-          <div><span>Wer?</span><strong>Ihr Mitarbeiter</strong></div>
-          <div><span>Wo?</span><strong>Hauptgebäude, EG</strong></div>
-          <div><span>Was?</span><strong>Lüftung kontrollieren</strong></div>
-        </div>
-        <p class="smallText" style="margin-bottom:0">1. Mitarbeiter hinzufügen &nbsp; → &nbsp; 2. Einsatz planen &nbsp; → &nbsp; 3. Woche überblicken</p>
+
       </div>
     `;
     return;
   }
 
-  // Apply filters
-  let emps = [...allEmps];
-  if (calendarFilters.piketEligible) {
-    emps = emps.filter(e => e.piketEligible);
-  }
-  if (calendarFilters.absent) {
-    emps = emps.filter(e => hasShiftInPeriod(e.id, 'Krank'));
-  }
-  if (calendarFilters.vacation) {
-    emps = emps.filter(e => 
-      hasShiftInPeriod(e.id, 'Ferien approved') || 
-      hasShiftInPeriod(e.id, 'Ferien genehmigt') || 
-      hasShiftInPeriod(e.id, 'Ferien Antrag')
-    );
-  }
-  if (calendarFilters.assignedTasks) {
-    emps = emps.filter(e => hasTaskInPeriod(e.id));
-  }
-
-  // Update filter buttons visual state
-  updateFilterButtons();
+  const emps = [...allEmps];
 
   const year = currentCalendarDate.getFullYear();
   const month = currentCalendarDate.getMonth();

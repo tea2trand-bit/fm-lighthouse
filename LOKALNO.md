@@ -38,9 +38,9 @@ Lokalni testovi ne koriste produkcionu bazu. Objava ide preko postojeće GitHub 
 .\fm-local.ps1 test-api
 ```
 
-`check` pokreće TypeScript proveru i 35 testova koji ne koriste bazu.
+`check` pokreće TypeScript proveru i 38 testova koji ne koriste bazu.
 `test-api` za svaki poziv pravi novu bazu u memoriji, primenjuje postojeće
-migracije i pokreće 32 API testa. Ta baza se gasi po završetku; razvojna
+migracije i pokreće 33 API testa. Ta baza se gasi po završetku; razvojna
 i produkciona baza se ne koriste za testove.
 
 Postojeći API testovi brišu sve `fm360_*` tabele u svojoj testnoj bazi.
@@ -49,8 +49,8 @@ Za njih koristiti pripremljenu komandu `test-api`, koja sama bira izolovanu bazu
 Rezultat pripreme:
 
 - TypeScript: uspešno.
-- Testovi bez baze: 35/35 uspešno.
-- API testovi: 32/32 uspešno.
+- Testovi bez baze: 38/38 uspešno.
+- API testovi: 33/33 uspešno.
 - Migracije: svih 26 uspešno primenjeno i u razvojnoj i u privremenoj testnoj bazi.
 - JavaScript unutar oba HTML fajla: uspešna sintaksna provera.
 - Desktop prijava i obnova sesije posle učitavanja: uspešno u pregledaču.
@@ -112,3 +112,12 @@ Dokumentacija: https://docs.netlify.com/build/data-and-storage/netlify-database/
 - Novi prostor prikazuje QR tek posle uspešnog čuvanja. Lokalni localhost QR nije adresa dostupna sa drugog uređaja; za upotrebu u zgradi koristiti objavljenu aplikaciju.
 
 Pregled na portu 8891 koristi samo privremene primere, odvojene od lokalne i produkcione baze. Primeri se ne objavljuju.
+
+## Jednostavnije planiranje, 30.09.2026
+
+- Arbeitsplan prikazuje sve radnike; donji blok filtera je uklonjen. Odmor i bolest vide se u kalendaru. Prazni redovi su oko 24% niži.
+- Ispod kalendara je lista „Kontrollen einplanen“. Prikazuje otvorene kontrole koje još nemaju raspored, najviše pet odmah, uz otvaranje ostalih.
+- „Einplanen“ traži radnika i dan. Čuva postojeći taskAssignment; rok kontrole i interval se ne menjaju. Naknadna promena plana ažurira isti unos.
+- Po završetku sledeća kontrola dolazi na listu za raspoređivanje; prethodni rezultat ostaje u istoriji. Telefon koristi planirani dan i trenutnu dodelu.
+- Novi nalog/kontrola nema Servicefirma & Abrechnung; taj odeljak ostaje u uređivanju postojećeg naloga. Materialbedarf se unosi tek po otvaranju posebnog dugmeta. Prazan odeljak materijala se ne prikazuje u detaljima.
+- Provereno u privremenoj bazi: planiranje 30.09. za rok 10.10, prikaz kod radnika, završetak kontrole i novi neraspoređeni rok 22.10. Produkcioni podaci nisu korišćeni za probe.

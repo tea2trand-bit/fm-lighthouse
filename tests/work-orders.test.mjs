@@ -12,7 +12,7 @@ function app(){
     planningPeriod:()=>({start:'2026-09-28',end:'2026-10-04'}),planningDates:(start,end)=>{const result=[];for(let d=new Date(start+'T12:00:00');d<=new Date(end+'T12:00:00');d.setDate(d.getDate()+1))result.push(ctx.toLocalDateString(d));return result;},
     esc:value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),escJsArg:value=>ctx.esc(value),
     isClosedTicketStatus:status=>/erledigt|abgeschlossen|done|closed/i.test(status||''),storedSessionEmployee:()=>({id:'boss',role:'Admin / Chef'}),uid:()=> 'new-ticket',
-    canCloseTicketForParent:()=>false,closes:0,renders:0,closeModals:()=>ctx.closes++,render:()=>ctx.renders++,location:{href:'https://example.test/index.html'},
+    activate:()=>{},canCloseTicketForParent:()=>false,closes:0,renders:0,closeModals:()=>ctx.closes++,render:()=>ctx.renders++,location:{href:'https://example.test/index.html'},
     document:{body:{classList:{add(){},remove(){}}}},window:{print(){ctx.printed=true;}},
   });
   vm.runInContext(code,ctx);return ctx;
@@ -55,4 +55,38 @@ test('a control starts at its asset while a one-time order has no interval field
   a.openNewInspection('room');assert.equal(a.$('ticketModal').style.display,undefined);
   a.openNewInspection('compressor');assert.equal(a.$('ticketParent').value,'compressor');assert.equal(a.$('ticketParent').disabled,true);assert.equal(a.$('ticketPlanningKind').value,'inspection');assert.equal(a.$('ticketRecurrenceFields').hidden,false);
   a.openWorkOrderEditor('',{planningKind:'work_order',parentId:'room',date:'2026-09-30'});assert.equal(a.$('ticketPlanningKind').value,'work_order');assert.equal(a.$('ticketRecurrenceFields').hidden,true);assert.equal(a.$('ticketParent').disabled,false);
+});
+
+test('only open unscheduled inspections appear in the planning queue, sorted by deadline',()=>{
+  const a=app();a.state.tickets=[
+    {id:'later',planningKind:'inspection',due:'2027-01-01',title:'Later'},
+    {id:'first',planningKind:'inspection',due:'2026-10-10',title:'First'},
+    {id:'planned',planningKind:'inspection',due:'2026-10-10',assignedEmployeeId:'e1'},
+    {id:'done',planningKind:'inspection',status:'Erledigt'},
+    {id:'once',planningKind:'work_order',due:'2026-09-30'}
+  ];
+  assert.deepEqual(Array.from(a.unplannedInspections(),t=>t.id),['first','later']);
+  assert.deepEqual(Array.from(a.workCalendarEntries('2026-09-28','2026-10-04'),e=>e.id),['once']);
+});
+
+test('an inspection follows its scheduled day and worker, while details keep the original deadline',()=>{
+  const a=app();a.state.tickets=[{id:'t',planningKind:'inspection',assignedEmployeeId:'boss',due:'2026-10-10',title:'Kontrolle'}];
+  a.state.taskAssignments=[{id:'plan-t',ticketId:'t',employeeId:'e1',dueDate:'2026-09-30'}];
+  const entries=a.workCalendarEntries('2026-09-28','2026-10-04');
+  assert.equal(entries.length,1);assert.equal(entries[0].date,'2026-09-30');assert.equal(entries[0].employeeId,'e1');
+  assert.deepEqual(Array.from(a.workOrderEmployeeIds(a.state.tickets[0])),['e1']);
+  const html=a.workOrderDetailsHtml(a.state.tickets[0]);assert.match(html,/2026-10-10/);assert.match(html,/2026-09-30/);
+  assert.equal(a.unplannedInspections().length,0);
+});
+
+test('failed scheduling keeps input; scheduling and replanning update one assignment without changing the inspection',async()=>{
+  const a=app();a.state.tickets=[{id:'t',planningKind:'inspection',due:'2026-10-10',title:'Kontrolle',recurrence:{every:12,unit:'days'}}];
+  a.openInspectionPlanning('t');a.$('inspectionPlanEmployee').value='e1';a.$('inspectionPlanDate').value='2026-09-30';
+  a.api=async()=>{throw new Error('offline');};
+  assert.equal(await a.saveInspectionPlanning(),false);assert.equal(a.$('inspectionPlanDate').value,'2026-09-30');assert.equal(a.$('inspectionPlanModal').style.display,'flex');assert.equal(a.state.taskAssignments.length,0);
+  a.api=async(method,body)=>{assert.equal(body.collection,'taskAssignments');return {...a.state,taskAssignments:[body.item]};};
+  assert.equal(await a.saveInspectionPlanning(),true);assert.equal(a.state.taskAssignments[0].id,'plan-t');
+  a.openInspectionPlanning('t');a.$('inspectionPlanDate').value='2026-10-02';a.$('inspectionPlanEmployee').value='boss';
+  assert.equal(await a.saveInspectionPlanning(),true);assert.equal(a.state.taskAssignments.length,1);assert.equal(a.state.taskAssignments[0].id,'plan-t');assert.equal(a.state.taskAssignments[0].dueDate,'2026-10-02');
+  assert.equal(a.state.tickets[0].due,'2026-10-10');assert.equal(a.state.tickets[0].recurrence.every,12);
 });

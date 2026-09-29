@@ -272,7 +272,7 @@ function loggedEmployee(){
 function taskTicket(assignment){return state.tickets.find(t=>t.id===(assignment.ticketId||assignment.ticket_id))}
 function ticketAssignmentsForEmployee(employeeId){
   let explicit=(state.taskAssignments||[]).filter(a=>(a.employeeId||a.employee_id)===employeeId);
-  let direct=(state.tickets||[]).filter(t=>(t.assignedEmployeeId||t.assigned_employee_id)===employeeId).map(t=>({id:`direct-${t.id}`,ticketId:t.id,employeeId,status:isClosedTicketStatus(t.status)?'done':'new',dueDate:t.due||'',note:''}));
+  let direct=(state.tickets||[]).filter(t=>(t.assignedEmployeeId||t.assigned_employee_id)===employeeId&&!workOrderAssignments(t).length).map(t=>({id:`direct-${t.id}`,ticketId:t.id,employeeId,status:isClosedTicketStatus(t.status)?'done':'new',dueDate:t.due||'',note:''}));
   let seen=new Set();
   return [...explicit,...direct].filter(a=>{let key=`${a.ticketId||a.ticket_id}:${a.employeeId||a.employee_id}`;if(seen.has(key))return false;seen.add(key);return true});
 }

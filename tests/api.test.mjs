@@ -458,13 +458,13 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     assert.equal(next.status, "Offen");
     assert.equal(next.previousTicketId, "rt1");
     assert.equal(next.seriesId, "rt1");
-    assert.equal(next.assignedEmployeeId, worker.id);
+    assert.equal(next.assignedEmployeeId, null, "the next inspection waits for planning");
     assert.equal(next.materialNeeded, "2x Filter F7, 1 Keilriemen");
     assert.equal(closed.completionNote, "Geprüft, kein Mangel.");
     assert.equal(next.completionNote, "", "a new inspection must not inherit an old inspection result");
     assert.equal(next.text, open.text, "the inspection instructions remain unchanged");
     assert.deepEqual(next.recurrence, closed.recurrence);
-    assert.ok((await getState(admin)).notifications.some((n) => n.ticketId === next.id && n.employeeId === worker.id), "worker is told about the next order");
+    assert.equal((await getState(admin)).notifications.some((n) => n.ticketId === next.id && n.employeeId === worker.id), false, "an unplanned inspection is not assigned to the previous worker");
 
     // Reopening and closing again does not create a second follow-up.
     assert.equal((await batch(admin, { tickets: { upsert: [{ ...closed, status: "Offen" }] } })).status, 200);
@@ -472,6 +472,34 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     tickets = (await getState(admin)).tickets;
     assert.equal(tickets.filter((t) => t.previousTicketId === "rt1").length, 1);
     assert.equal(tickets.length, 2);
+  });
+
+  test("planning and replanning an inspection preserves its deadline and interval", async () => {
+    const admin = await adminToken();
+    const worker = (await getState(admin)).employees.find(e => e.loginName === "worker");
+    assert.equal((await batch(admin, { tickets: { upsert: [recurring({ due: "2026-10-10" })] } })).status, 200);
+    const assignment = { id: "plan-rt1", ticketId: "rt1", employeeId: worker.id, dueDate: "2026-09-30", status: "new", assignedByEmployeeId: "emp-admin" };
+    let response = await call("PATCH", { token: admin, body: { collection: "taskAssignments", item: assignment } });
+    assert.equal(response.status, 200, await response.clone().text());
+    let saved = await getState(admin);
+    assert.equal(saved.tickets.length, 1);
+    assert.equal(saved.tickets[0].due, "2026-10-10");
+    assert.equal(saved.taskAssignments[0].dueDate, "2026-09-30");
+    assert.ok(saved.notifications.some(n => n.taskAssignmentId === assignment.id && n.employeeId === worker.id));
+    response = await call("PATCH", { token: admin, body: { collection: "taskAssignments", item: { ...assignment, dueDate: "2026-10-02", employeeId: "emp-admin" } } });
+    assert.equal(response.status, 200);
+    saved = await getState(admin);
+    assert.equal(saved.taskAssignments.length, 1, "replanning updates the same assignment");
+    assert.equal(saved.taskAssignments[0].employeeId, "emp-admin");
+    assert.equal(saved.taskAssignments[0].dueDate, "2026-10-02");
+    assert.equal(saved.tickets[0].due, "2026-10-10");
+    assert.deepEqual(saved.tickets[0].recurrence, recurring().recurrence);
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...saved.tickets[0], status: "Erledigt", completionNote: "Kontrolle bestanden" }] } })).status, 200);
+    saved = await getState(admin);
+    const next = saved.tickets.find(t => t.previousTicketId === "rt1");
+    assert.equal(next.due, "2026-10-22");
+    assert.equal(next.assignedEmployeeId, null);
+    assert.equal(saved.taskAssignments.some(a => a.ticketId === next.id), false);
   });
 
   test("simultaneous completion creates only one next order", async () => {

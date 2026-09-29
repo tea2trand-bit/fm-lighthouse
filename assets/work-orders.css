@@ -5,7 +5,7 @@
 .workCalendar th span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:4px}
 .workCalendar .weekEmployee{width:145px;background:#f8fbfd;position:sticky;left:0;z-index:1;text-align:left}
 .workCalendar caption{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%)}
-.workCalendar td{height:84px;background:#fff}
+.workCalendar td{height:64px;background:#fff}
 .workCalendar .calendarToday{background:#eef6ff;box-shadow:inset 0 3px #528bc6}
 .workCalendar .weekend{background:#f8fafc}.workCalendar .outsideMonth{opacity:.5}
 .workCalendar .dayNumber{display:block;font-weight:700;font-size:12px;margin-bottom:6px}
@@ -32,3 +32,24 @@
 #ticketTypeField[hidden]{display:none!important}.workLine.inspection{border-left-color:#7460a6;background:#f4f0fa}.planningCompactBar{gap:7px}.planningCompactBar .planningPeriod strong{font-size:11px}
 
 #addInspectionBtn[hidden],#anlageInspectionBtn[hidden]{display:none!important}
+
+#ticketAssignedField[hidden],#ticketBillingFields[hidden]{display:none!important}
+.planningSupportBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+.planningSupportBar label{display:flex;align-items:center;gap:8px;margin-left:auto;font-weight:400}
+.planningSupportBar select{padding:7px 10px;min-height:34px}
+.planningSupportBar h3{font-size:14px;margin:0 auto 0 0}
+.planningSupportBar .tab{margin:0}
+#planningStatus{margin:0;color:#23714e}#planningStatus:empty{display:none}
+.inspectionQueueSection{border-top:1px solid var(--line);padding-top:10px}
+.inspectionQueueSection h3{font-size:15px;margin:0 0 5px}
+#inspectionQueueCount{font-size:12px;font-weight:400;color:var(--muted);margin-left:5px}
+.inspectionQueueRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.inspectionQueueRow:last-child{border-bottom:0}
+.inspectionQueueTitle{border:0;background:transparent;color:var(--text);font:inherit;text-align:left;padding:0;min-width:0;cursor:pointer}
+.inspectionQueueTitle strong,.inspectionQueueTitle span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inspectionQueueTitle strong{font-size:13px}.inspectionQueueTitle span{font-size:11px;color:var(--muted);margin-top:3px}
+.inspectionDue{font-size:12px;white-space:nowrap;color:var(--muted)}.inspectionDue.late{color:#a84717}
+.inspectionQueueEmpty{margin:7px 0 0}
+.inspectionPlanModal{width:min(480px,96vw)}
+.workMaterialToggle{display:block}.workMaterialToggle>summary{display:inline-flex;cursor:pointer;list-style:none}.workMaterialToggle>summary::-webkit-details-marker{display:none}.workMaterialToggle[open]>summary{margin-bottom:10px}.workMaterialToggle>label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+@media(max-width:600px){.planningSupportBar label{margin-left:0}.inspectionQueueRow{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}.inspectionQueueRow .inspectionDue{grid-column:1;grid-row:2}.inspectionQueueRow>.btn{grid-column:2;grid-row:1 / 3;min-height:42px}}

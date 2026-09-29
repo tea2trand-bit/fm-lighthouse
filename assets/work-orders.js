@@ -3,20 +3,22 @@ function workOrderUnit(unit, amount){return ({days:amount===1?'Tag':'Tage',weeks
 function workItemKind(ticket){return ticket?.planningKind||(ticket?.recurrence?'inspection':'work_order');}
 function workItemLabel(ticket){return workItemKind(ticket)==='inspection'?'Inspektion / Kontrollticket':'Arbeitsauftrag';}
 function workOrderInterval(r){return r?`Alle ${r.every} ${workOrderUnit(r.unit,r.every)}`:'Einmaliger Arbeitsauftrag';}
+function workOrderAssignments(ticket){return (state.taskAssignments||[]).filter(a=>a.ticketId===ticket.id);}
 function workOrderEmployeeIds(ticket){
-  const ids=new Set();
-  if(ticket.assignedEmployeeId)ids.add(ticket.assignedEmployeeId);
-  (state.taskAssignments||[]).filter(a=>a.ticketId===ticket.id).forEach(a=>ids.add(a.employeeId));
-  return [...ids];
+  const assigned=workOrderAssignments(ticket);
+  return [...new Set(assigned.length?assigned.map(a=>a.employeeId):ticket.assignedEmployeeId?[ticket.assignedEmployeeId]:[])];
+}
+function workOrderSchedule(ticket){
+  const assigned=workOrderAssignments(ticket);
+  if(assigned.length)return assigned.map(a=>({employeeId:a.employeeId,date:a.dueDate||ticket.due,assignmentId:a.id}));
+  if(ticket.assignedEmployeeId)return [{employeeId:ticket.assignedEmployeeId,date:ticket.due}];
+  return workItemKind(ticket)==='inspection'?[]:[{employeeId:'',date:ticket.due}];
 }
 function workOrderAssignee(ticket){
   return workOrderEmployeeIds(ticket).map(id=>(state.employees||[]).find(e=>e.id===id)?.name||'Unbekannter Mitarbeiter').join(', ')||ticket.resp||'Noch nicht zugeteilt';
 }
 function workCalendarEntries(start,end,shifts=state.shifts||[]){
-  const tickets=(state.tickets||[]).filter(t=>t.due>=start&&t.due<=end).flatMap(t=>{
-    const ids=workOrderEmployeeIds(t);
-    return (ids.length?ids:['']).map(employeeId=>({id:t.id,kind:'ticket',inspection:workItemKind(t)==='inspection',employeeId,date:t.due,title:t.title||t.type||workItemLabel(t),done:isClosedTicketStatus(t.status)}));
-  });
+  const tickets=(state.tickets||[]).flatMap(t=>workOrderSchedule(t).filter(a=>a.date>=start&&a.date<=end).map(a=>({id:t.id,kind:'ticket',inspection:workItemKind(t)==='inspection',employeeId:a.employeeId,date:a.date,title:t.title||t.type||workItemLabel(t),done:isClosedTicketStatus(t.status)})));
   const services=shifts.filter(s=>s.date>=start&&s.date<=end).map(s=>({id:s.id,kind:'shift',employeeId:s.employeeId,date:s.date,title:s.shiftType==='Krank'?'Abwesend':/ferien/i.test(s.shiftType)?s.shiftType:(s.taskAssignment&&s.taskAssignment!=='-'?s.taskAssignment:s.shiftType||'Dienst'),away:/krank|ferien/i.test(s.shiftType)}));
   return [...tickets,...services].sort((a,b)=>Number(a.done||false)-Number(b.done||false)||a.title.localeCompare(b.title,'de'));
 }
@@ -25,7 +27,7 @@ function workCalendarEmployees(employees){
   const entries=workCalendarEntries(start,end);
   const ids=new Set(employees.map(e=>e.id));
   const result=[...employees];
-  if(!Object.values(calendarFilters).some(Boolean))entries.forEach(entry=>{
+  entries.forEach(entry=>{
     if(ids.has(entry.employeeId))return;
     const emp=(state.employees||[]).find(e=>e.id===entry.employeeId);
     if(emp||!entry.employeeId){result.push(emp||{id:'',name:'Nicht zugeteilt'});ids.add(entry.employeeId);}
@@ -57,7 +59,7 @@ function renderWorkCalendar(emps,shifts,view='week'){
     html+='<th scope="col" class="weekEmployee">Mitarbeiter</th>'+dates.map((date,i)=>`<th scope="col" class="${date===today?'calendarToday':''}">${esc(weekdays[i])}<span>${esc(ticketDate(date))}</span></th>`).join('')+'</tr></thead><tbody>';
     emps.forEach(emp=>{
       const count=relevant.filter(e=>e.employeeId===emp.id&&e.kind==='ticket').length;
-      html+=`<tr><th scope="row" class="weekEmployee">${esc(emp.name)}<span>${count} Aufträge</span></th>`;
+      html+=`<tr><th scope="row" class="weekEmployee">${esc(emp.name)}${count?`<span>${count} ${count===1?'Auftrag':'Aufträge'}</span>`:''}</th>`;
       dates.forEach((date,i)=>{html+=`<td class="${date===today?'calendarToday':''} ${i>4?'weekend':''}">${workDayCell(relevant.filter(e=>e.employeeId===emp.id&&e.date===date),emp.id,date)}</td>`;});
       html+='</tr>';
     });
@@ -90,6 +92,56 @@ function openNewInspection(assetId=selected){
   openWorkOrderEditor('',{planningKind:'inspection',date:toLocalDateString(getTodayDate()),parentId:asset.id});
   $('ticketTitle').value=asset.name+' kontrollieren';
 }
+let inspectionQueueExpanded=false;
+function unplannedInspections(){
+  return (state.tickets||[]).filter(t=>workItemKind(t)==='inspection'&&!isClosedTicketStatus(t.status)&&!workOrderSchedule(t).length).sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999'))||String(a.title).localeCompare(String(b.title),'de'));
+}
+function renderInspectionQueue(){
+  const root=$('inspectionQueue');if(!root)return;
+  const tickets=unplannedInspections(),today=toLocalDateString(getTodayDate());
+  $('inspectionQueueCount').textContent=tickets.length?String(tickets.length):'';
+  root.innerHTML=(inspectionQueueExpanded?tickets:tickets.slice(0,5)).map(t=>{
+    const asset=node(t.parent),room=asset?node(asset.parent):null;
+    const place=[room?.name,asset?.name].filter(Boolean).join(' · ');
+    return `<div class="inspectionQueueRow"><button type="button" class="inspectionQueueTitle" onclick="openWorkOrder('${escJsArg(t.id)}')"><strong>${esc(t.title)}</strong><span title="${esc(path(t.parent))}">${esc(place||path(t.parent))}</span></button><span class="inspectionDue ${t.due&&t.due<today?'late':''}">${t.due&&t.due<today?'Überfällig:':'Fällig:'} ${esc(ticketDate(t.due)||'offen')}</span><button type="button" class="btn small" onclick="openInspectionPlanning('${escJsArg(t.id)}')">Einplanen</button></div>`;
+  }).join('')||'<p class="smallText inspectionQueueEmpty">Keine offenen Kontrollen einzuplanen. Neue Kontrolltickets legen Sie direkt an der Anlage an.</p>';
+  if(tickets.length>5)root.innerHTML+=`<button type="button" class="btn small secondary" onclick="inspectionQueueExpanded=!inspectionQueueExpanded;renderInspectionQueue()">${inspectionQueueExpanded?'Weniger anzeigen':`Alle ${tickets.length} Kontrollen anzeigen`}</button>`;
+}
+function openInspectionPlanning(id){
+  const ticket=(state.tickets||[]).find(t=>t.id===id);
+  if(!ticket||workItemKind(ticket)!=='inspection'||isClosedTicketStatus(ticket.status))return;
+  const assignment=workOrderAssignments(ticket)[0];
+  const previous=(state.tickets||[]).find(t=>t.id===ticket.previousTicketId);
+  closeModals();
+  $('inspectionPlanTicket').value=id;
+  $('inspectionPlanTitle').textContent=ticket.title;
+  $('inspectionPlanDue').textContent=`Fällig am ${ticketDate(ticket.due)} · ${node(ticket.parent)?.name||''}`;
+  $('inspectionPlanEmployee').innerHTML='<option value="">Mitarbeiter wählen</option>'+(state.employees||[]).map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+  $('inspectionPlanEmployee').value=assignment?.employeeId||ticket.assignedEmployeeId||(previous?workOrderEmployeeIds(previous)[0]:'')||'';
+  $('inspectionPlanDate').value=assignment?.dueDate||ticket.due||toLocalDateString(getTodayDate());
+  $('inspectionPlanError').textContent='';$('inspectionPlanSave').disabled=false;
+  $('inspectionPlanModal').style.display='flex';$('inspectionPlanEmployee').focus();
+}
+async function saveInspectionPlanning(){
+  const button=$('inspectionPlanSave');if(button.disabled)return false;
+  const ticket=(state.tickets||[]).find(t=>t.id===$('inspectionPlanTicket').value);
+  const employeeId=$('inspectionPlanEmployee').value,date=$('inspectionPlanDate').value;
+  const fail=message=>{$('inspectionPlanError').textContent=message;return false;};
+  if(!ticket||isClosedTicketStatus(ticket.status))return fail('Diese Kontrolle ist nicht mehr offen.');
+  if(!(state.employees||[]).some(e=>e.id===employeeId)||!planningDates(date,date).length)return fail('Bitte Mitarbeiter und einen gültigen Tag wählen.');
+  const old=workOrderAssignments(ticket)[0];
+  const item={...(old||{}),id:old?.id||'plan-'+ticket.id,ticketId:ticket.id,employeeId,dueDate:date,status:'new',assignedByEmployeeId:storedSessionEmployee()?.id||null,assignedAt:new Date().toISOString(),completedAt:null};
+  button.disabled=true;$('inspectionPlanError').textContent='';
+  try{
+    state=await api('PATCH',{collection:'taskAssignments',item});
+    currentCalendarDate=new Date(date+'T12:00:00');currentCalendarView='week';calendarFilters.assignedTasks=false;
+    render();closeModals();activate('mitarbeiter','Arbeitsplanung');
+    $('planningStatus').textContent='Kontrolle eingeplant: '+ticket.title+' · '+ticketDate(date);
+    $('calendarContainer').scrollIntoView?.({block:'nearest',behavior:'smooth'});
+    return true;
+  }catch(error){return fail(error.serverMessage||'Einplanen fehlgeschlagen. Die Eingaben bleiben erhalten.');}
+  finally{button.disabled=false;}
+}
 function openWorkOrderEditor(id='',options={}){
   closeModals();
   const t=id?(state.tickets||[]).find(t=>t.id===id):null;
@@ -101,14 +153,19 @@ function openWorkOrderEditor(id='',options={}){
   $('ticketSaveBtn').textContent=inspection?'Inspektion speichern':'Arbeitsauftrag speichern';
   $('ticketDueLabel').textContent=inspection?(t?'Kontrolltermin':'Erster Kontrolltermin'):'Termin';
   $('ticketTypeField').hidden=inspection;
+  $('ticketAssignedField').hidden=inspection;
+  $('ticketBillingFields').hidden=!t;
+  $('ticketBillingFields').open=false;
   const parent=t?.parent||options.parentId||'';
   $('ticketParent').innerHTML='<option value="">Ort / Anlage wählen</option>'+(state.nodes||[]).filter(n=>!inspection||isAssetNode(n)||n.id===parent).map(n=>`<option value="${esc(n.id)}">${esc(path(n.id))}</option>`).join('');
   $('ticketParent').value=parent;
   $('ticketParent').disabled=inspection;
   $('ticketAssignedEmployee').innerHTML='<option value="">Noch nicht zugeteilt</option>'+(state.employees||[]).map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
-  $('ticketAssignedEmployee').value=t?.assignedEmployeeId||options.employeeId||'';
+  $('ticketAssignedEmployee').value=t?.assignedEmployeeId||(!inspection?options.employeeId:'')||'';
   const defaults={ticketTitle:t?.title||'',ticketType:t?.type||(inspection?'Kontrolle / Prüfung':options.kind==='maintenance'?'Wartung / Service':options.kind==='repair'?'Störung / Ausfall':'Reparatur'),ticketDue:t?.due||options.date||'',ticketText:t?.text||'',ticketStatus:t?.status||'Offen',ticketPrio:t?.prio||'Mittel',ticketResp:t?.resp||'',ticketExecutionBy:t?.executionBy||'Intern (Hausdienst / FM)',ticketCostChf:t?.costChf||'',ticketInvoiceReceived:t?.invoiceReceived||'',ticketDeliveryNoteReceived:t?.deliveryNoteReceived||'',ticketMaterial:t?.materialNeeded||'',ticketIntervalType:'',ticketInterval:'',ticketPart:'',ticketQuantity:'',ticketFailureState:'',ticketClosedAt:'',ticketMeasure:'',ticketCloseNote:''};
   Object.entries(defaults).forEach(([key,value])=>{if($(key))$(key).value=value;});
+  $('ticketMaterialFields').open=!!t?.materialNeeded;
+  Array.from($('ticketStatus').options||[]).forEach(option=>{if(option.value==='Abgeschlossen')option.hidden=option.disabled=!t;});
   const managers=(state.employees||[]).filter(e=>/admin|chef/i.test(e.role||''));
   const session=storedSessionEmployee();
   $('ticketReminderManager').innerHTML='<option value="">Chef wählen</option>'+managers.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
@@ -154,8 +211,10 @@ async function saveWorkOrder(){
 }
 function workOrderDetailsHtml(t){
   const r=t.recurrence;
-  const facts=[['Ort / Anlage',node(t.parent)?path(t.parent):'Ort nicht mehr vorhanden'],['FM-Code',displayCode(node(t.parent))||'—'],['Mitarbeiter',workOrderAssignee(t)],['Termin',ticketDate(t.due)||'Nicht geplant'],['Status',t.status],['Priorität',t.prio],['Auftragsart',t.type],['Ausführung',t.executionBy||'—']];
-  return `<p class="smallText">FM Lighthouse 360° · ${esc(workItemLabel(t))} ${esc(t.id)}</p><h2>${esc(t.title)}</h2><div class="workDetailGrid">${facts.map(([key,value])=>`<div><span>${key}</span><strong>${esc(value)}</strong></div>`).join('')}</div><section class="workDetailSection"><h3>Aufgabe / Kontrollpunkte</h3><div class="workText">${esc(t.text||'Keine zusätzliche Beschreibung.')}</div></section><section class="workDetailSection"><h3>Materialbedarf</h3><div class="workText">${esc(t.materialNeeded||'Kein Materialbedarf erfasst.')}</div></section>${r?`<section class="workDetailSection"><h3>Regelmäßige Kontrolle</h3><p>${esc(workOrderInterval(r))} · Hinweis ${esc(r.remindBefore)} ${esc(workOrderUnit(r.remindUnit,r.remindBefore))} vorher an ${esc((state.employees||[]).find(e=>e.id===r.managerId)?.name||'Chef')}.</p><p class="smallText">Nach „Erledigt“ folgt der nächste Kontrolltermin im festgelegten Intervall. Diese Kontrolle bleibt mit ihrem Ergebnis als Nachweis erhalten.</p></section>`:''}`;
+  const inspection=workItemKind(t)==='inspection',schedule=workOrderSchedule(t);
+  const facts=[['Ort / Anlage',node(t.parent)?path(t.parent):'Ort nicht mehr vorhanden'],['FM-Code',displayCode(node(t.parent))||'—'],['Mitarbeiter',workOrderAssignee(t)],[inspection?'Fällig am':'Termin',ticketDate(t.due)||'Nicht geplant'],['Status',t.status],['Priorität',t.prio],['Auftragsart',t.type],['Ausführung',t.executionBy||'—']];
+  if(inspection)facts.splice(4,0,['Im Kalender',schedule.length?schedule.map(a=>ticketDate(a.date)).join(', '):'Noch nicht eingeplant']);
+  return `<p class="smallText">FM Lighthouse 360° · ${esc(workItemLabel(t))} ${esc(t.id)}</p><h2>${esc(t.title)}</h2><div class="workDetailGrid">${facts.map(([key,value])=>`<div><span>${key}</span><strong>${esc(value)}</strong></div>`).join('')}</div><section class="workDetailSection"><h3>Aufgabe / Kontrollpunkte</h3><div class="workText">${esc(t.text||'Keine zusätzliche Beschreibung.')}</div></section>${t.materialNeeded?`<section class="workDetailSection"><h3>Materialbedarf</h3><div class="workText">${esc(t.materialNeeded)}</div></section>`:''}${r?`<section class="workDetailSection"><h3>Regelmäßige Kontrolle</h3><p>${esc(workOrderInterval(r))} · Hinweis ${esc(r.remindBefore)} ${esc(workOrderUnit(r.remindUnit,r.remindBefore))} vorher an ${esc((state.employees||[]).find(e=>e.id===r.managerId)?.name||'Chef')}.</p><p class="smallText">Nach „Erledigt“ folgt der nächste Kontrolltermin im festgelegten Intervall. Diese Kontrolle bleibt mit ihrem Ergebnis als Nachweis erhalten.</p></section>`:''}`;
 }
 function workOrderMobileUrl(t){const url=new URL('field.html',location.href);url.searchParams.set('node',t.parent);url.searchParams.set('ticket',t.id);return url.toString();}
 function openWorkOrder(id){
@@ -167,7 +226,7 @@ function openWorkOrder(id){
   if(t.completionNote)$('workOrderContent').innerHTML+=`<section class="workDetailSection"><h3>Rückmeldung / Prüfergebnis</h3><div class="workText">${esc(t.completionNote)}</div></section>`;
   if(!isClosedTicketStatus(t.status))$('workOrderContent').innerHTML+='<section class="workDetailSection"><label for="workCompletionInput">Rückmeldung / Prüfergebnis</label><textarea id="workCompletionInput" rows="2" placeholder="Ergebnis oder Hinweis zur Ausführung"></textarea></section>';
   if(t.nextTicketId)$('workOrderContent').innerHTML+=`<button class="btn small secondary" onclick="openWorkOrder('${escJsArg(t.nextTicketId)}')">Nächste Kontrolle öffnen</button>`;
-  $('workOrderActions').innerHTML=`<button class="btn secondary" onclick="openWorkOrderEditor('${escJsArg(id)}')">Bearbeiten</button><button class="btn secondary" onclick="printWorkOrder('${escJsArg(id)}')">Drucken / PDF</button><a class="btn secondary" target="_blank" rel="noopener" href="${esc(workOrderMobileUrl(t))}">Telefon / Tablet</a>${!isClosedTicketStatus(t.status)?`<button class="btn secondary" onclick="setWorkOrderStatus('${escJsArg(id)}','In Arbeit',this)">In Arbeit</button><button class="btn" onclick="setWorkOrderStatus('${escJsArg(id)}','Erledigt',this)">Als erledigt markieren</button>`:''}`;
+  $('workOrderActions').innerHTML=`<button class="btn secondary" onclick="openWorkOrderEditor('${escJsArg(id)}')">Bearbeiten</button>${workItemKind(t)==='inspection'&&!isClosedTicketStatus(t.status)?`<button class="btn" onclick="openInspectionPlanning('${escJsArg(id)}')">${workOrderSchedule(t).length?'Plan ändern':'Einplanen'}</button>`:''}<button class="btn secondary" onclick="printWorkOrder('${escJsArg(id)}')">Drucken / PDF</button><a class="btn secondary" target="_blank" rel="noopener" href="${esc(workOrderMobileUrl(t))}">Telefon / Tablet</a>${!isClosedTicketStatus(t.status)?`<button class="btn secondary" onclick="setWorkOrderStatus('${escJsArg(id)}','In Arbeit',this)">In Arbeit</button><button class="btn" onclick="setWorkOrderStatus('${escJsArg(id)}','Erledigt',this)">Als erledigt markieren</button>`:''}`;
   $('workOrderDetail').style.display='flex';$('workOrderClose').focus();
 }
 async function setWorkOrderStatus(id,status,btn){

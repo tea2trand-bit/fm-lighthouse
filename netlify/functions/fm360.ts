@@ -1027,9 +1027,10 @@ async function ensureNextOccurrence(row: typeof fm360Tickets.$inferSelect, db: D
       text: row.text,
       executionBy: row.executionBy,
       created: todayInZurich(),
-      assignedEmployeeId: row.assignedEmployeeId,
-      assignedByEmployeeId: row.assignedByEmployeeId,
-      assignedAt: row.assignedEmployeeId ? new Date() : null,
+      // Der nächste Kontrolltermin kommt zunächst in den Planungsvorrat des Chefs.
+      assignedEmployeeId: null,
+      assignedByEmployeeId: null,
+      assignedAt: null,
       recurrence,
       planningKind: "inspection",
       materialNeeded: row.materialNeeded,
@@ -1405,7 +1406,7 @@ async function upsertTaskAssignment(item: any, db: DbClient = getDb()) {
     eventType: existing ? "task_updated" : "ticket_assigned",
     title: existing ? "Aufgabe aktualisiert" : "Ticket zugewiesen",
     body: values.note || values.dueDate || "",
-  });
+  }, db);
   return row;
 }
 
