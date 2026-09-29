@@ -294,3 +294,10 @@ export const fm360Costs = pgTable("fm360_costs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// Failed logins per login name and per client IP, used to slow down password guessing.
+export const fm360LoginAttempts = pgTable("fm360_login_attempts", {
+  key: text().primaryKey(),
+  failures: integer().notNull().default(0),
+  windowStart: timestamp("window_start").notNull().defaultNow(),
+});

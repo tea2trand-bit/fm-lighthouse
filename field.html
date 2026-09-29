@@ -153,7 +153,8 @@ function uid(){return Math.random().toString(36).slice(2,9)}
 function showStatus(text,type=''){let el=$('status');el.textContent=text;el.className='status show '+type}
 function clearStatus(){let el=$('status');el.textContent='';el.className='status'}
 function storedSessionToken(){return localStorage.getItem('fm360AuthToken')||''}
-async function api(method='GET',body){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;let res=await fetch(API,{method,headers,body:body?JSON.stringify(body):undefined});if(!res.ok)throw new Error('Request failed');return res.json()}
+async function api(method='GET',body){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;let res=await fetch(API,{method,headers,body:body?JSON.stringify(body):undefined});if(res.status===401&&body?.action!=='login'){handleExpiredSession();let err=new Error('Sitzung abgelaufen');err.sessionExpired=true;throw err}if(!res.ok){let data=await res.json().catch(()=>null);let err=new Error(data?.error||'Request failed');err.status=res.status;err.serverMessage=data?.error||'';throw err}return res.json()}
+function handleExpiredSession(){stopQrScan();setSessionEmployee(null);$('loginScreen').style.display='grid';let err=$('loginError');if(err){err.textContent='Sitzung abgelaufen. Bitte erneut einloggen.';err.classList.add('show')}}
 function storedSessionEmployee(){
   try{return JSON.parse(localStorage.getItem('fm360EmployeeSession')||'null')}catch(e){return null}
 }
@@ -191,25 +192,17 @@ async function login(event){
     $('loginScreen').style.display='none';
     await loadState();
   }catch(e){
-    err.textContent='Login fehlgeschlagen. Bitte Benutzername und Passwort prüfen.';
+    err.textContent=e.status===429?e.serverMessage:'Login fehlgeschlagen. Bitte Benutzername und Passwort prüfen.';
     err.classList.add('show');
   }finally{
     btn.disabled=false;btn.textContent='Einloggen';
   }
 }
-async function startTestingSession(role){
-  try{
-    let result=await api('POST',{action:'login',loginName:role==='admin'?'admin':'worker',password:role==='admin'?'admin':'worker'});
-    setSessionEmployee(result.employee,result.token);
-    $('loginScreen').style.display='none';
-    await loadState();
-  }catch(e){
-    $('loginScreen').style.display='grid';
-    let err=$('loginError');
-    if(err){err.textContent='Login fehlgeschlagen.';err.classList.add('show')}
-  }
+function clearServerSession(){
+  fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{});
 }
 function logout(){
+  clearServerSession();
   stopQrScan();
   setSessionEmployee(null);
   $('loginScreen').style.display='grid';
@@ -314,7 +307,7 @@ async function loadApiWithRetry(attempts=3){
   let lastError;
   for(let i=0;i<attempts;i++){
     try{return normalizeState(await api())}
-    catch(e){lastError=e;if(i<attempts-1)await wait(450*(i+1))}
+    catch(e){lastError=e;if(e.sessionExpired)break;if(i<attempts-1)await wait(450*(i+1))}
   }
   throw lastError;
 }
@@ -496,7 +489,7 @@ function renderAll(){
   }
   renderHeader();renderQuick();renderService();renderTicket();renderDocs();renderHistory();renderTasks();renderPortal();renderNotifications();updateBell();showSection(activeSection,{scroll:false})
 }
-async function loadState(){try{clearStatus();clearStoredFieldContext();state=await loadApiWithRetry();loggedEmployee();updateEmployeeHeader();renderTasks();renderPortal();renderNotifications();updateBell();let id=directContextId(),ticketId=directTicketId();if(id){let n=resolveQrValue(id);history.replaceState(null,'',neutralFieldUrl());if(!n){showStart();showStatus('Der QR-Link konnte keinem Raum oder keiner Anlage zugeordnet werden.','error');return}openContext(n,{ticketId});return}showStart()}catch(e){showStatus('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}
+async function loadState(){try{clearStatus();clearStoredFieldContext();state=await loadApiWithRetry();loggedEmployee();updateEmployeeHeader();renderTasks();renderPortal();renderNotifications();updateBell();let id=directContextId(),ticketId=directTicketId();if(id){let n=resolveQrValue(id);history.replaceState(null,'',neutralFieldUrl());if(!n){showStart();showStatus('Der QR-Link konnte keinem Raum oder keiner Anlage zugeordnet werden.','error');return}openContext(n,{ticketId});return}showStart()}catch(e){if(e.sessionExpired)return;showStatus('Daten konnten nicht aus der Datenbank geladen werden. Bitte Verbindung prüfen und erneut laden.','error')}}
 function init(){renderNav();$('contextScreen').style.display='none';setSessionEmployee(null);$('loginScreen').style.display='grid';}
 init();
 </script>

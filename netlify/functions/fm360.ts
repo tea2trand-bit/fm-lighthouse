@@ -23,9 +23,14 @@ import {
   fm360EmployeeRoles,
   fm360TaskAssignments,
   fm360VacationEntries,
-  fm360Notifications
+  fm360Notifications,
+  fm360LoginAttempts
 } from "../../db/schema.js";
 import { getStore } from "@netlify/blobs";
+import { hashPassword, needsRehash, verifyPassword } from "../../server/password.js";
+
+type Db = ReturnType<typeof getDb>;
+type DbClient = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 type Collection = "nodes" | "docs" | "floorRecords" | "roomRecords" | "tickets" | "templates" | "photos" | "employees" | "shifts" | "piket" | "brandschutz" | "security" | "emergencyContacts" | "projects" | "costs" | "roles" | "permissions" | "rolePermissions" | "employeeRoles" | "taskAssignments" | "vacationEntries" | "notifications";
 
@@ -234,12 +239,6 @@ function json(data: unknown, init: ResponseInit = {}) {
   });
 }
 
-async function hashPassword(password: string) {
-  const bytes = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return `sha256:${Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-}
-
 function publicEmployee(employee: any) {
   const { createdAt: _createdAt, updatedAt: _updatedAt, passwordHash, password_hash, ...rest } = employee;
   return {
@@ -304,29 +303,95 @@ async function createSessionToken(employee: any, secret: string) {
   return `${payload}.${await signTokenPayload(payload, secret)}`;
 }
 
-async function verifySessionToken(req: Request) {
-  const secret = authSecret(req);
-  if (!secret) return false;
+const SESSION_COOKIE = "fm360_session";
 
+// <img> and <a> requests for photos and documents cannot send an Authorization header, so the
+// login also sets an HttpOnly cookie. The cookie is only accepted for those read-only file
+// requests; everything that changes data still needs the Bearer header, which blocks CSRF.
+function sessionCookie(token: string, maxAgeSeconds = TOKEN_TTL_MS / 1000) {
+  return `${SESSION_COOKIE}=${token}; Path=/api/fm360; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+}
+
+function bearerToken(req: Request) {
   const header = req.headers.get("authorization") || "";
-  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  return header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+}
+
+function cookieToken(req: Request) {
+  for (const part of (req.headers.get("cookie") || "").split(";")) {
+    const [name, ...value] = part.trim().split("=");
+    if (name === SESSION_COOKIE) return value.join("=");
+  }
+  return "";
+}
+
+// Returns the employee id of a valid, unexpired session token, or "" otherwise.
+async function verifySessionToken(req: Request, { allowCookie = false } = {}) {
+  const secret = authSecret(req);
+  if (!secret) return "";
+
+  const token = bearerToken(req) || (allowCookie ? cookieToken(req) : "");
   const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
+  if (!payload || !signature) return "";
 
   const expected = await signTokenPayload(payload, secret);
-  if (!constantTimeEqual(signature, expected)) return false;
+  if (!constantTimeEqual(signature, expected)) return "";
 
   try {
     const parsed = JSON.parse(base64UrlDecode(payload));
-    return Boolean(parsed?.sub && Number(parsed.exp) > Date.now());
+    return parsed?.sub && Number(parsed.exp) > Date.now() ? String(parsed.sub) : "";
   } catch {
-    return false;
+    return "";
   }
 }
 
-async function requireWriteAuth(req: Request) {
-  if (await verifySessionToken(req)) return null;
-  return json({ error: "Unauthorized" }, { status: 401 });
+class HttpError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+type Actor = { id: string; role: string; isAdmin: boolean; isInternal: boolean };
+
+const ADMIN_ROLE_PATTERN = /admin|chef/i;
+
+function isAdminEmployee(employee: { id: string; role: string | null }) {
+  return employee.id === "emp-admin" || ADMIN_ROLE_PATTERN.test(String(employee.role || ""));
+}
+
+// The employee is loaded on every request, so a changed role or a disabled login takes effect
+// immediately instead of when the token expires.
+async function authenticate(req: Request, options: { allowCookie?: boolean } = {}): Promise<Actor> {
+  const employeeId = await verifySessionToken(req, options);
+  if (!employeeId) throw new HttpError(401, "Unauthorized");
+  const [employee] = await getDb()
+    .select({ id: fm360Employees.id, role: fm360Employees.role, loginEnabled: fm360Employees.loginEnabled })
+    .from(fm360Employees)
+    .where(eq(fm360Employees.id, employeeId))
+    .limit(1);
+  if (!employee?.loginEnabled) throw new HttpError(401, "Unauthorized");
+  const isAdmin = isAdminEmployee(employee);
+  return { id: employee.id, role: employee.role, isAdmin, isInternal: isAdmin || /fm internal/i.test(employee.role) };
+}
+
+// Who may change what:
+// - Admin / Chef: everything.
+// - FM Internal: everything except user administration (logins, passwords, roles, permissions).
+// - Everyone else (Field Technician, External, Piket Only): what the field app needs, i.e. create
+//   and update tickets, photos, task assignments and notifications, but not delete anything.
+const ADMIN_ONLY_COLLECTIONS = new Set<Collection>(["roles", "permissions", "rolePermissions", "employeeRoles"]);
+const FIELD_COLLECTIONS = new Set<Collection>(["tickets", "photos", "notifications", "taskAssignments"]);
+
+function canWrite(actor: Actor, collection: Collection, operation: "upsert" | "delete") {
+  if (actor.isAdmin) return true;
+  if (ADMIN_ONLY_COLLECTIONS.has(collection)) return false;
+  if (collection === "employees") return actor.isInternal && operation === "upsert";
+  if (actor.isInternal) return true;
+  return operation === "upsert" && FIELD_COLLECTIONS.has(collection);
+}
+
+function requireAdmin(actor: Actor) {
+  if (!actor.isAdmin) throw new HttpError(403, "Keine Berechtigung für diese Aktion.");
 }
 
 async function findEmployeeForLoginSeed(seed: (typeof LOGIN_SEEDS)[number]) {
@@ -341,8 +406,18 @@ async function findEmployeeForLoginSeed(seed: (typeof LOGIN_SEEDS)[number]) {
   return existingByName || null;
 }
 
+// Bootstrap only: creates or repairs the default logins while nobody can log in at all, so a fresh
+// database is usable. Once any account has a working login, renamed, disabled or deleted default
+// accounts stay that way and their passwords are never reset.
 async function ensureLoginEmployees() {
   const db = getDb();
+  const [workingLogin] = await db
+    .select({ id: fm360Employees.id })
+    .from(fm360Employees)
+    .where(sql`${fm360Employees.loginEnabled} and ${fm360Employees.loginName} <> '' and ${fm360Employees.passwordHash} <> ''`)
+    .limit(1);
+  if (workingLogin) return;
+
   for (const seed of LOGIN_SEEDS) {
     const existing = await findEmployeeForLoginSeed(seed);
     const passwordHash = existing?.passwordHash || await hashPassword(seed.password);
@@ -376,13 +451,73 @@ async function ensureLoginEmployees() {
   }
 }
 
+const LOGIN_ATTEMPT_LIMITS = { user: 10, ip: 50 };
+
+function loginAttemptKeys(req: Request, loginName: string) {
+  const ip = req.headers.get("x-nf-client-connection-ip") || (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+  const keys = [{ key: `user:${loginName.trim().toLowerCase()}`, limit: LOGIN_ATTEMPT_LIMITS.user }];
+  if (ip) keys.push({ key: `ip:${ip}`, limit: LOGIN_ATTEMPT_LIMITS.ip });
+  return keys;
+}
+
+// Failed logins are counted per login name and per client IP in a 15 minute window. Errors are only
+// logged: a problem with this table must never stop people from logging in.
+async function isLoginRateLimited(keys: { key: string; limit: number }[]) {
+  try {
+    for (const { key, limit } of keys) {
+      const [blocked] = await getDb()
+        .select({ key: fm360LoginAttempts.key })
+        .from(fm360LoginAttempts)
+        .where(sql`${fm360LoginAttempts.key} = ${key} and ${fm360LoginAttempts.failures} >= ${limit}
+          and ${fm360LoginAttempts.windowStart} > now() - interval '15 minutes'`)
+        .limit(1);
+      if (blocked) return true;
+    }
+  } catch (err) {
+    console.error("Failed to check login attempts:", err);
+  }
+  return false;
+}
+
+async function recordLoginFailure(keys: { key: string }[]) {
+  try {
+    const inWindow = sql`${fm360LoginAttempts.windowStart} > now() - interval '15 minutes'`;
+    for (const { key } of keys) {
+      await getDb()
+        .insert(fm360LoginAttempts)
+        .values({ key, failures: 1, windowStart: sql`now()` })
+        .onConflictDoUpdate({
+          target: fm360LoginAttempts.key,
+          set: {
+            failures: sql`case when ${inWindow} then ${fm360LoginAttempts.failures} + 1 else 1 end`,
+            windowStart: sql`case when ${inWindow} then ${fm360LoginAttempts.windowStart} else now() end`,
+          },
+        });
+    }
+  } catch (err) {
+    console.error("Failed to record login attempt:", err);
+  }
+}
+
+async function clearLoginFailures(key: string) {
+  try {
+    await getDb().delete(fm360LoginAttempts).where(eq(fm360LoginAttempts.key, key));
+  } catch (err) {
+    console.error("Failed to clear login attempts:", err);
+  }
+}
+
 async function loginEmployee(loginName: string, password: string) {
   await ensureLoginEmployees();
   const db = getDb();
   const [employee] = await db.select().from(fm360Employees).where(eq(fm360Employees.loginName, loginName.trim())).limit(1);
   if (!employee?.loginEnabled || !employee.passwordHash) return null;
-  const candidate = await hashPassword(password);
-  if (candidate !== employee.passwordHash) return null;
+  if (!(await verifyPassword(password, employee.passwordHash))) return null;
+  if (needsRehash(employee.passwordHash)) {
+    const passwordHash = await hashPassword(password);
+    await db.update(fm360Employees).set({ passwordHash, updatedAt: new Date() }).where(eq(fm360Employees.id, employee.id));
+    return publicEmployee({ ...employee, passwordHash });
+  }
   return publicEmployee(employee);
 }
 
@@ -581,8 +716,7 @@ function enrichObjectCodes(items: any[]) {
   return items;
 }
 
-async function upsertNode(item: any) {
-  const db = getDb();
+async function upsertNode(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: item.parent || null,
@@ -641,8 +775,7 @@ async function reorderSiblingNodes(parentId: string | null, orderedIds: string[]
   }
 }
 
-async function upsertDocument(item: any) {
-  const db = getDb();
+async function upsertDocument(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: String(item.parent || ""),
@@ -668,8 +801,7 @@ async function upsertDocument(item: any) {
   return row;
 }
 
-async function upsertFloorRecord(item: any) {
-  const db = getDb();
+async function upsertFloorRecord(item: any, db: DbClient = getDb()) {
   const data = item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data : {};
   const values = {
     id: String(item.id),
@@ -693,8 +825,7 @@ async function upsertFloorRecord(item: any) {
   return row;
 }
 
-async function upsertRoomRecord(item: any) {
-  const db = getDb();
+async function upsertRoomRecord(item: any, db: DbClient = getDb()) {
   const data = item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data : {};
   const values = {
     id: String(item.id),
@@ -718,8 +849,18 @@ async function upsertRoomRecord(item: any) {
   return row;
 }
 
-async function upsertTicket(item: any) {
-  const db = getDb();
+function ticketUnchanged(existing: Record<string, unknown>, values: Record<string, unknown>) {
+  return Object.entries(values).every(([key, value]) => {
+    if (key === "updatedAt") return true;
+    const current = existing[key];
+    if (value instanceof Date || current instanceof Date) {
+      return (value ? new Date(value as Date).getTime() : null) === (current ? new Date(current as Date).getTime() : null);
+    }
+    return (current ?? null) === (value ?? null);
+  });
+}
+
+async function upsertTicket(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: String(item.parent || ""),
@@ -742,6 +883,8 @@ async function upsertTicket(item: any) {
   };
 
   const [existingById] = await db.select().from(fm360Tickets).where(eq(fm360Tickets.id, values.id)).limit(1);
+  // Saving an unchanged ticket must not touch it, otherwise every save would notify the assignee.
+  if (existingById && ticketUnchanged(existingById, values)) return existingById;
   if (!existingById) {
     const [existingDuplicate] = await db
       .select()
@@ -775,7 +918,7 @@ async function upsertTicket(item: any) {
       eventType: "ticket_assigned",
       title: values.title || "Ticket zugewiesen",
       body: values.prio ? `Priorität: ${values.prio}` : "",
-    });
+    }, db);
   } else if (values.assignedEmployeeId && existingById && existingById.prio !== values.prio) {
     await upsertNotification({
       id: `notif-priority-${values.id}-${values.assignedEmployeeId}-${Date.now()}`,
@@ -784,7 +927,7 @@ async function upsertTicket(item: any) {
       eventType: "priority_changed",
       title: values.title || "Priorität geändert",
       body: `Neue Priorität: ${values.prio}`,
-    });
+    }, db);
   } else if (values.assignedEmployeeId && existingById) {
     await upsertNotification({
       id: `notif-task-updated-${values.id}-${values.assignedEmployeeId}-${Date.now()}`,
@@ -793,13 +936,12 @@ async function upsertTicket(item: any) {
       eventType: "task_updated",
       title: values.title || "Aufgabe aktualisiert",
       body: values.status ? `Status: ${values.status}` : "",
-    });
+    }, db);
   }
   return row;
 }
 
-async function upsertTemplate(item: any) {
-  const db = getDb();
+async function upsertTemplate(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     type: String(item.type || "FM-Vorlage"),
@@ -819,8 +961,7 @@ async function upsertTemplate(item: any) {
   return row;
 }
 
-async function upsertPhoto(item: any) {
-  const db = getDb();
+async function upsertPhoto(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     parent: String(item.parent || ""),
@@ -842,13 +983,14 @@ async function upsertPhoto(item: any) {
   return row;
 }
 
-async function upsertEmployee(item: any) {
-  const db = getDb();
+// previousPasswordHash lets replaceAll keep a password across its delete-and-reinsert cycle.
+// Hashes sent by the client are ignored: a password can only be set as plain text and is hashed here.
+async function upsertEmployee(item: any, db: DbClient = getDb(), previousPasswordHash = "") {
   const [existing] = item.id ? await db.select().from(fm360Employees).where(eq(fm360Employees.id, String(item.id))).limit(1) : [];
   const rawPassword = String(item.password || item.newPassword || "");
   const passwordHash = rawPassword
     ? await hashPassword(rawPassword)
-    : String(item.passwordHash || item.password_hash || existing?.passwordHash || "");
+    : String(existing?.passwordHash || previousPasswordHash || "");
   const values = {
     id: String(item.id),
     name: String(item.name || ""),
@@ -874,8 +1016,7 @@ async function upsertEmployee(item: any) {
   return row;
 }
 
-async function upsertShift(item: any) {
-  const db = getDb();
+async function upsertShift(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     employeeId: String(item.employeeId || ""),
@@ -898,8 +1039,7 @@ async function upsertShift(item: any) {
   return row;
 }
 
-async function upsertPiket(item: any) {
-  const db = getDb();
+async function upsertPiket(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     employeeId: item.employeeId || item.employee_id || null,
@@ -937,8 +1077,7 @@ async function upsertPiket(item: any) {
   return row;
 }
 
-async function upsertBrandschutz(item: any) {
-  const db = getDb();
+async function upsertBrandschutz(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     systemType: String(item.systemType || ""),
@@ -963,8 +1102,7 @@ async function upsertBrandschutz(item: any) {
   return row;
 }
 
-async function upsertSecurity(item: any) {
-  const db = getDb();
+async function upsertSecurity(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     systemType: String(item.systemType || ""),
@@ -987,8 +1125,7 @@ async function upsertSecurity(item: any) {
   return row;
 }
 
-async function upsertEmergencyContact(item: any) {
-  const db = getDb();
+async function upsertEmergencyContact(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     name: String(item.name || ""),
@@ -1009,8 +1146,7 @@ async function upsertEmergencyContact(item: any) {
   return row;
 }
 
-async function upsertProject(item: any) {
-  const db = getDb();
+async function upsertProject(item: any, db: DbClient = getDb()) {
   const data = item.data && typeof item.data === "object" && !Array.isArray(item.data) ? item.data : {};
   const values = {
     id: String(item.id),
@@ -1035,8 +1171,7 @@ async function upsertProject(item: any) {
   return row;
 }
 
-async function upsertCost(item: any) {
-  const db = getDb();
+async function upsertCost(item: any, db: DbClient = getDb()) {
   const category = String(item.category || "budget");
   if (!["budget", "adjustment"].includes(category)) {
     throw new Error("fm360_costs only accepts budget planning and manual adjustment records");
@@ -1067,8 +1202,7 @@ async function upsertCost(item: any) {
   return row;
 }
 
-async function upsertRole(item: any) {
-  const db = getDb();
+async function upsertRole(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     name: String(item.name || ""),
@@ -1079,8 +1213,7 @@ async function upsertRole(item: any) {
   return row;
 }
 
-async function upsertPermission(item: any) {
-  const db = getDb();
+async function upsertPermission(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     module: String(item.module || ""),
@@ -1092,8 +1225,7 @@ async function upsertPermission(item: any) {
   return row;
 }
 
-async function upsertRolePermission(item: any) {
-  const db = getDb();
+async function upsertRolePermission(item: any, db: DbClient = getDb()) {
   const values = {
     roleId: String(item.roleId || item.role_id || ""),
     permissionId: String(item.permissionId || item.permission_id || ""),
@@ -1102,8 +1234,7 @@ async function upsertRolePermission(item: any) {
   return row || values;
 }
 
-async function upsertEmployeeRole(item: any) {
-  const db = getDb();
+async function upsertEmployeeRole(item: any, db: DbClient = getDb()) {
   const values = {
     employeeId: String(item.employeeId || item.employee_id || ""),
     roleId: String(item.roleId || item.role_id || ""),
@@ -1116,8 +1247,7 @@ async function upsertEmployeeRole(item: any) {
   return row;
 }
 
-async function upsertTaskAssignment(item: any) {
-  const db = getDb();
+async function upsertTaskAssignment(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     ticketId: String(item.ticketId || item.ticket_id || ""),
@@ -1144,8 +1274,7 @@ async function upsertTaskAssignment(item: any) {
   return row;
 }
 
-async function upsertVacationEntry(item: any) {
-  const db = getDb();
+async function upsertVacationEntry(item: any, db: DbClient = getDb()) {
   const values = {
     id: String(item.id),
     employeeId: String(item.employeeId || item.employee_id || ""),
@@ -1161,8 +1290,7 @@ async function upsertVacationEntry(item: any) {
   return row;
 }
 
-async function upsertNotification(item: any) {
-  const db = getDb();
+async function upsertNotification(item: any, db: DbClient = getDb()) {
   const allowedEvents = new Set(["new_ticket", "ticket_assigned", "priority_changed", "task_updated"]);
   const eventType = String(item.eventType || item.event_type || "");
   if (!allowedEvents.has(eventType)) throw new Error("Unsupported notification event type");
@@ -1180,151 +1308,345 @@ async function upsertNotification(item: any) {
   return row;
 }
 
-async function remove(collection: Collection, id: string) {
-  const db = getDb();
-  if (collection === "nodes") {
-    await db.delete(fm360Nodes).where(eq(fm360Nodes.id, id));
-  } else if (collection === "docs") {
-    const [doc] = await db.select().from(fm360Documents).where(eq(fm360Documents.id, id)).limit(1);
-    if (doc?.blobKey) {
-      try {
-        const store = getStore("fm360-documents");
-        await store.delete(doc.blobKey);
-      } catch (err) {
-        console.error("Failed to delete document blob from store:", err);
-      }
-    }
-    await db.delete(fm360Documents).where(eq(fm360Documents.id, id));
-  } else if (collection === "floorRecords") {
-    await db.delete(fm360FloorRecords).where(eq(fm360FloorRecords.id, id));
-  } else if (collection === "roomRecords") {
-    await db.delete(fm360RoomRecords).where(eq(fm360RoomRecords.id, id));
-  } else if (collection === "tickets") {
-    await db.delete(fm360Tickets).where(eq(fm360Tickets.id, id));
-  } else if (collection === "photos") {
-    const [photo] = await db.select().from(fm360Photos).where(eq(fm360Photos.id, id)).limit(1);
-    if (photo) {
-      try {
-        const store = getStore("fm360-photos");
-        await store.delete(photo.blobKey);
-      } catch (err) {
-        console.error("Failed to delete blob from store:", err);
-      }
-      await db.delete(fm360Photos).where(eq(fm360Photos.id, id));
-    }
-  } else if (collection === "employees") {
-    await db.delete(fm360Employees).where(eq(fm360Employees.id, id));
-  } else if (collection === "shifts") {
-    await db.delete(fm360Shifts).where(eq(fm360Shifts.id, id));
-  } else if (collection === "piket") {
-    await db.delete(fm360Piket).where(eq(fm360Piket.id, id));
-  } else if (collection === "brandschutz") {
-    await db.delete(fm360Brandschutz).where(eq(fm360Brandschutz.id, id));
-  } else if (collection === "security") {
-    await db.delete(fm360Security).where(eq(fm360Security.id, id));
-  } else if (collection === "emergencyContacts") {
-    await db.delete(fm360EmergencyContacts).where(eq(fm360EmergencyContacts.id, id));
-  } else if (collection === "projects") {
-    await db.delete(fm360Projects).where(eq(fm360Projects.id, id));
-  } else if (collection === "costs") {
-    await db.delete(fm360Costs).where(eq(fm360Costs.id, id));
-  } else if (collection === "roles") {
-    await db.delete(fm360Roles).where(eq(fm360Roles.id, id));
-  } else if (collection === "permissions") {
-    await db.delete(fm360Permissions).where(eq(fm360Permissions.id, id));
-  } else if (collection === "rolePermissions") {
+type BlobRef = { store: "fm360-photos" | "fm360-documents"; key: string };
+
+const COLLECTION_TABLES = {
+  nodes: fm360Nodes,
+  docs: fm360Documents,
+  floorRecords: fm360FloorRecords,
+  roomRecords: fm360RoomRecords,
+  tickets: fm360Tickets,
+  templates: fm360Templates,
+  photos: fm360Photos,
+  employees: fm360Employees,
+  shifts: fm360Shifts,
+  piket: fm360Piket,
+  brandschutz: fm360Brandschutz,
+  security: fm360Security,
+  emergencyContacts: fm360EmergencyContacts,
+  projects: fm360Projects,
+  costs: fm360Costs,
+  roles: fm360Roles,
+  permissions: fm360Permissions,
+  taskAssignments: fm360TaskAssignments,
+  vacationEntries: fm360VacationEntries,
+  notifications: fm360Notifications,
+} as const;
+
+// Deletes one record and returns the file it referenced, which the caller removes from Netlify
+// Blobs once the database change is committed.
+async function removeRecord(collection: Collection, id: string, db: DbClient): Promise<BlobRef | null> {
+  if (collection === "rolePermissions") {
     const [roleId, permissionId] = id.split(":");
     await db.delete(fm360RolePermissions).where(sql`${fm360RolePermissions.roleId} = ${roleId} and ${fm360RolePermissions.permissionId} = ${permissionId}`);
-  } else if (collection === "employeeRoles") {
+    return null;
+  }
+  if (collection === "employeeRoles") {
     const [employeeId, roleId] = id.split(":");
     await db.delete(fm360EmployeeRoles).where(sql`${fm360EmployeeRoles.employeeId} = ${employeeId} and ${fm360EmployeeRoles.roleId} = ${roleId}`);
-  } else if (collection === "taskAssignments") {
-    await db.delete(fm360TaskAssignments).where(eq(fm360TaskAssignments.id, id));
-  } else if (collection === "vacationEntries") {
-    await db.delete(fm360VacationEntries).where(eq(fm360VacationEntries.id, id));
-  } else if (collection === "notifications") {
-    await db.delete(fm360Notifications).where(eq(fm360Notifications.id, id));
-  } else {
-    await db.delete(fm360Templates).where(eq(fm360Templates.id, id));
+    return null;
   }
+  if (collection === "docs") {
+    const [doc] = await db.delete(fm360Documents).where(eq(fm360Documents.id, id)).returning();
+    return doc?.blobKey ? { store: "fm360-documents", key: doc.blobKey } : null;
+  }
+  if (collection === "photos") {
+    const [photo] = await db.delete(fm360Photos).where(eq(fm360Photos.id, id)).returning();
+    return photo?.blobKey ? { store: "fm360-photos", key: photo.blobKey } : null;
+  }
+  const table = COLLECTION_TABLES[collection];
+  await db.delete(table).where(eq(table.id, id));
+  return null;
+}
+
+async function deleteBlobs(refs: BlobRef[]) {
+  for (const ref of refs) {
+    try {
+      await getStore(ref.store).delete(ref.key);
+    } catch (err) {
+      console.error(`Failed to delete blob ${ref.key} from ${ref.store}:`, err);
+    }
+  }
+}
+
+function decodeBase64(base64: string) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+  return bytes;
+}
+
+// Uploaded files arrive as base64 next to the record; store the file and keep only its key.
+async function storeUpload(collection: Collection, item: any) {
+  if (collection !== "docs" && collection !== "photos") return item;
+  const { base64, ...record } = item;
+  if (base64 && record.blobKey) {
+    await getStore(collection === "docs" ? "fm360-documents" : "fm360-photos").set(String(record.blobKey), decodeBase64(String(base64)).buffer);
+  }
+  return record;
+}
+
+// IDs end up inside onclick="...('id')" attributes in the apps, so they must not contain
+// characters that could break out of those strings.
+const SAFE_ID = /^[^\s'"`<>&\\]{1,200}$/;
+
+function assertSafeIds(item: any) {
+  for (const [key, value] of Object.entries(item)) {
+    if (value === null || value === undefined || value === "") continue;
+    if ((key === "id" || key === "parent" || /(Id|_id)$/.test(key)) && !SAFE_ID.test(String(value))) {
+      throw new HttpError(400, `Ungültige ID im Feld "${key}".`);
+    }
+  }
+}
+
+function recordKey(collection: Collection, item: any) {
+  if (collection === "rolePermissions") return `${item.roleId || item.role_id}:${item.permissionId || item.permission_id}`;
+  if (collection === "employeeRoles") return `${item.employeeId || item.employee_id}:${item.roleId || item.role_id}`;
+  return item?.id === undefined || item?.id === null ? "" : String(item.id);
+}
+
+// Non-admins may maintain employee master data (availability, skills, ...) but never logins,
+// passwords or roles, so they cannot grant themselves or anyone else more rights.
+async function restrictEmployeeChange(actor: Actor, item: any, db: DbClient) {
+  if (actor.isAdmin) return item;
+  const [existing] = await db.select().from(fm360Employees).where(eq(fm360Employees.id, String(item.id))).limit(1);
+  const { password: _password, newPassword: _newPassword, ...rest } = item;
+  const requestedRole = String(item.role || "");
+  return {
+    ...rest,
+    loginName: existing?.loginName || "",
+    loginEnabled: existing?.loginEnabled || false,
+    role: existing ? existing.role : ADMIN_ROLE_PATTERN.test(requestedRole) ? "" : requestedRole,
+  };
+}
+
+// New nodes are placed after their siblings, and missing FM codes are generated from the whole
+// tree, the same way a full save did it.
+async function prepareNodes(items: any[], db: DbClient) {
+  const existing = await db.select().from(fm360Nodes).orderBy(fm360Nodes.sortOrder, fm360Nodes.createdAt);
+  const existingById = new Map(existing.map((node) => [node.id, node]));
+  const changedIds = new Set(items.map((item) => String(item.id)));
+  const all: any[] = existing.filter((node) => !changedIds.has(node.id));
+  const prepared = [];
+  for (const item of items) {
+    const merged: any = { ...existingById.get(String(item.id)), ...item };
+    if (!Number.isFinite(merged.sortOrder)) {
+      const siblings = all.filter((node) => (node.parent || "") === (merged.parent || ""));
+      merged.sortOrder = siblings.reduce((max, node) => Math.max(max, Number(node.sortOrder) || 0), -1) + 1;
+    }
+    all.push(merged);
+    prepared.push(merged);
+  }
+  enrichObjectCodes(all);
+  return prepared;
+}
+
+const UPSERTS: Record<Collection, (item: any, db: DbClient) => Promise<unknown>> = {
+  nodes: upsertNode,
+  docs: upsertDocument,
+  floorRecords: upsertFloorRecord,
+  roomRecords: upsertRoomRecord,
+  tickets: upsertTicket,
+  templates: upsertTemplate,
+  photos: upsertPhoto,
+  employees: upsertEmployee,
+  shifts: upsertShift,
+  piket: upsertPiket,
+  brandschutz: upsertBrandschutz,
+  security: upsertSecurity,
+  emergencyContacts: upsertEmergencyContact,
+  projects: upsertProject,
+  costs: upsertCost,
+  roles: upsertRole,
+  permissions: upsertPermission,
+  rolePermissions: upsertRolePermission,
+  employeeRoles: upsertEmployeeRole,
+  taskAssignments: upsertTaskAssignment,
+  vacationEntries: upsertVacationEntry,
+  notifications: upsertNotification,
+};
+
+// Referenced tables come first; deletes run in the reverse order.
+const WRITE_ORDER: Collection[] = [
+  "employees", "roles", "permissions", "nodes", "docs", "floorRecords", "roomRecords", "templates", "tickets", "photos",
+  "shifts", "piket", "brandschutz", "security", "emergencyContacts", "projects", "costs",
+  "rolePermissions", "employeeRoles", "taskAssignments", "vacationEntries", "notifications",
+];
+
+type Changes = Partial<Record<Collection, { upsert?: any[]; delete?: string[] }>>;
+
+function isCollection(value: string): value is Collection {
+  return Object.prototype.hasOwnProperty.call(UPSERTS, value);
+}
+
+function normalizeChanges(raw: any): Changes {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new HttpError(400, "Missing changes");
+  const changes: Changes = {};
+  for (const [collection, change] of Object.entries<any>(raw)) {
+    if (!isCollection(collection)) throw new HttpError(400, `Unknown collection "${collection}"`);
+    const upsert = change?.upsert ?? [];
+    const remove = change?.delete ?? [];
+    if (!Array.isArray(upsert) || !Array.isArray(remove)) throw new HttpError(400, `Invalid changes for "${collection}"`);
+    for (const item of upsert) {
+      if (!item || typeof item !== "object" || !recordKey(collection, item)) throw new HttpError(400, `Record without id in "${collection}"`);
+    }
+    changes[collection] = { upsert, delete: remove.map((id: unknown) => String(id)) };
+  }
+  return changes;
+}
+
+async function assertAdminLoginRemains(db: DbClient) {
+  const [admin] = await db
+    .select({ id: fm360Employees.id })
+    .from(fm360Employees)
+    .where(sql`${fm360Employees.loginEnabled} and ${fm360Employees.loginName} <> '' and ${fm360Employees.passwordHash} <> ''
+      and (${fm360Employees.id} = 'emp-admin' or ${fm360Employees.role} ~* 'admin|chef')`)
+    .limit(1);
+  if (!admin) throw new HttpError(409, "Mindestens ein aktiver Admin-Login mit Passwort muss bestehen bleiben.");
+}
+
+// Applies record-level changes in one transaction. Unlike the old full-state save, records that
+// were not changed are left alone, so two people working at the same time no longer overwrite
+// each other's work.
+async function applyChanges(actor: Actor, rawChanges: any, { strictCosts = false } = {}) {
+  const changes = normalizeChanges(rawChanges);
+  for (const collection of WRITE_ORDER) {
+    const change = changes[collection];
+    if (!change) continue;
+    if ((change.upsert?.length && !canWrite(actor, collection, "upsert")) || (change.delete?.length && !canWrite(actor, collection, "delete"))) {
+      throw new HttpError(403, "Keine Berechtigung für diese Änderung.");
+    }
+    for (const item of change.upsert || []) assertSafeIds(item);
+    if (strictCosts && collection === "costs" && change.upsert?.some((item) => !["budget", "adjustment"].includes(String(item.category || "")))) {
+      throw new HttpError(400, "fm360_costs accepts only budget planning and manual adjustment records");
+    }
+  }
+
+  const blobsToDelete = await getDb().transaction(async (tx) => {
+    for (const collection of WRITE_ORDER) {
+      let items = changes[collection]?.upsert || [];
+      if (!items.length) continue;
+      if (collection === "nodes") items = await prepareNodes(items, tx);
+      for (let item of items) {
+        if (collection === "costs" && !["budget", "adjustment"].includes(String(item.category || ""))) continue;
+        if (collection === "employees") item = await restrictEmployeeChange(actor, item, tx);
+        item = await storeUpload(collection, item);
+        await UPSERTS[collection](item, tx);
+      }
+    }
+
+    const refs: BlobRef[] = [];
+    for (const collection of [...WRITE_ORDER].reverse()) {
+      for (const id of changes[collection]?.delete || []) {
+        const ref = await removeRecord(collection, id, tx);
+        if (ref) refs.push(ref);
+      }
+    }
+
+    if (changes.employees) await assertAdminLoginRemains(tx);
+    return refs;
+  });
+
+  await deleteBlobs(blobsToDelete);
 }
 
 async function replaceAll(state: any) {
   const db = getDb();
-  
-  // Clean up removed file blobs from Netlify Blobs
-  const currentPhotos = await db.select().from(fm360Photos);
-  const nextPhotoIds = new Set((state.photos || []).map((p: any) => String(p.id)));
-  const photosToDelete = currentPhotos.filter(p => !nextPhotoIds.has(p.id));
+  for (const collection of WRITE_ORDER) {
+    for (const item of state?.[collection] || []) assertSafeIds(item);
+  }
+
+  // Everything runs in one transaction: if any insert fails, the previous data stays intact
+  // instead of being left half-deleted.
+  const { photoBlobsToDelete, docBlobsToDelete } = await db.transaction(async (tx) => {
+    const currentPhotos = await tx.select().from(fm360Photos);
+    const nextPhotoIds = new Set((state.photos || []).map((p: any) => String(p.id)));
+    const currentDocs = await tx.select().from(fm360Documents);
+    const nextDocIds = new Set((state.docs || []).map((d: any) => String(d.id)));
+
+    // The client never receives password hashes, so remember them before the employees are deleted.
+    const currentEmployees = await tx.select({ id: fm360Employees.id, passwordHash: fm360Employees.passwordHash }).from(fm360Employees);
+    const previousPasswordHashes = new Map(currentEmployees.map((employee) => [employee.id, employee.passwordHash]));
+
+    await tx.execute(sql`delete from ${fm360Notifications}`);
+    await tx.execute(sql`delete from ${fm360VacationEntries}`);
+    await tx.execute(sql`delete from ${fm360TaskAssignments}`);
+    await tx.execute(sql`delete from ${fm360EmployeeRoles}`);
+    await tx.execute(sql`delete from ${fm360RolePermissions}`);
+    await tx.execute(sql`delete from ${fm360Photos}`);
+    await tx.execute(sql`delete from ${fm360RoomRecords}`);
+    await tx.execute(sql`delete from ${fm360FloorRecords}`);
+    await tx.execute(sql`delete from ${fm360Documents}`);
+    await tx.execute(sql`delete from ${fm360Tickets}`);
+    await tx.execute(sql`delete from ${fm360Templates}`);
+    await tx.execute(sql`delete from ${fm360Nodes}`);
+    await tx.execute(sql`delete from ${fm360Shifts}`);
+    await tx.execute(sql`delete from ${fm360Piket}`);
+    await tx.execute(sql`delete from ${fm360Brandschutz}`);
+    await tx.execute(sql`delete from ${fm360Security}`);
+    await tx.execute(sql`delete from ${fm360EmergencyContacts}`);
+    await tx.execute(sql`delete from ${fm360Projects}`);
+    await tx.execute(sql`delete from ${fm360Costs}`);
+    await tx.execute(sql`delete from ${fm360Employees}`);
+    await tx.execute(sql`delete from ${fm360Permissions}`);
+    await tx.execute(sql`delete from ${fm360Roles}`);
+
+    // Referenced tables first: tickets create notifications that point at employees.
+    for (const item of state.employees || []) {
+      await upsertEmployee(item, tx, previousPasswordHashes.get(String(item.id)) || "");
+    }
+    for (const item of state.roles || []) await upsertRole(item, tx);
+    for (const item of state.permissions || []) await upsertPermission(item, tx);
+
+    const nodes = enrichObjectCodes(state.nodes || []);
+    for (const [index, item] of nodes.entries()) {
+      await upsertNode({ ...item, sortOrder: index }, tx);
+    }
+    for (const item of state.docs || []) await upsertDocument(item, tx);
+    for (const item of state.floorRecords || []) await upsertFloorRecord(item, tx);
+    for (const item of state.roomRecords || []) await upsertRoomRecord(item, tx);
+    for (const item of state.tickets || []) await upsertTicket(item, tx);
+    for (const item of state.templates || []) await upsertTemplate(item, tx);
+    for (const item of state.photos || []) await upsertPhoto(item, tx);
+    for (const item of state.shifts || []) await upsertShift(item, tx);
+    for (const item of state.piket || []) await upsertPiket(item, tx);
+    for (const item of state.brandschutz || []) await upsertBrandschutz(item, tx);
+    for (const item of state.security || []) await upsertSecurity(item, tx);
+    for (const item of state.emergencyContacts || []) await upsertEmergencyContact(item, tx);
+    for (const item of state.projects || []) await upsertProject(item, tx);
+    for (const item of state.costs || []) {
+      if (["budget", "adjustment"].includes(String(item.category || ""))) await upsertCost(item, tx);
+    }
+    for (const item of state.rolePermissions || []) await upsertRolePermission(item, tx);
+    for (const item of state.employeeRoles || []) await upsertEmployeeRole(item, tx);
+    for (const item of state.taskAssignments || []) await upsertTaskAssignment(item, tx);
+    for (const item of state.vacationEntries || []) await upsertVacationEntry(item, tx);
+    for (const item of state.notifications || []) await upsertNotification(item, tx);
+    await assertAdminLoginRemains(tx);
+
+    return {
+      photoBlobsToDelete: currentPhotos.filter((p) => !nextPhotoIds.has(p.id)).map((p) => p.blobKey),
+      docBlobsToDelete: currentDocs.filter((d) => d.blobKey && !nextDocIds.has(d.id)).map((d) => d.blobKey!),
+    };
+  });
+
+  // Only remove files once the database no longer references them.
   const photoStore = getStore("fm360-photos");
-  for (const p of photosToDelete) {
+  for (const blobKey of photoBlobsToDelete) {
     try {
-      await photoStore.delete(p.blobKey);
+      await photoStore.delete(blobKey);
     } catch (err) {
       console.error("Failed to delete blob during replaceAll:", err);
     }
   }
-  const currentDocs = await db.select().from(fm360Documents);
-  const nextDocIds = new Set((state.docs || []).map((d: any) => String(d.id)));
   const docStore = getStore("fm360-documents");
-  for (const d of currentDocs.filter(d => d.blobKey && !nextDocIds.has(d.id))) {
+  for (const blobKey of docBlobsToDelete) {
     try {
-      await docStore.delete(d.blobKey!);
+      await docStore.delete(blobKey);
     } catch (err) {
       console.error("Failed to delete document blob during replaceAll:", err);
     }
   }
-
-  await db.execute(sql`delete from ${fm360Notifications}`);
-  await db.execute(sql`delete from ${fm360VacationEntries}`);
-  await db.execute(sql`delete from ${fm360TaskAssignments}`);
-  await db.execute(sql`delete from ${fm360EmployeeRoles}`);
-  await db.execute(sql`delete from ${fm360RolePermissions}`);
-  await db.execute(sql`delete from ${fm360Photos}`);
-  await db.execute(sql`delete from ${fm360RoomRecords}`);
-  await db.execute(sql`delete from ${fm360FloorRecords}`);
-  await db.execute(sql`delete from ${fm360Documents}`);
-  await db.execute(sql`delete from ${fm360Tickets}`);
-  await db.execute(sql`delete from ${fm360Templates}`);
-  await db.execute(sql`delete from ${fm360Nodes}`);
-  await db.execute(sql`delete from ${fm360Shifts}`);
-  await db.execute(sql`delete from ${fm360Piket}`);
-  await db.execute(sql`delete from ${fm360Brandschutz}`);
-  await db.execute(sql`delete from ${fm360Security}`);
-  await db.execute(sql`delete from ${fm360EmergencyContacts}`);
-  await db.execute(sql`delete from ${fm360Projects}`);
-  await db.execute(sql`delete from ${fm360Costs}`);
-  await db.execute(sql`delete from ${fm360Employees}`);
-  await db.execute(sql`delete from ${fm360Permissions}`);
-  await db.execute(sql`delete from ${fm360Roles}`);
-
-  const nodes = enrichObjectCodes(state.nodes || []);
-  for (const [index, item] of nodes.entries()) {
-    await upsertNode({ ...item, sortOrder: index });
-  }
-  for (const item of state.docs || []) await upsertDocument(item);
-  for (const item of state.floorRecords || []) await upsertFloorRecord(item);
-  for (const item of state.roomRecords || []) await upsertRoomRecord(item);
-  for (const item of state.tickets || []) await upsertTicket(item);
-  for (const item of state.templates || []) await upsertTemplate(item);
-  for (const item of state.photos || []) await upsertPhoto(item);
-  for (const item of state.employees || []) await upsertEmployee(item);
-  for (const item of state.shifts || []) await upsertShift(item);
-  for (const item of state.piket || []) await upsertPiket(item);
-  for (const item of state.brandschutz || []) await upsertBrandschutz(item);
-  for (const item of state.security || []) await upsertSecurity(item);
-  for (const item of state.emergencyContacts || []) await upsertEmergencyContact(item);
-  for (const item of state.projects || []) await upsertProject(item);
-  for (const item of state.costs || []) {
-    if (["budget", "adjustment"].includes(String(item.category || ""))) await upsertCost(item);
-  }
-  for (const item of state.roles || []) await upsertRole(item);
-  for (const item of state.permissions || []) await upsertPermission(item);
-  for (const item of state.rolePermissions || []) await upsertRolePermission(item);
-  for (const item of state.employeeRoles || []) await upsertEmployeeRole(item);
-  for (const item of state.taskAssignments || []) await upsertTaskAssignment(item);
-  for (const item of state.vacationEntries || []) await upsertVacationEntry(item);
-  for (const item of state.notifications || []) await upsertNotification(item);
 }
 
 async function seedDemoData() {
@@ -1456,170 +1778,131 @@ async function seedDemoData() {
   }
 }
 
+// Files are served from the app's own origin, so only types that cannot run scripts are shown
+// inline. Everything else (HTML, SVG, ...) is downloaded, otherwise an uploaded file could act
+// as the logged-in user.
+const INLINE_FILE_TYPES = /^(application\/pdf|image\/(png|jpe?g|gif|webp|bmp|heic|heif)|text\/plain)$/;
+
+function fileResponse(blob: ArrayBuffer, contentType: string, fileName: string, cacheControl: string) {
+  const type = String(contentType || "").toLowerCase().split(";")[0].trim();
+  const inline = INLINE_FILE_TYPES.test(type);
+  return new Response(blob, {
+    headers: {
+      "content-type": inline ? type : "application/octet-stream",
+      "content-disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      "x-content-type-options": "nosniff",
+      "cache-control": cacheControl,
+    },
+  });
+}
+
+async function readFile(url: URL) {
+  const db = getDb();
+  const docId = url.searchParams.get("docId");
+  if (docId) {
+    const [doc] = await db.select().from(fm360Documents).where(eq(fm360Documents.id, docId)).limit(1);
+    if (!doc?.blobKey) return new Response("Document not found", { status: 404 });
+    const blob = await getStore("fm360-documents").get(doc.blobKey, { type: "arrayBuffer" });
+    if (!blob) return new Response("Blob not found", { status: 404 });
+    return fileResponse(blob, doc.contentType, doc.fileName || doc.title || "document", "private, max-age=300");
+  }
+
+  const photoId = url.searchParams.get("photoId") || "";
+  const [photo] = await db.select().from(fm360Photos).where(eq(fm360Photos.id, photoId)).limit(1);
+  if (!photo) return new Response("Photo not found", { status: 404 });
+  const blob = await getStore("fm360-photos").get(photo.blobKey, { type: "arrayBuffer" });
+  if (!blob) return new Response("Blob not found", { status: 404 });
+  return fileResponse(blob, photo.contentType || "image/jpeg", `${photo.id}`, "private, max-age=31536000");
+}
+
+async function login(req: Request, body: any) {
+  const loginName = String(body.loginName || body.login || "");
+  const keys = loginAttemptKeys(req, loginName);
+  if (await isLoginRateLimited(keys)) {
+    return json({ error: "Zu viele fehlgeschlagene Anmeldungen. Bitte in 15 Minuten erneut versuchen." }, { status: 429 });
+  }
+  const employee = await loginEmployee(loginName, String(body.password || ""));
+  if (!employee) {
+    await recordLoginFailure(keys);
+    return json({ error: "Invalid login" }, { status: 401 });
+  }
+  await clearLoginFailures(keys[0].key);
+  const secret = authSecret(req);
+  if (!secret) return json({ error: "Auth secret is not configured" }, { status: 500 });
+  const token = await createSessionToken(employee, secret);
+  return json({ employee, token }, { headers: { "set-cookie": sessionCookie(token) } });
+}
+
 export default async (req: Request) => {
   try {
+    const url = new URL(req.url);
+
     if (req.method === "GET") {
-      const url = new URL(req.url);
+      const isFileRequest = url.searchParams.has("docId") || url.searchParams.has("photoId");
+      const actor = await authenticate(req, { allowCookie: isFileRequest });
+      if (isFileRequest) return await readFile(url);
       if (url.searchParams.get("debugTickets") === "true") {
+        requireAdmin(actor);
         return json(await readTicketDebugState());
-      }
-      const docId = url.searchParams.get("docId");
-      if (docId) {
-        const db = getDb();
-        const [doc] = await db.select().from(fm360Documents).where(eq(fm360Documents.id, docId)).limit(1);
-        if (!doc?.blobKey) return new Response("Document not found", { status: 404 });
-        try {
-          const store = getStore("fm360-documents");
-          const blob = await store.get(doc.blobKey, { type: "arrayBuffer" });
-          if (!blob) return new Response("Blob not found", { status: 404 });
-          return new Response(blob, {
-            headers: {
-              "content-type": doc.contentType || "application/octet-stream",
-              "content-disposition": `inline; filename="${encodeURIComponent(doc.fileName || doc.title || "document")}"`,
-              "cache-control": "private, max-age=300",
-            },
-          });
-        } catch (err) {
-          console.error("Failed to retrieve document blob from store:", err);
-          return new Response("Storage error", { status: 500 });
-        }
-      }
-      const photoId = url.searchParams.get("photoId");
-      if (photoId) {
-        const db = getDb();
-        const [photo] = await db.select().from(fm360Photos).where(eq(fm360Photos.id, photoId)).limit(1);
-        if (!photo) {
-          return new Response("Photo not found", { status: 404 });
-        }
-        try {
-          const store = getStore("fm360-photos");
-          const blob = await store.get(photo.blobKey, { type: "arrayBuffer" });
-          if (!blob) {
-            return new Response("Blob not found", { status: 404 });
-          }
-          return new Response(blob, {
-            headers: {
-              "content-type": photo.contentType || "image/jpeg",
-              "cache-control": "public, max-age=31536000",
-            },
-          });
-        } catch (err) {
-          console.error("Failed to retrieve blob from store:", err);
-          return new Response("Storage error", { status: 500 });
-        }
       }
       return json(await readState());
     }
 
     if (req.method === "POST") {
-      const url = new URL(req.url);
       if (url.searchParams.get("seed") === "true") {
-        const unauthorized = await requireWriteAuth(req);
-        if (unauthorized) return unauthorized;
+        requireAdmin(await authenticate(req));
         await seedDemoData();
         await ensureLoginEmployees();
         return json(await readState());
       }
       const body = await req.json().catch(() => ({}));
-      if (body?.action === "login") {
-        const employee = await loginEmployee(String(body.loginName || body.login || ""), String(body.password || ""));
-        if (!employee) return json({ error: "Invalid login" }, { status: 401 });
-        const secret = authSecret(req);
-        if (!secret) return json({ error: "Auth secret is not configured" }, { status: 500 });
-        return json({ employee, token: await createSessionToken(employee, secret) });
+      if (body?.action === "login") return await login(req, body);
+      if (body?.action === "logout") {
+        return json({ ok: true }, { headers: { "set-cookie": sessionCookie("", 0) } });
       }
       return json({ error: "Action not supported" }, { status: 400 });
     }
 
+    // Legacy full-state save, kept for pages that were open during a deploy.
     if (req.method === "PUT") {
-      const unauthorized = await requireWriteAuth(req);
-      if (unauthorized) return unauthorized;
+      requireAdmin(await authenticate(req));
       await replaceAll(await req.json());
       return json(await readState());
     }
 
     if (req.method === "PATCH") {
-      const unauthorized = await requireWriteAuth(req);
-      if (unauthorized) return unauthorized;
+      const actor = await authenticate(req);
       const body = await req.json();
-      const { collection, item, action } = body;
-      if (action === "reorderNodes") {
+      if (body?.action === "batch") {
+        await applyChanges(actor, body.changes);
+        return json(await readState());
+      }
+      if (body?.action === "reorderNodes") {
+        if (!canWrite(actor, "nodes", "upsert")) throw new HttpError(403, "Keine Berechtigung für diese Änderung.");
         await reorderSiblingNodes(body.parent || null, Array.isArray(body.orderedIds) ? body.orderedIds : []);
         return json(await readState());
       }
+      const { collection, item } = body || {};
       if (!collection || !item?.id) return json({ error: "Missing collection or item id" }, { status: 400 });
-
-      if (collection === "nodes") {
-        const db = getDb();
-        const existingNodes = await db.select().from(fm360Nodes).orderBy(fm360Nodes.sortOrder, fm360Nodes.createdAt);
-        const merged = existingNodes.map((node) => (node.id === String(item.id) ? { ...node, ...item } : node));
-        if (!merged.some((node) => node.id === String(item.id))) merged.push(item);
-        const enriched = enrichObjectCodes(merged).find((node) => node.id === String(item.id));
-        await upsertNode(enriched || item);
-      }
-      else if (collection === "docs") {
-        const { base64, ...docData } = item;
-        if (base64 && docData.blobKey) {
-          const binaryString = atob(base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const store = getStore("fm360-documents");
-          await store.set(docData.blobKey, bytes.buffer);
-        }
-        await upsertDocument(docData);
-      }
-      else if (collection === "tickets") await upsertTicket(item);
-      else if (collection === "floorRecords") await upsertFloorRecord(item);
-      else if (collection === "roomRecords") await upsertRoomRecord(item);
-      else if (collection === "templates") await upsertTemplate(item);
-      else if (collection === "projects") await upsertProject(item);
-      else if (collection === "employees") await upsertEmployee(item);
-      else if (collection === "shifts") await upsertShift(item);
-      else if (collection === "piket") await upsertPiket(item);
-      else if (collection === "roles") await upsertRole(item);
-      else if (collection === "permissions") await upsertPermission(item);
-      else if (collection === "rolePermissions") await upsertRolePermission(item);
-      else if (collection === "employeeRoles") await upsertEmployeeRole(item);
-      else if (collection === "taskAssignments") await upsertTaskAssignment(item);
-      else if (collection === "vacationEntries") await upsertVacationEntry(item);
-      else if (collection === "notifications") await upsertNotification(item);
-      else if (collection === "costs") {
-        if (!["budget", "adjustment"].includes(String(item.category || ""))) {
-          return json({ error: "fm360_costs accepts only budget planning and manual adjustment records" }, { status: 400 });
-        }
-        await upsertCost(item);
-      }
-      else if (collection === "photos") {
-        const { base64, ...photoData } = item;
-        if (base64) {
-          const binaryString = atob(base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const store = getStore("fm360-photos");
-          await store.set(photoData.blobKey, bytes.buffer);
-        }
-        await upsertPhoto(photoData);
-      }
-      else return json({ error: "Unknown collection" }, { status: 400 });
-
+      await applyChanges(actor, { [collection]: { upsert: [item] } }, { strictCosts: true });
       return json(await readState());
     }
 
     if (req.method === "DELETE") {
-      const unauthorized = await requireWriteAuth(req);
-      if (unauthorized) return unauthorized;
+      const actor = await authenticate(req);
       const { collection, ids } = await req.json();
       if (!collection || !Array.isArray(ids)) return json({ error: "Missing collection or ids" }, { status: 400 });
-      for (const id of ids) await remove(collection, String(id));
+      await applyChanges(actor, { [collection]: { delete: ids } });
       return json(await readState());
     }
 
     return json({ error: "Method not allowed" }, { status: 405 });
   } catch (error) {
+    if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });
+    const pgCode = (error as any)?.cause?.code ?? (error as any)?.code;
+    if (pgCode === "23505") {
+      return json({ error: "Ein Wert ist bereits vergeben (z. B. E-Mail, Loginname oder FM-Code)." }, { status: 409 });
+    }
     console.error(error);
     return json({ error: "Database request failed" }, { status: 500 });
   }
