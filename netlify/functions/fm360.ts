@@ -1899,6 +1899,10 @@ export default async (req: Request) => {
     return json({ error: "Method not allowed" }, { status: 405 });
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });
+    const pgCode = (error as any)?.cause?.code ?? (error as any)?.code;
+    if (pgCode === "23505") {
+      return json({ error: "Ein Wert ist bereits vergeben (z. B. E-Mail, Loginname oder FM-Code)." }, { status: 409 });
+    }
     console.error(error);
     return json({ error: "Database request failed" }, { status: 500 });
   }

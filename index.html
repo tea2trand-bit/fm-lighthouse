@@ -2308,6 +2308,8 @@ function updateFilterButtons() {
 }
 
 const $=id=>document.getElementById(id);function uid(){return Math.random().toString(36).slice(2,9)}function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+// For values inside a quoted JS string in an HTML attribute, e.g. onclick="open('${escJsArg(id)}')".
+function escJsArg(v){return esc(String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n'))}
 
 function getTodayDate() {
   const now = new Date();
@@ -2554,7 +2556,7 @@ async function loadState(){try{clearStartupNotice();state=await loadApiWithRetry
     }
     alert(e.serverMessage&&e.status===400?`Daten konnten nicht gespeichert werden: ${e.serverMessage}`:'Daten konnten nicht gespeichert werden.');
   }
-}function node(id){return state.nodes.find(n=>n.id===id)}function childSortValue(n,idx){return Number.isFinite(Number(n?.sortOrder))?Number(n.sortOrder):idx}function children(id){return state.nodes.filter(n=>(n.parent||'')===(id||'')).sort((a,b)=>childSortValue(a,state.nodes.indexOf(a))-childSortValue(b,state.nodes.indexOf(b))||state.nodes.indexOf(a)-state.nodes.indexOf(b))}function label(n){return n?.name||''}function displayCode(n){return n?.objectCode||n?.code||''}function codeLine(n){let parts=[];if(n?.objectCode)parts.push('FM-Code '+n.objectCode);if(n?.code)parts.push('ID '+n.code);return parts.length?`<span class="systemCode">${parts.join(' · ')}</span>`:''}function nodeChain(id){let a=[],n=node(id);while(n){a.unshift(n);n=node(n.parent)}return a}function path(id){return nodeChain(id).map(label).join(' → ')}function descendants(id){let s=new Set();function walk(x){if(!x)return;s.add(x);children(x).forEach(c=>walk(c.id))}walk(id);return s}
+}function node(id){return state.nodes.find(n=>n.id===id)}function childSortValue(n,idx){return Number.isFinite(Number(n?.sortOrder))?Number(n.sortOrder):idx}function children(id){return state.nodes.filter(n=>(n.parent||'')===(id||'')).sort((a,b)=>childSortValue(a,state.nodes.indexOf(a))-childSortValue(b,state.nodes.indexOf(b))||state.nodes.indexOf(a)-state.nodes.indexOf(b))}function label(n){return n?.name||''}function displayCode(n){return n?.objectCode||n?.code||''}function codeLine(n){let parts=[];if(n?.objectCode)parts.push('FM-Code '+esc(n.objectCode));if(n?.code)parts.push('ID '+esc(n.code));return parts.length?`<span class="systemCode">${parts.join(' · ')}</span>`:''}function nodeChain(id){let a=[],n=node(id);while(n){a.unshift(n);n=node(n.parent)}return a}function path(id){return nodeChain(id).map(label).join(' → ')}function descendants(id){let s=new Set();function walk(x){if(!x)return;s.add(x);children(x).forEach(c=>walk(c.id))}walk(id);return s}
 const branchAccents=[
   {accent:'#8fb4e8',border:'#d7e4f7',bg:'#f6f9fe'},
   {accent:'#8fc9a8',border:'#d8eadf',bg:'#f7fbf8'},
@@ -2640,7 +2642,7 @@ function renderBreadcrumb(n){
   let chain = nodeChain(n.id).map(x=>`<button data-id="${esc(x.id)}" onclick="setSelectedSection('uebersicht','Übersicht',this.dataset.id,true)">${esc(label(x))}</button>`).join(' <span class="separator">&gt;</span> ');
   return `FM Lighthouse 360 <span class="separator">&gt;</span> ${root} <span class="separator">&gt;</span> ${chain}`;
 }
-function fillParentSelect(selId,includeRoot=true){let opts=includeRoot?'<option value="">Fust Oberbüren</option>':'';opts+=state.nodes.map(n=>`<option value="${n.id}">${path(n.id)} (${n.type})</option>`).join('');$(selId).innerHTML=opts}
+function fillParentSelect(selId,includeRoot=true){let opts=includeRoot?'<option value="">Fust Oberbüren</option>':'';opts+=state.nodes.map(n=>`<option value="${esc(n.id)}">${esc(path(n.id))} (${esc(n.type)})</option>`).join('');$(selId).innerHTML=opts}
 function normalizedType(n){
   if (n?.type === 'Raum' || n?.type === 'Raum / Zone' || n?.type === 'Raum / Bereich' || n?.type === 'Nutzungsbereich') {
     return 'Raum / Bereich';
@@ -2728,7 +2730,7 @@ function hierarchyAction(label, tone, icon, onclick, type='Element'){
 }
 function renderActionButtons(actions, opts={}){
   let style=opts.style?` style="${opts.style}"`:'';
-  return uniqueActions(actions).map(action=>`<button class="${action.className||'btn'}" onclick="${action.onclick}"${style}>${action.icon?actionIconSvg(action.icon):''}<span>${action.label}</span></button>`).join('');
+  return uniqueActions(actions).map(action=>`<button class="${esc(action.className)||'btn'}" onclick="${esc(action.onclick)}"${style}>${action.icon?actionIconSvg(action.icon):''}<span>${esc(action.label)}</span></button>`).join('');
 }
 function openFloorRecordsTab(floorId){
   closeModals();
@@ -2791,7 +2793,7 @@ function addButtonLabel(parentId=''){
 }
 function populateNodeTypeOptions(parentId='',preferred=''){
   let allowed=allowedAddTypes(parentId);
-  $('nodeType').innerHTML=allowed.map(t=>`<option value="${t}">${addTypeLabel(t)}</option>`).join('');
+  $('nodeType').innerHTML=allowed.map(t=>`<option value="${t}">${esc(addTypeLabel(t))}</option>`).join('');
   $('nodeType').value=allowed.includes(preferred)?preferred:allowed[0];
   $('nodeType').disabled=allowed.length===1;
   updateNodeModalFields();
@@ -2815,7 +2817,7 @@ function openNodeModal(type='', parentId='', lockParent=false){
     : 'Wird angelegt unter: Fust Oberbüren';
   
   let allowed=allowedAddTypes(parentId);
-  $('nodeType').innerHTML=allowed.map(t=>`<option value="${t}">${addTypeLabel(t)}</option>`).join('');
+  $('nodeType').innerHTML=allowed.map(t=>`<option value="${t}">${esc(addTypeLabel(t))}</option>`).join('');
   
   if(type){
     $('nodeType').value=type;
@@ -3046,8 +3048,8 @@ function renderSeComponents() {
           <span style="color:var(--muted); font-size:11px;">${esc(s.type)} ${s.code ? '· ID: ' + esc(s.code) : ''} ${s.objectCode ? '· FM-Code: ' + esc(s.objectCode) : ''}</span>
         </div>
         <div style="display:flex; gap:4px;">
-          <button class="btn secondary small" style="padding:2px 6px; font-size:11px;" onclick="editSeSubForm('${s.id}')">Bearbeiten</button>
-          <button class="btn danger small" style="padding:2px 6px; font-size:11px; color:#dc2626;" onclick="deleteSeSub('${s.id}')">Löschen</button>
+          <button class="btn secondary small" style="padding:2px 6px; font-size:11px;" onclick="editSeSubForm('${escJsArg(s.id)}')">Bearbeiten</button>
+          <button class="btn danger small" style="padding:2px 6px; font-size:11px; color:#dc2626;" onclick="deleteSeSub('${escJsArg(s.id)}')">Löschen</button>
         </div>
       </div>
     `).join('');
@@ -3126,7 +3128,7 @@ function previewStructureTemplate() {
   
   function buildPreviewHtml(items, depth = 0) {
     return items.map(item => {
-      let s = `<li style="margin-left: ${depth * 14}px;"><b>${addTypeLabel(item.type)}:</b> ${item.name} (${item.code})</li>`;
+      let s = `<li style="margin-left: ${depth * 14}px;"><b>${esc(addTypeLabel(item.type))}:</b> ${esc(item.name)} (${esc(item.code)})</li>`;
       if (item.children) {
         s += buildPreviewHtml(item.children, depth + 1);
       }
@@ -3848,21 +3850,21 @@ async function closeTicket(id){
   t.text=[t.text,`Abschlussdatum: ${new Date().toISOString().slice(0,10)}`].filter(Boolean).join('\n');
   try{state=await api('PATCH',{collection:'tickets',item:t});render()}catch(e){alert('Ticket konnte nicht abgeschlossen werden.')}
 }
-function listDoc(d){let parentNode=node(d.parent);let folderText=isAssetNode(parentNode)?'Anlagen-Unterlage':(d.folder||'kein Ordner');let fileAction=d.blobKey?`<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" style="text-decoration:none;">Öffnen</a>`:'';return `<div class=item><div><strong>${d.title}</strong><span>${d.type} · ${folderText} · ${d.fileName?esc(d.fileName)+' · ':''}${d.parent?path(d.parent):'kein Ort'}</span></div><div class="itemActions">${fileAction}<button class="btn small secondary" onclick="openEntry('${d.parent}')">Zum Ort</button></div></div>`}
+function listDoc(d){let parentNode=node(d.parent);let folderText=isAssetNode(parentNode)?'Anlagen-Unterlage':esc(d.folder||'kein Ordner');let fileAction=d.blobKey?`<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" style="text-decoration:none;">Öffnen</a>`:'';return `<div class=item><div><strong>${esc(d.title)}</strong><span>${esc(d.type)} · ${folderText} · ${d.fileName?esc(d.fileName)+' · ':''}${d.parent?esc(path(d.parent)):'kein Ort'}</span></div><div class="itemActions">${fileAction}<button class="btn small secondary" onclick="openEntry('${escJsArg(d.parent)}')">Zum Ort</button></div></div>`}
 function listTicket(t){
   let photos = state.photos ? state.photos.filter(p => p.ticketId === t.id) : [];
   let photoHtml = '';
   if (photos.length > 0) {
     photoHtml = `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">` + 
       photos.map(p => `
-        <div style="width:40px; height:40px; border-radius:4px; overflow:hidden; border:1px solid var(--line); cursor:pointer;" onclick="showLargePhoto('${p.id}')">
-          <img src="/api/fm360?photoId=${p.id}" style="width:100%; height:100%; object-fit:cover;" title="${esc(p.description)}">
+        <div style="width:40px; height:40px; border-radius:4px; overflow:hidden; border:1px solid var(--line); cursor:pointer;" onclick="showLargePhoto('${escJsArg(p.id)}')">
+          <img src="/api/fm360?photoId=${esc(p.id)}" style="width:100%; height:100%; object-fit:cover;" title="${esc(p.description)}">
         </div>
       `).join('') + `</div>`;
   }
-  let closeAction=isClosedTicketStatus(t.status)?'':`<button class="btn small blue" onclick="closeTicket('${t.id}')">Abschließen</button>`;
+  let closeAction=isClosedTicketStatus(t.status)?'':`<button class="btn small blue" onclick="closeTicket('${escJsArg(t.id)}')">Abschließen</button>`;
   let completionMeta=[t.executionBy, t.costChf?`Kosten CHF ${t.costChf}`:'', t.invoiceReceived?`Rechnung: ${t.invoiceReceived}`:'', t.deliveryNoteReceived?`Lieferschein: ${t.deliveryNoteReceived}`:''].filter(Boolean).join(' · ');
-  return `<div class=item><div><strong>${t.type}: ${t.title}</strong><span>${t.status} · ${t.prio} · ${t.parent?path(t.parent):'kein Ort'} · ${t.resp||'ohne Verantwortlichen'}</span>${completionMeta?`<br><span>${esc(completionMeta)}</span>`:''}<br><span>${t.text||''}</span>${photoHtml}</div><div class="itemActions">${closeAction}<button class="btn small secondary" onclick="openPhotoModal('${t.id}')">+ Foto</button><button class="btn small secondary" onclick="openEntry('${t.parent}')">Zum Ort</button></div></div>`;
+  return `<div class=item><div><strong>${esc(t.type)}: ${esc(t.title)}</strong><span>${esc(t.status)} · ${esc(t.prio)} · ${t.parent?esc(path(t.parent)):'kein Ort'} · ${esc(t.resp)||'ohne Verantwortlichen'}</span>${completionMeta?`<br><span>${esc(completionMeta)}</span>`:''}<br><span>${esc(t.text)||''}</span>${photoHtml}</div><div class="itemActions">${closeAction}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button><button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button></div></div>`;
 }
 function delDoc(id){let d=state.docs.find(x=>x.id===id);let parentId=d?.parent||selected||null;state.docs=state.docs.filter(d=>d.id!==id);selected=parentId;save()}function delTicket(id){let t=state.tickets.find(x=>x.id===id);let parentId=t?.parent||selected||null;state.tickets=state.tickets.filter(t=>t.id!==id);selected=parentId;save()}
 function moneyValue(v){let n=Number(String(v||'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0}
@@ -3977,7 +3979,7 @@ function costTotals(entries=scopedCosts()){
   return {planned,unplanned,capex,adjustments,budget,reserve,forecast,orders,actual,budgetRest:Math.max(0,budget+reserve-actual)};
 }
 function renderControlTree(pid='',lvl=0){
-  return children(pid).filter(n=>CONTROL_PRIMARY_TYPES.has(n.type)||isAssetNode(n)).map(n=>`<button class="controlNodeBtn ${controlSelected===n.id?'active':''}" style="padding-left:${8+lvl*12}px" onclick="controlSelected='${n.id}';renderBudgetKosten()"><span>${isAssetNode(n)?'Anl.':'›'}</span><span>${esc(n.name)}<small>${esc(n.type)} · ${esc(displayCode(n)||'kein FM-Code')}</small></span></button>${isAssetNode(n)?'':renderControlTree(n.id,lvl+1)}`).join('');
+  return children(pid).filter(n=>CONTROL_PRIMARY_TYPES.has(n.type)||isAssetNode(n)).map(n=>`<button class="controlNodeBtn ${controlSelected===n.id?'active':''}" style="padding-left:${8+lvl*12}px" onclick="controlSelected='${escJsArg(n.id)}';renderBudgetKosten()"><span>${isAssetNode(n)?'Anl.':'›'}</span><span>${esc(n.name)}<small>${esc(n.type)} · ${esc(displayCode(n)||'kein FM-Code')}</small></span></button>${isAssetNode(n)?'':renderControlTree(n.id,lvl+1)}`).join('');
 }
 function renderBudgetKosten(){
   state.costs=state.costs||[];
@@ -3987,8 +3989,8 @@ function renderBudgetKosten(){
   let entries=scopedCosts();
   let totals=costTotals(entries);
   let controlNodes=state.nodes.filter(x=>CONTROL_PRIMARY_TYPES.has(x.type)||isAssetNode(x));
-  $('controlSelect').innerHTML=`<option value="">Fust Oberbüren</option>`+controlNodes.map(x=>`<option value="${x.id}" ${x.id===controlSelected?'selected':''}>${path(x.id)} (${x.type})</option>`).join('');
-  $('controlPath').innerHTML=(n?nodeChain(n.id):[]).map(x=>`<button onclick="controlSelected='${x.id}';renderBudgetKosten()">${esc(x.name)}</button>`).join('')||'<button onclick="controlSelected=\'\';renderBudgetKosten()">Fust Oberbüren</button>';
+  $('controlSelect').innerHTML=`<option value="">Fust Oberbüren</option>`+controlNodes.map(x=>`<option value="${esc(x.id)}" ${x.id===controlSelected?'selected':''}>${esc(path(x.id))} (${esc(x.type)})</option>`).join('');
+  $('controlPath').innerHTML=(n?nodeChain(n.id):[]).map(x=>`<button onclick="controlSelected='${escJsArg(x.id)}';renderBudgetKosten()">${esc(x.name)}</button>`).join('')||'<button onclick="controlSelected=\'\';renderBudgetKosten()">Fust Oberbüren</button>';
   $('controlTree').innerHTML=`<button class="controlNodeBtn ${!controlSelected?'active':''}" onclick="controlSelected='';renderBudgetKosten()"><span>›</span><span>Fust Oberbüren<small>Gesamtübersicht</small></span></button>${renderControlTree()}`;
   $('costPlanned').textContent=chf(totals.planned);
   $('costUnplanned').textContent=chf(totals.unplanned);
@@ -4000,7 +4002,7 @@ function renderBudgetKosten(){
   $('costDistribution').innerHTML=rows.map(([label,value,color])=>{let pct=Math.round((value/base)*100);return `<div class="distRow"><b>${label}</b><div class="distTrack"><div class="distFill" style="width:${pct}%;background:${color}"></div></div><span>${pct}%</span></div>`}).join('');
   let budgets=entries.filter(c=>c.category==='budget');
   $('costForecastSummary').innerHTML=budgets.map(c=>`<div class="item"><div><strong>${esc(c.title)}</strong><span>${esc(c.year||'ohne Jahr')} · Budget ${chf(c.amount)} · Reserve ${chf(c.reserve||0)} · Forecast ${chf(c.forecast||c.amount)}</span></div></div>`).join('')||`<p class="smallText">Noch keine Budgetplanung für ${esc(n?label(n):'Fust Oberbüren')} erfasst.</p>`;
-  $('costRecords').innerHTML=entries.sort((a,b)=>b.amount-a.amount).map(c=>`<div class="costCard ${esc(c.category)}"><strong>${esc(c.title||costLabel(c.category))}</strong><span>${costLabel(c.category)} · ${chf(c.amount)} · ${esc(c.status||'')}</span><span>${esc(c.source||'')} ${c.parent&&node(c.parent)?'· '+esc(path(c.parent)):''}</span></div>`).join('')||'<p class="smallText">Keine Kostenquellen in dieser Hierarchieebene.</p>';
+  $('costRecords').innerHTML=entries.sort((a,b)=>b.amount-a.amount).map(c=>`<div class="costCard ${esc(c.category)}"><strong>${esc(c.title||costLabel(c.category))}</strong><span>${esc(costLabel(c.category))} · ${chf(c.amount)} · ${esc(c.status||'')}</span><span>${esc(c.source||'')} ${c.parent&&node(c.parent)?'· '+esc(path(c.parent)):''}</span></div>`).join('')||'<p class="smallText">Keine Kostenquellen in dieser Hierarchieebene.</p>';
   renderCostEntryMode();
 }
 function renderCostEntryMode(){
@@ -4029,10 +4031,10 @@ function renderReporting(){
   $('reportRepairShare').textContent=`${Math.round((totals.unplanned/(totals.actual||1))*100)}%`;
   let rows=[['Geplant',totals.planned,'#2563eb'],['Reparaturen',totals.unplanned,'#dc2626'],['Investitionen',totals.capex,'#16a34a']];
   $('reportDistribution').innerHTML=rows.map(([label,value,color])=>{let pct=Math.round((value/(totals.actual||1))*100);return `<div class="distRow"><b>${label}</b><div class="distTrack"><div class="distFill" style="width:${pct}%;background:${color}"></div></div><span>${pct}%</span></div>`}).join('');
-  $('reportDrivers').innerHTML=entries.sort((a,b)=>b.amount-a.amount).slice(0,8).map(c=>`<div class="item"><div><strong>${esc(c.title||costLabel(c.category))}</strong><span>${costLabel(c.category)} · ${chf(c.amount)} ${c.parent&&node(c.parent)?'· '+esc(path(c.parent)):''}</span></div></div>`).join('')||'<p class="smallText">Noch keine Kosten erfasst.</p>';
+  $('reportDrivers').innerHTML=entries.sort((a,b)=>b.amount-a.amount).slice(0,8).map(c=>`<div class="item"><div><strong>${esc(c.title||costLabel(c.category))}</strong><span>${esc(costLabel(c.category))} · ${chf(c.amount)} ${c.parent&&node(c.parent)?'· '+esc(path(c.parent)):''}</span></div></div>`).join('')||'<p class="smallText">Noch keine Kosten erfasst.</p>';
 }
-function nodeResult(n){return `<div class="${itemClass(n)}"${branchAccent(n)}><div><strong>${n.name}</strong>${codeLine(n)}<span>${n.type} · ${path(n.id)}</span></div>${entryActions(n.id)}</div>`}
-function parentTitle(parentId){let p=node(parentId);return p?`${label(p)}<span>${p.type} · ${path(p.id)}</span>`:'Fust Oberbüren<span>Root-Kontext</span>'}
+function nodeResult(n){return `<div class="${itemClass(n)}"${branchAccent(n)}><div><strong>${esc(n.name)}</strong>${codeLine(n)}<span>${esc(n.type)} · ${esc(path(n.id))}</span></div>${entryActions(n.id)}</div>`}
+function parentTitle(parentId){let p=node(parentId);return p?`${esc(label(p))}<span>${esc(p.type)} · ${esc(path(p.id))}</span>`:'Fust Oberbüren<span>Root-Kontext</span>'}
 function groupedResults(items,parentOf,renderItem){
   let groups=new Map();
   items.forEach(item=>{let pid=parentOf(item)||'';if(!groups.has(pid))groups.set(pid,[]);groups.get(pid).push(item)});
@@ -4502,7 +4504,7 @@ function renderStructureList(pid='',lvl=0){
     
     let caret = '';
     if (hasChildren) {
-      caret = `<span class="tree-caret" onclick="toggleNode('${n.id}', event)">${isExpanded ? '▼' : '▶'}</span>`;
+      caret = `<span class="tree-caret" onclick="toggleNode('${escJsArg(n.id)}', event)">${isExpanded ? '▼' : '▶'}</span>`;
     } else {
       caret = `<span class="tree-caret" style="visibility:hidden">▶</span>`;
     }
@@ -4511,7 +4513,7 @@ function renderStructureList(pid='',lvl=0){
     let activeClass = isSelected ? ' active-context' : '';
     
     html += `
-      <div class="tree-node-row${activeClass}" style="margin-left:${lvl * 12}px; margin-bottom: 4px;" onclick="selectLiveContext('${n.id}', event)" ondblclick="openEntry('${n.id}')">
+      <div class="tree-node-row${activeClass}" style="margin-left:${lvl * 12}px; margin-bottom: 4px;" onclick="selectLiveContext('${escJsArg(n.id)}', event)" ondblclick="openEntry('${escJsArg(n.id)}')">
         <div style="display:flex; align-items:center; flex:1; min-width:0;">
           ${caret}
           <div class="tree-node-info">
@@ -4520,8 +4522,8 @@ function renderStructureList(pid='',lvl=0){
           </div>
         </div>
         <div class="itemActions" style="margin-left: 8px;" onclick="event.stopPropagation()">
-          <button class="btn small secondary" style="padding: 4px 8px; font-size:11px;" onclick="openEntry('${n.id}')">Öffnen</button>
-          <button class="btn small secondary" style="padding: 4px 8px; font-size:11px;" onclick="editSelected('${n.id}')">Bearbeiten</button>
+          <button class="btn small secondary" style="padding: 4px 8px; font-size:11px;" onclick="openEntry('${escJsArg(n.id)}')">Öffnen</button>
+          <button class="btn small secondary" style="padding: 4px 8px; font-size:11px;" onclick="editSelected('${escJsArg(n.id)}')">Bearbeiten</button>
         </div>
       </div>
     `;
@@ -4569,7 +4571,7 @@ function renderContextInspector(n) {
 
   let editDeleteHtml = (t === 'Raum / Bereich' || isFloorLevel) ? '' : `
     <div style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px; border-top:1px solid var(--line); padding-top:12px;">
-      <button class="btn small secondary" onclick="selected='${n.id}';editSelected()">Bearbeiten</button>
+      <button class="btn small secondary" onclick="selected='${escJsArg(n.id)}';editSelected()">Bearbeiten</button>
     </div>
   `;
   let inspectorActionsHtml = (actionButtonsHtml || editDeleteHtml) ? `
@@ -4583,7 +4585,7 @@ function renderContextInspector(n) {
   ` : '';
 
   let fullNavigatorBtn = `
-    <button class="btn" style="background:var(--orange); font-weight:bold; width:100%; text-align:center; padding:10px; margin-bottom:12px; font-size:13px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="openEntry('${n.id}')">
+    <button class="btn" style="background:var(--orange); font-weight:bold; width:100%; text-align:center; padding:10px; margin-bottom:12px; font-size:13px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="openEntry('${escJsArg(n.id)}')">
       🌐 In Navigator öffnen (Detailansicht)
     </button>
   `;
@@ -4628,7 +4630,7 @@ function renderContextInspector(n) {
 
       <div style="margin-top:4px; border-top:1px solid var(--line); padding-top:10px;">
         <h3 style="font-size:13px; font-weight:800; color:var(--text); margin:0 0 6px 0;">Notizen</h3>
-        <textarea style="width:100%; font-size:12px; min-height:60px;" placeholder="Notizen eintragen..." oninput="let originalNode = state.nodes.find(x=>x.id==='${n.id}'); if(originalNode){originalNode.notes=this.value;save()}">${esc(n.notes || '')}</textarea>
+        <textarea style="width:100%; font-size:12px; min-height:60px;" placeholder="Notizen eintragen..." oninput="let originalNode = state.nodes.find(x=>x.id==='${escJsArg(n.id)}'); if(originalNode){originalNode.notes=this.value;save()}">${esc(n.notes || '')}</textarea>
       </div>
     </div>
   `;
@@ -4991,7 +4993,7 @@ function renderWarnings() {
           
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
             <span style="font-weight: 800; color: ${text}; display: flex; align-items: center; gap: 6px;">
-              ${w.icon} ${esc(w.title)}
+              ${esc(w.icon)} ${esc(w.title)}
             </span>
             <span class="badge" style="background: ${badgeB}; color: ${badgeTxt}; font-size: 11px; font-weight: 700; border: 1px solid ${badgeBrd};">
               ${esc(w.statusText)}
@@ -5105,7 +5107,7 @@ function renderTicketFilterChips(tickets,currentGroup='all',handler='setLocalTic
     ['open','Offen'],
     ['progress','In Arbeit'],
     ['closed','Abgeschlossen']
-  ].map(([group,labelText])=>`<button class="tab ${currentGroup===group?'active':''}" onclick="${handler}('${group}')">${labelText} (${counts[group]})</button>`).join('');
+  ].map(([group,labelText])=>`<button class="tab ${currentGroup===group?'active':''}" onclick="${handler}('${group}')">${labelText} (${esc(counts[group])})</button>`).join('');
 }
 function renderContextActions(n) {
   if (!n) return '';
@@ -5148,7 +5150,7 @@ function render(){
   if($('createAnlageBtn'))$('createAnlageBtn').style.display=n&&(allowedAddTypes(n.id).includes('Anlage')||allowedAddTypes(n.id).includes('Installations-Datenbank (Elektro)')||allowedAddTypes(n.id).includes('Installations-Datenbank (Sanitär)'))?'inline-flex':'none';
   ['addDocBtn','addTicketBtn','tabDocBtn','tabTicketBtn','tabPhotoBtn'].forEach(id=>{if($(id))$(id).style.display=n&&allowedAddTypes(n.id).includes(id.toLowerCase().includes('doc')?'Dokument':id.toLowerCase().includes('photo')?'Foto':'Ticket')?'inline-flex':'none'});
   if($('editSelectedBtn'))$('editSelectedBtn').textContent=(n?.type==='Anlage'||n?.type==='Installations-Datenbank (Elektro)'||n?.type==='Installations-Datenbank (Sanitär)')?'Anlage bearbeiten':'Bearbeiten';
-  $('nodeInfo').innerHTML=n?`<b>Typ:</b> ${n.type}<br><b>FM-Objektcode:</b> ${n.objectCode||'—'}<br><b>Code / ID:</b> ${n.code||'—'}<br><b>Name:</b> ${n.name}<br><b>Pfad:</b> ${path(n.id)}`:'Noch nichts ausgewählt.';
+  $('nodeInfo').innerHTML=n?`<b>Typ:</b> ${esc(n.type)}<br><b>FM-Objektcode:</b> ${esc(n.objectCode)||'—'}<br><b>Code / ID:</b> ${esc(n.code)||'—'}<br><b>Name:</b> ${esc(n.name)}<br><b>Pfad:</b> ${esc(path(n.id))}`:'Noch nichts ausgewählt.';
   $('nodeNotes').value=n?.notes||'';
   let ids=n?(isAssetNode(n)?new Set([n.id]):descendants(n.id)):new Set();
   let localDocs=state.docs.filter(d=>ids.has(d.parent)),localTickets=state.tickets.filter(t=>ids.has(t.parent)),localChildren=n?(isAssetNode(n)?[]:children(n.id)):[];
@@ -5183,7 +5185,7 @@ function render(){
   if($('roomRecordsTabPanel'))$('roomRecordsTabPanel').innerHTML=roomRecordsHtml||'<p class="smallText">Raumbezogene Daten sind nur auf Räumen / Bereichen verfügbar.</p>';
   
   let localAnlagen=state.nodes.filter(x=>ids.has(x.id) && isAnlageFilter(x));
-  if($('localAnlagen'))$('localAnlagen').innerHTML=localAnlagen.map(a=>`<div class="${itemClass(a)}"${branchAccent(a)}><div><strong>${a.name}</strong>${codeLine(a)}<span>${a.anlage?.typ||'kein Typ'} · ${a.anlage?.hersteller||'kein Hersteller'} · ${a.anlage?.serial||'keine Seriennummer'} · ${path(a.id)}</span></div><div class="itemActions"><button class="btn small secondary" onclick="openEntry('${a.id}')">Öffnen</button><button class="btn small secondary" onclick="editSelected('${a.id}')">Bearbeiten</button><button class="btn small secondary" onclick="printAssetQr('${a.id}')">QR drucken</button><a class="btn small secondary" href="${qrImageUrl(a.id,520)}" download="qr-${esc(displayCode(a)||a.id)}.png" style="text-decoration:none;">QR exportieren</a><button class="btn small secondary" onclick="openDocFor('${a.id}')">Dokument hochladen</button><button class="btn small secondary" onclick="openPhotoModal('', '${a.id}')">Foto hochladen</button><button class="btn small secondary" onclick="openServiceRequest('${a.id}')">Service-Anfrage erstellen</button><button class="btn small blue" onclick="openTicketFor('${a.id}')">Ticket</button></div></div>`).join('')||'<p class=smallText>Keine Anlagen.</p>';
+  if($('localAnlagen'))$('localAnlagen').innerHTML=localAnlagen.map(a=>`<div class="${itemClass(a)}"${branchAccent(a)}><div><strong>${esc(a.name)}</strong>${codeLine(a)}<span>${esc(a.anlage?.typ)||'kein Typ'} · ${esc(a.anlage?.hersteller)||'kein Hersteller'} · ${esc(a.anlage?.serial)||'keine Seriennummer'} · ${esc(path(a.id))}</span></div><div class="itemActions"><button class="btn small secondary" onclick="openEntry('${escJsArg(a.id)}')">Öffnen</button><button class="btn small secondary" onclick="editSelected('${escJsArg(a.id)}')">Bearbeiten</button><button class="btn small secondary" onclick="printAssetQr('${escJsArg(a.id)}')">QR drucken</button><a class="btn small secondary" href="${qrImageUrl(a.id,520)}" download="qr-${esc(displayCode(a)||a.id)}.png" style="text-decoration:none;">QR exportieren</a><button class="btn small secondary" onclick="openDocFor('${escJsArg(a.id)}')">Dokument hochladen</button><button class="btn small secondary" onclick="openPhotoModal('', '${escJsArg(a.id)}')">Foto hochladen</button><button class="btn small secondary" onclick="openServiceRequest('${escJsArg(a.id)}')">Service-Anfrage erstellen</button><button class="btn small blue" onclick="openTicketFor('${escJsArg(a.id)}')">Ticket</button></div></div>`).join('')||'<p class=smallText>Keine Anlagen.</p>';
   $('localDocs').innerHTML=localDocs.map(listDoc).join('')||'<p class=smallText>Keine Dokumente.</p>';
   if ($('localPhotos')) {
     let localPhotos = state.photos ? state.photos.filter(p => ids.has(p.parent)) : [];
@@ -5200,7 +5202,7 @@ function render(){
   if($('ticketPoolFilters'))$('ticketPoolFilters').innerHTML=renderTicketFilterChips(state.tickets,currentTicketPoolFilter,'setTicketPoolFilter');
   let visibleTicketPool=filterTicketsByGroup(state.tickets,currentTicketPoolFilter);
   $('ticketPool').innerHTML=visibleTicketPool.map(listTicket).join('')||'<p class=smallText>Keine Tickets / Aufträge in diesem Filter.</p>';
-  if ($('tplList')) $('tplList').innerHTML=state.templates.map(t=>`<div class=item><div><strong>${t.name}</strong><span>${t.type}</span><br><span>${t.text||''}</span></div><button class="btn small danger" onclick="state.templates=state.templates.filter(x=>x.id!=='${t.id}');save()">x</button></div>`).join('')||'<p class=smallText>Keine Vorlagen.</p>';
+  if ($('tplList')) $('tplList').innerHTML=state.templates.map(t=>`<div class=item><div><strong>${esc(t.name)}</strong><span>${esc(t.type)}</span><br><span>${esc(t.text)||''}</span></div><button class="btn small danger" onclick="state.templates=state.templates.filter(x=>x.id!=='${escJsArg(t.id)}');save()">x</button></div>`).join('')||'<p class=smallText>Keine Vorlagen.</p>';
   
   renderInfraStatus();
   renderMitarbeiter();
@@ -5351,7 +5353,7 @@ function openRequestVacationModal() {
   $('planEmpStaticGroup').style.display = 'none';
   
   // Fill employees dropdown in modal
-  $('planEmpSelect').innerHTML = emps.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  $('planEmpSelect').innerHTML = emps.map(e => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
   
   $('planEditId').value = '';
   $('planEmpId').value = '';
@@ -5544,7 +5546,7 @@ function renderMitarbeiter() {
           </div>
         </div>
         <div class="itemActions">
-          <button class="btn small secondary" onclick="editEmployee('${e.id}')" title="Mitarbeiter bearbeiten">Bearbeiten</button>
+          <button class="btn small secondary" onclick="editEmployee('${escJsArg(e.id)}')" title="Mitarbeiter bearbeiten">Bearbeiten</button>
         </div>
       </div>
     `).join('') || '<p class="smallText" style="text-align:center; padding:20px; color:var(--muted);">Keine Mitarbeiter eingetragen.</p>';
@@ -5567,7 +5569,7 @@ function renderAdminEmployees() {
         <span style="display:block;">Skills: ${esc(e.skills || '-')} · ${e.piketEligible ? 'Piket-fähig' : 'Nicht piket-fähig'}</span>
       </div>
       <div class="itemActions">
-        <button class="btn small secondary" onclick="editEmployee('${e.id}')">Bearbeiten</button>
+        <button class="btn small secondary" onclick="editEmployee('${escJsArg(e.id)}')">Bearbeiten</button>
       </div>
     </div>
   `).join('') || '<p class="smallText">Keine Mitarbeiter eingetragen.</p>';
@@ -5775,7 +5777,7 @@ function renderCalendar() {
           }
         }
 
-        html += `<td class="${cellClass}" onclick="openCalendarPlan('${e.id}', '${dStr}', '${shiftId}')" title="${esc(cellTitle)}">${cellText}</td>`;
+        html += `<td class="${cellClass}" onclick="openCalendarPlan('${escJsArg(e.id)}', '${dStr}', '${shiftId}')" title="${esc(cellTitle)}">${cellText}</td>`;
       }
       html += `</tr>`;
     });
@@ -5836,7 +5838,7 @@ function renderCalendar() {
       `;
 
       weekGroups.forEach(g => {
-        html += `<th colspan="${g.span}" style="background: #e2e8f0; font-weight: 800; border-bottom: 2px solid #94a3b8; color: #c2410c; text-align: center;" title="Kalenderwoche ${g.week}">KW ${g.week}</th>`;
+        html += `<th colspan="${esc(g.span)}" style="background: #e2e8f0; font-weight: 800; border-bottom: 2px solid #94a3b8; color: #c2410c; text-align: center;" title="Kalenderwoche ${esc(g.week)}">KW ${esc(g.week)}</th>`;
       });
 
       html += `
@@ -5942,7 +5944,7 @@ function renderCalendar() {
             if (isToday) { cellClass += ' cell-today'; cellTitle += '\n(Heute)'; }
           }
 
-          html += `<td class="${cellClass}" onclick="openCalendarPlan('${e.id}', '${dStr}', '${shiftId}')" title="${esc(cellTitle)}">${cellText}</td>`;
+          html += `<td class="${cellClass}" onclick="openCalendarPlan('${escJsArg(e.id)}', '${dStr}', '${shiftId}')" title="${esc(cellTitle)}">${cellText}</td>`;
         }
         html += `</tr>`;
       });
@@ -6041,12 +6043,12 @@ function renderCalendar() {
   
   if ($('piketThisWeekName')) {
     $('piketThisWeekName').innerHTML = thisWeekPiket 
-      ? `<span style="color:#c2410c;">${esc(thisWeekPiket.employeeName)}</span> (KW ${thisWeekStr.split('-W')[1]}${thisWeekPiket.shiftTime ? ` · ${esc(thisWeekPiket.shiftTime)}` : ''})`
+      ? `<span style="color:#c2410c;">${esc(thisWeekPiket.employeeName)}</span> (KW ${esc(thisWeekStr.split('-W')[1])}${thisWeekPiket.shiftTime ? ` · ${esc(thisWeekPiket.shiftTime)}` : ''})`
       : '<span style="color:var(--muted); font-weight:normal;">Nicht zugewiesen</span>';
   }
   if ($('piketNextWeekName')) {
     $('piketNextWeekName').innerHTML = nextWeekPiket 
-      ? `<span style="color:#c2410c;">${esc(nextWeekPiket.employeeName)}</span> (KW ${nextWeekStr.split('-W')[1]}${nextWeekPiket.shiftTime ? ` · ${esc(nextWeekPiket.shiftTime)}` : ''})`
+      ? `<span style="color:#c2410c;">${esc(nextWeekPiket.employeeName)}</span> (KW ${esc(nextWeekStr.split('-W')[1])}${nextWeekPiket.shiftTime ? ` · ${esc(nextWeekPiket.shiftTime)}` : ''})`
       : '<span style="color:var(--muted); font-weight:normal;">Nicht zugewiesen</span>';
   }
 }
@@ -6092,7 +6094,7 @@ function renderPendingVacations() {
           <div>
             <strong style="font-size:13px; color:#92400e;">${esc(empName)}</strong>
             <span style="font-weight:700; color:#b45309; font-size:12px; display:block; margin-top:2px;">
-              ${fmtDate(dStart)} bis ${fmtDate(dEnd)}
+              ${esc(fmtDate(dStart))} bis ${esc(fmtDate(dEnd))}
             </span>
             <span style="font-size:11px; color:#d97706; display:block; margin-top:1px;">
               Dauer: <b>${count} ${count === 1 ? 'Tag' : 'Tage'}</b>
@@ -6102,8 +6104,8 @@ function renderPendingVacations() {
           <span class="badge orange" style="font-size:10px; font-weight:bold; background:rgba(245,158,11,0.15); color:#b45309;">PENDING</span>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px; border-top:1px dashed rgba(217,119,6,0.25); padding-top:8px;">
-          <button class="btn small secondary" onclick='rejectVacationGroup(${JSON.stringify(idsJson)})' style="background:#fef2f2; color:#b91c1c;">Ablehnen</button>
-          <button class="btn small" onclick='approveVacationGroup(${JSON.stringify(idsJson)})' style="background:#16a34a; color:white;">Genehmigen</button>
+          <button class="btn small secondary" onclick='rejectVacationGroup(${esc(JSON.stringify(idsJson))})' style="background:#fef2f2; color:#b91c1c;">Ablehnen</button>
+          <button class="btn small" onclick='approveVacationGroup(${esc(JSON.stringify(idsJson))})' style="background:#16a34a; color:white;">Genehmigen</button>
         </div>
       </div>
     `;
@@ -6197,7 +6199,7 @@ function renderPiketMonthView(container, year, month, pks) {
         label += ` (Vertr. für ${pk.handoverFrom})`;
       }
       cellContent += `
-        <div class="piket-event-block-month" title="${esc(pk.employeeName)}${pk.handoverFrom ? ` (Vertr. für ${pk.handoverFrom})` : ''} [${pk.shiftTime || 'ganze Woche'}]" onclick="selectPiketRecord('${pk.id}'); event.stopPropagation();">
+        <div class="piket-event-block-month" title="${esc(pk.employeeName)}${pk.handoverFrom ? ` (Vertr. für ${esc(pk.handoverFrom)})` : ''} [${esc(pk.shiftTime) || 'ganze Woche'}]" onclick="selectPiketRecord('${escJsArg(pk.id)}'); event.stopPropagation();">
           🟠 ${esc(label)}
         </div>
       `;
@@ -6314,10 +6316,10 @@ function renderPiketWeekView(container, anchorDate, pks) {
       gridHtml += `
         <div class="piket-event-block-week" 
              style="top: ${topOffset}px; height: ${height}px;"
-             title="${esc(pk.employeeName)}${pk.handoverFrom ? ` (Vertr. für ${pk.handoverFrom})` : ''} [${pk.shiftTime || 'ganze Woche'}]"
-             onclick="selectPiketRecord('${pk.id}'); event.stopPropagation();">
+             title="${esc(pk.employeeName)}${pk.handoverFrom ? ` (Vertr. für ${esc(pk.handoverFrom)})` : ''} [${esc(pk.shiftTime) || 'ganze Woche'}]"
+             onclick="selectPiketRecord('${escJsArg(pk.id)}'); event.stopPropagation();">
           <div style="font-weight: 800; font-size:11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🟠 ${esc(label)}</div>
-          <div style="font-size: 9px; opacity: 0.85;">${pk.shiftTime || 'Bereitschaft'}</div>
+          <div style="font-size: 9px; opacity: 0.85;">${esc(pk.shiftTime) || 'Bereitschaft'}</div>
         </div>
       `;
     });
@@ -6638,7 +6640,7 @@ function renderPiketdienst() {
           <br><span class="badge ${p.status === 'Aktiv' ? 'orange' : ''}" style="margin-top:4px; font-size:11px;">Status: ${esc(p.status)}</span>
         </div>
         <div class="itemActions" style="margin-top:6px;">
-          <button class="btn small secondary" onclick="selectPiketRecord('${p.id}')">Bearbeiten</button>
+          <button class="btn small secondary" onclick="selectPiketRecord('${escJsArg(p.id)}')">Bearbeiten</button>
         </div>
       </div>
     `}).join('') || '<p class="smallText">Kein Bereitschaftsplan vorhanden.</p>';
@@ -6654,7 +6656,7 @@ function renderPiketdienst() {
         ? `${new Date(p.startDate).toLocaleDateString('de-CH')} - ${new Date(p.endDate).toLocaleDateString('de-CH')}`
         : formatPiketWeek(p.date);
       return `
-        <option value="${p.id}" ${p.id === selectedIntId ? 'selected' : ''}>
+        <option value="${esc(p.id)}" ${p.id === selectedIntId ? 'selected' : ''}>
           ${esc(p.employeeName)} (${esc(timeRangeStr)})
         </option>
       `;
@@ -6830,7 +6832,7 @@ function renderPiketdienst() {
           ${c.description ? `<p style="font-size:11px; color:#64748b; margin:6px 0 0 0; line-height:1.4;">${esc(c.description)}</p>` : ''}
         </div>
         <div style="display:flex; gap:6px; justify-content:flex-end; border-top:1px dashed #e2e8f0; padding-top:8px; margin-top:4px;">
-          <button class="btn small secondary" onclick="openContactModal('${c.id}')" style="padding:4px 8px; font-size:11px;">Bearbeiten</button>
+          <button class="btn small secondary" onclick="openContactModal('${escJsArg(c.id)}')" style="padding:4px 8px; font-size:11px;">Bearbeiten</button>
         </div>
       </div>
     `;
@@ -7466,7 +7468,7 @@ function openPhotoModal(ticketId = '', parentOverride = ''){
   // Fill ticket link dropdown with tickets belonging to this parent node
   let localTickets = state.tickets.filter(t => t.parent === targetParent);
   let opts = '<option value="">Keine Verknüpfung</option>';
-  opts += localTickets.map(t => `<option value="${t.id}">${esc(t.type)}: ${esc(t.title)}</option>`).join('');
+  opts += localTickets.map(t => `<option value="${esc(t.id)}">${esc(t.type)}: ${esc(t.title)}</option>`).join('');
   $('photoTicketLink').innerHTML = opts;
   
   if (ticketId) {
@@ -7538,8 +7540,8 @@ function listPhoto(p) {
   
   return `
     <div class="card" style="padding:10px; display:flex; flex-direction:column; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:12px; position:relative;">
-      <div style="width:100%; height:140px; border-radius:8px; overflow:hidden; background:#eee; cursor:pointer;" onclick="showLargePhoto('${p.id}')">
-        <img src="/api/fm360?photoId=${p.id}" style="width:100%; height:100%; object-fit:cover;" alt="${esc(p.description)}">
+      <div style="width:100%; height:140px; border-radius:8px; overflow:hidden; background:#eee; cursor:pointer;" onclick="showLargePhoto('${escJsArg(p.id)}')">
+        <img src="/api/fm360?photoId=${esc(p.id)}" style="width:100%; height:100%; object-fit:cover;" alt="${esc(p.description)}">
       </div>
       <div style="flex:1; display:flex; flex-direction:column; justify-content:space-between; gap:4px;">
         <div>
@@ -7718,7 +7720,7 @@ function updateInfraFilterList() {
         let evalRes = evaluateNodeDocuments(n);
         let checklist = Object.entries(evalRes.status).map(([key, item]) => {
           let mark = item.present ? '<span style="color:#16a34a">✔</span>' : '<span style="color:#dc2626">✘</span>';
-          return `<span style="margin-right:12px;white-space:nowrap">${mark} ${item.label}</span>`;
+          return `<span style="margin-right:12px;white-space:nowrap">${mark} ${esc(item.label)}</span>`;
         }).join(' ');
 
         return `
@@ -7731,7 +7733,7 @@ function updateInfraFilterList() {
               </div>
             </div>
             <div class="itemActions">
-              <button class="btn small secondary" onclick="openEntry('${n.id}')">Zum Ort</button>
+              <button class="btn small secondary" onclick="openEntry('${escJsArg(n.id)}')">Zum Ort</button>
             </div>
           </div>
         `;
@@ -7768,7 +7770,7 @@ function updateInfraFilterList() {
               ${t.text ? `<br><span style="font-size:12px;color:var(--text);display:block;margin-top:4px">${esc(t.text)}</span>` : ''}
             </div>
             <div class="itemActions">
-              <button class="btn small secondary" onclick="openEntry('${t.parent}')">Zum Ort</button>
+              <button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button>
             </div>
           </div>
         `;

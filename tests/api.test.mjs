@@ -350,6 +350,17 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     assert.match(pdf.headers.get("content-disposition"), /^inline/);
   });
 
+  test("duplicate unique values are reported as a conflict", async () => {
+    const admin = await adminToken();
+    const res = await batch(admin, { employees: { upsert: [
+      { id: "e1", name: "A", email: "same@example.ch" },
+      { id: "e2", name: "B", email: "same@example.ch" },
+    ] } });
+    assert.equal(res.status, 409);
+    assert.match((await res.json()).error, /bereits vergeben/);
+    assert.equal((await getState(admin)).employees.some((employee) => employee.id === "e1"), false, "nothing was saved");
+  });
+
   test("logout clears the session cookie", async () => {
     const res = await call("POST", { body: { action: "logout" } });
     assert.equal(res.status, 200);

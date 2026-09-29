@@ -26,7 +26,31 @@ Nach der Einrichtung unter *System / Administration* das Admin-Passwort ändern 
 oder mit eigenem Passwort versehen.
 
 Alle API-Aufrufe brauchen einen Login. Fotos und Dokumente werden über ein HttpOnly-Session-Cookie
-ausgeliefert, damit `<img>`- und Download-Links funktionieren.
+ausgeliefert, damit `<img>`- und Download-Links funktionieren. Nur PDF, Bilder und Text werden im
+Browser angezeigt, alle anderen Dateien werden heruntergeladen.
+
+Nach 10 falschen Passwörtern für einen Loginnamen (oder 50 von einer IP-Adresse) wird die Anmeldung
+für 15 Minuten gesperrt.
+
+## Berechtigungen
+
+Die Rolle eines Mitarbeiters (Feld *Rolle*) bestimmt, was er ändern darf. Der Server prüft das bei
+jeder Anfrage.
+
+| Rolle | Darf |
+|---|---|
+| Admin / Chef | alles |
+| FM Internal | alles ausser Logins, Passwörter, Rollen und Berechtigungen |
+| Field Technician, External, Piket Only | Tickets, Fotos, Aufgaben und Benachrichtigungen erfassen und ändern (was die Mitarbeiter-App braucht), nichts löschen |
+
+Lesen dürfen alle angemeldeten Mitarbeiter. Der letzte aktive Admin-Login kann nicht deaktiviert,
+herabgestuft oder gelöscht werden; das Standard-Konto `emp-admin` behält immer Admin-Rechte.
+
+## Speichern
+
+Die Desktop-App schickt beim Speichern nur die geänderten, neuen und gelöschten Datensätze
+(`PATCH` mit `action: "batch"`), die der Server in einer Transaktion übernimmt. Wer gleichzeitig
+arbeitet, überschreibt sich dadurch nicht mehr gegenseitig.
 
 ## Entwicklung
 
@@ -36,7 +60,8 @@ npm run typecheck
 npm test
 ```
 
-`npm test` führt die Unit-Tests immer aus. Die API-Tests in `tests/api.test.mjs` laufen nur mit
+`npm test` führt immer die Unit-Tests und die Prüfung aus, dass Werte in den HTML-Vorlagen von
+`index.html` und `field.html` mit `esc()` maskiert werden (Schutz gegen eingeschleustes HTML/JavaScript). Die API-Tests in `tests/api.test.mjs` laufen nur mit
 `TEST_DATABASE_URL`, einer Postgres-Testdatenbank mit allen Migrationen. **Die Tests leeren alle
 `fm360_*`-Tabellen, also nie auf echte Daten zeigen lassen.** Lokal öffnet der Postgres-Treiber viele
 Verbindungen, daher Postgres mit `max_connections=500` starten.
