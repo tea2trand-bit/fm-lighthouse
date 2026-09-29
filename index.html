@@ -755,6 +755,10 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 /* Piketdienst mit Reitern statt vieler Karten gleichzeitig */
 .piketTabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .piketPanel{display:none}
+.adminTabs{align-items:center}.adminTabsRight{margin-left:auto}
+.adminPanel{display:none;background:#fff;border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;position:relative}
+.adminPanel::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:14px 14px 0 0;background:linear-gradient(90deg,var(--td-petrol),var(--td-petrol) 60%,transparent)}
+.adminPanel.active{display:block}.adminPanel>h3{margin:0 0 6px}.adminPanel .adminActions{margin-top:12px}
 .piketPanel.active{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);gap:16px;align-items:start}
 .piketPanel[data-piket-panel="kontakte"].active{grid-template-columns:minmax(0,860px)}
 .piketPanel .piket-operative-card,.piketPanel .piket-calendar-card,.piketPanel .piket-management-card{margin:0;height:auto!important;min-height:0!important;background:#fff;border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--shadow);position:relative}
@@ -766,6 +770,14 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .vacationPanel[hidden]{display:none}
 .vacationCount{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:#e9f1f9;color:#2f5f78;font-size:11px;font-weight:700}
 .vacationToggle.hasPending .vacationCount{background:#d97a1f;color:#fff}
+/* Alle Zähler wie die KPI-Kacheln: weiss, Petrol-Linie, Zahl und Bezeichnung in einer Zeile */
+.projectKpis,.controlKpis,.docWalkStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.docWalkStats{background:transparent;border:0;box-shadow:none;padding:0}
+#docPoolCurrent{background:transparent;border:0;box-shadow:none;padding:0}
+.projectKpi,.controlKpi,.docWalkStat{position:relative;overflow:hidden;display:flex;align-items:baseline;gap:8px;background:#fff;border:1px solid #e1eaf1;border-radius:12px;padding:9px 12px 8px;min-height:0;box-shadow:0 1px 2px rgba(37,78,104,.04),0 10px 22px -18px rgba(37,78,104,.35)}
+.projectKpi::before,.controlKpi::before,.docWalkStat::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,#3f7692,#3f7692 60%,transparent)}
+.projectKpi b,.controlKpi b,.docWalkStat b{display:inline;font-family:var(--font-ui);font-size:20px;line-height:1;font-weight:700;letter-spacing:-.02em;color:#2f6494;white-space:nowrap;font-variant-numeric:tabular-nums}
+.projectKpi span,.controlKpi span,.docWalkStat span{display:inline;margin-top:0;font-family:var(--font-button);font-size:12px;font-weight:500;line-height:1.2;color:#6b8393;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 </style>
 </head>
 <body>
@@ -1291,13 +1303,13 @@ label.btn{font-size:13px;font-family:var(--font-button)}
         <h2>Prüfungsfälligkeiten & Zertifikate</h2>
         <p class="smallText">Hier sehen Sie auslaufende Zertifikate oder anstehende gesetzliche Wartungen.</p>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
-          <div class="kpi" style="border-color:#bbf7d0; background:#f0fdf4;">
-            <b id="cFireOk" style="color:#16a34a">0</b>
-            <span style="font-size:11px; font-weight:bold;">In Ordnung</span>
+          <div class="kpi" style="--tone:#1f8a5b;--tone-dark:#1f8a5b">
+            <b id="cFireOk">0</b>
+            <span>In Ordnung</span>
           </div>
-          <div class="kpi" style="border-color:#fecaca; background:#fff5f5;">
-            <b id="cFireDefects" style="color:#dc2626">0</b>
-            <span style="font-size:11px; font-weight:bold;">Mängel vorhanden</span>
+          <div class="kpi" style="--tone:#c0392b;--tone-dark:#c0392b">
+            <b id="cFireDefects">0</b>
+            <span>Mängel vorhanden</span>
           </div>
         </div>
         <div id="brandschutzComplianceList" class="list"></div>
@@ -1546,13 +1558,14 @@ label.btn{font-size:13px;font-family:var(--font-button)}
   </section>
 
   <section id="admin" class="section">
-    <div class="adminHeader">
-      <p class="smallText" style="margin:0;">Zentrale Verwaltung für Benutzer, Login-Rechte, Datenaustausch und System-Reset.</p>
+    <div class="piketTabs adminTabs" role="tablist">
+      <button type="button" class="tab active" data-admin-tab="mitarbeiter" onclick="setAdminTab('mitarbeiter')">Mitarbeiter</button>
+      <button type="button" class="tab" data-admin-tab="rollen" onclick="setAdminTab('rollen')">Rollen &amp; Rechte</button>
+      <button type="button" class="tab" data-admin-tab="daten" onclick="setAdminTab('daten')">Import / Export</button>
+      <button type="button" class="tab" data-admin-tab="reset" onclick="setAdminTab('reset')">Reset</button>
+      <button type="button" class="btn secondary adminTabsRight" onclick="clearSearch()">Suche leeren</button>
     </div>
-    <div class="adminGrid">
-      <details class="adminBlock wide">
-        <summary class="adminBlockToggle"><h3>Mitarbeiter anlegen</h3></summary>
-        <div class="adminBlockContent">
+    <div class="adminPanel active" data-admin-panel="mitarbeiter">
           <div class="adminEmployeeLayout">
             <div class="adminEmployeePanel">
               <p class="smallText" style="margin:0 0 14px;">Mitarbeiter anlegen, Stammdaten pflegen und Piket-Fähigkeit verwalten.</p>
@@ -1599,19 +1612,11 @@ label.btn{font-size:13px;font-family:var(--font-button)}
             </div>
           </div>
         </div>
-      </details>
-
-      <details class="adminBlock">
-        <summary class="adminBlockToggle"><h3>Rollen &amp; Rechte</h3></summary>
-        <div class="adminBlockContent">
+    <div class="adminPanel" data-admin-panel="rollen"><h3>Rollen &amp; Rechte</h3>
           <p class="smallText" style="margin:0;">Login-Status, Rollen und Passwörter werden direkt an den Mitarbeiterkonten bearbeitet.</p>
           <div id="adminLoginSummary" class="list"></div>
         </div>
-      </details>
-
-      <details class="adminBlock">
-        <summary class="adminBlockToggle"><h3>Import / Export</h3></summary>
-        <div class="adminBlockContent">
+    <div class="adminPanel" data-admin-panel="daten"><h3>Import / Export</h3>
           <p class="smallText" style="margin:0;">Daten sichern oder eine zuvor exportierte JSON-Datei wiederherstellen.</p>
           <div class="adminActions">
             <button class="btn secondary" onclick="exportData()">Export</button>
@@ -1621,28 +1626,12 @@ label.btn{font-size:13px;font-family:var(--font-button)}
             </label>
           </div>
         </div>
-      </details>
-
-      <details class="adminBlock">
-        <summary class="adminBlockToggle"><h3>Reset</h3></summary>
-        <div class="adminBlockContent">
+    <div class="adminPanel" data-admin-panel="reset"><h3>Reset</h3>
           <div class="adminBlockHead">
             <p class="smallText" style="margin:0; color:#7f1d1d;">Setzt Standorte, Dokumente, Tickets, Mitarbeiter, Piketeinträge und weitere Daten zurück.</p>
             <button class="btn danger" onclick="resetAll()">Reset</button>
           </div>
         </div>
-      </details>
-
-      <div class="adminBlock adminStatic">
-        <div class="adminBlockHead">
-          <div>
-            <h3>Suche</h3>
-            <p class="smallText" style="margin:0;">Globalen Suchfilter leeren und Suchergebnisse ausblenden.</p>
-          </div>
-          <button class="btn secondary" onclick="clearSearch()">Suche leeren</button>
-        </div>
-      </div>
-    </div>
   </section>
 </main>
 </div>
@@ -2773,7 +2762,7 @@ function clearStartupNotice(){
 function autoExpandTopLevels() {
   if (!state.nodes || isTopLevelsAutoExpanded) return;
   state.nodes.forEach(n => {
-    if (!n.parent || n.type === 'Standort' || n.type === 'Objekt / Gebäude') {
+    if (!n.parent) {
       expandedNodes[n.id] = true;
     }
   });
@@ -4247,8 +4236,13 @@ function costTotals(entries=scopedCosts()){
   let actual=planned+unplanned+capex+adjustments;
   return {planned,unplanned,capex,adjustments,budget,reserve,forecast,orders,actual,budgetRest:Math.max(0,budget+reserve-actual)};
 }
-function renderControlTree(pid='',lvl=0){
-  return children(pid).filter(n=>CONTROL_PRIMARY_TYPES.has(n.type)||isAssetNode(n)).map(n=>`<button class="controlNodeBtn ${controlSelected===n.id?'active':''}" style="padding-left:${8+lvl*12}px" onclick="controlSelected='${escJsArg(n.id)}';renderBudgetKosten()"><span>${isAssetNode(n)?'Anl.':'›'}</span><span>${esc(n.name)}<small>${esc(n.type)} · ${esc(displayCode(n)||'kein FM-Code')}</small></span></button>${isAssetNode(n)?'':renderControlTree(n.id,lvl+1)}`).join('');
+// Nur der Pfad zum gewählten Eintrag ist aufgeklappt; zu Beginn sind nur die Standorte sichtbar.
+function renderControlTree(pid='',lvl=0,open=new Set(controlSelected?nodeChain(controlSelected).map(x=>x.id):[])){
+  return children(pid).filter(n=>CONTROL_PRIMARY_TYPES.has(n.type)||isAssetNode(n)).map(n=>{
+    let expandable=!isAssetNode(n)&&children(n.id).some(c=>CONTROL_PRIMARY_TYPES.has(c.type)||isAssetNode(c));
+    let isOpen=expandable&&open.has(n.id);
+    return `<button class="controlNodeBtn ${controlSelected===n.id?'active':''}" style="padding-left:${8+lvl*12}px" onclick="controlSelected='${escJsArg(n.id)}';renderBudgetKosten()"><span>${isAssetNode(n)?'Anl.':expandable?(isOpen?'⌄':'›'):''}</span><span>${esc(n.name)}<small>${esc(n.type)} · ${esc(displayCode(n)||'kein FM-Code')}</small></span></button>${isOpen?renderControlTree(n.id,lvl+1,open):''}`;
+  }).join('');
 }
 function renderBudgetKosten(){
   state.costs=state.costs||[];
@@ -5393,6 +5387,7 @@ function closeSearchDialog(){let d=$('searchDialog');if(d)d.hidden=true}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSearchDialog()});
 document.addEventListener('click',e=>{if(e.target.closest('#searchResults')&&e.target.closest('button,a,[onclick]'))setTimeout(closeSearchDialog,0)},true);
 function toggleVacationPanel(force){let p=$('vacationPanel');if(!p)return;let show=typeof force==='boolean'?force:p.hidden;p.hidden=!show;$('vacationToggleBtn')?.classList.toggle('active',show)}
+function setAdminTab(tab){document.querySelectorAll('[data-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===tab));document.querySelectorAll('[data-admin-panel]').forEach(p=>p.classList.toggle('active',p.dataset.adminPanel===tab))}
 function setPiketTab(tab){document.querySelectorAll('[data-piket-tab]').forEach(b=>b.classList.toggle('active',b.dataset.piketTab===tab));document.querySelectorAll('[data-piket-panel]').forEach(p=>p.classList.toggle('active',p.dataset.piketPanel===tab))}
 function focusGlobalSearch(){openSearchDialog()}
 // TD-style header: logged-in user, date and open ticket count.
