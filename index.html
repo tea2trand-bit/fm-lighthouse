@@ -783,6 +783,23 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 @media(max-width:1280px){.walkGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.walkGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.walkGrid{grid-template-columns:1fr}}
+/* Strukturierte Kacheln: Typ, Name, Kennzahlen, Aktionen */
+.walkCard{position:relative;overflow:hidden;background:#fff;border:1px solid var(--td-line);border-radius:14px;padding:16px 14px 12px;min-height:0;gap:12px;justify-content:flex-start;box-shadow:0 1px 2px rgba(37,78,104,.04),0 10px 22px -18px rgba(37,78,104,.35)}
+.walkCard::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3f7692,#3f7692 60%,transparent)}
+.walkCardHead{display:flex;align-items:flex-start;gap:6px}
+.walkCardHead .walkDragHandle{flex:0 0 auto;margin-top:14px}
+.walkCardTitle{flex:1;min-width:0;display:grid;gap:2px}
+.walkCardTitle strong{font-size:16px;line-height:1.25;color:#28566e;overflow-wrap:anywhere}
+.walkCardTitle .systemCode{font-size:11.5px;color:#6b8393}
+.walkType{font-family:var(--font-nav);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#3f7692}
+.walkOrder{display:flex;gap:4px;flex:0 0 auto}
+.walkOrderBtn{width:28px;height:28px;border:1px solid var(--td-line);border-radius:8px;background:#fff;color:#28566e;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.walkOrderBtn:hover:not(:disabled){border-color:#3f7692;background:#e9f1f9}
+.walkOrderBtn:disabled{opacity:.35;cursor:default}
+.walkStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;padding:10px 0;border-top:1px solid #e6eef4;border-bottom:1px solid #e6eef4}
+.walkStats span{display:grid;gap:1px;font-size:11px;color:#6b8393;line-height:1.2}
+.walkStats b{font-size:17px;font-weight:700;color:#2f6494;font-variant-numeric:tabular-nums}
+.walkCardActions{margin-top:auto;justify-content:flex-end;gap:6px}
 </style>
 </head>
 <body>
@@ -2433,17 +2450,12 @@ function renderDocPoolTreeHTML() {
     let directDocs = docPoolDirectDocCount(c.id);
     let subtreeDocs = docPoolSubtreeDocCount(c.id);
     let childCount = children(c.id).length;
-    let meta=[esc(normalizedType(c))];
-    
-    meta.push(`${childCount} Untereinträge`);
-    let badges=`<span class="badge">${meta.join('</span><span class="badge">')}</span>`;
     return `<div class="walkCard" role="button" tabindex="0" data-id="${esc(c.id)}" onclick="docPoolOpen(this.dataset.id)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();docPoolOpen(this.dataset.id)}">
-      <span class="walkCardTop"><span></span><span><strong>${esc(label(c))}</strong>${codeLine(c)}</span></span>
-      <span class="walkMeta">${badges}</span>
-      <span class="smallText">${directDocs} direkt · ${subtreeDocs} im Teilbaum</span>
+      <span class="walkCardHead"><span class="walkCardTitle"><span class="walkType">${esc(normalizedType(c))}</span><strong>${esc(label(c))}</strong>${codeLine(c)}</span></span>
+      <span class="walkStats"><span><b>${childCount}</b>Untereinträge</span><span><b>${directDocs}</b>Dokumente direkt</span><span><b>${subtreeDocs}</b>im Teilbaum</span></span>
       <span class="walkCardActions" onclick="event.stopPropagation()">
-        <button class="btn small secondary" onclick="docPoolOpen('${esc(c.id)}')">Öffnen</button>
         <button class="btn small secondary" onclick="openEntry('${esc(c.id)}')">Zum Navigator</button>
+        <button class="btn small" onclick="docPoolOpen('${esc(c.id)}')">Öffnen</button>
       </span>
     </div>`;
   }).join('');
@@ -4377,22 +4389,19 @@ function renderWalkthrough(){
     $('walkthroughHelp').textContent=n?(isAssetNode(n)?`${normalizedType(n)} · ${displayCode(n)||'kein FM-Code'} · finales Anlagenblatt`:`${normalizedType(n)} · ${displayCode(n)||'kein FM-Code'} · ${direct.length} direkte Untereinträge`):'Standort auswählen und Schritt für Schritt durch Objekt, Etage, Raum und Anlage gehen.';
   }
   let cards=direct.map((c,idx)=>{
-    let counts=localCountsFor(c.id);
-    let meta=[esc(normalizedType(c))];
-    
-    meta.push(`${children(c.id).length} direkt`);
-    let badges=`<span class="badge">${meta.join('</span><span class="badge">')}</span>`;
-    let countLine=`${counts.anlagen} Anlagen · ${counts.docs} Dokumente · ${counts.tickets} erstellte Tickets`;
+    let {anlagen,docs,tickets}=localCountsFor(c.id);
+    let childCount=children(c.id).length;
     let canUp=idx>0,canDown=idx<direct.length-1;
     return `<div class="walkCard" role="button" tabindex="0" data-id="${esc(c.id)}" ondragover="walkDragOver(event,this.dataset.id)" ondragleave="this.classList.remove('dropBefore','dropAfter')" ondrop="walkDrop(event,this.dataset.id)" onclick="walkthroughOpen(this.dataset.id)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();walkthroughOpen(this.dataset.id)}">
-      <span class="walkCardTop"><button class="walkDragHandle" draggable="true" aria-label="${esc(label(c))} ziehen" title="Reihenfolge ändern" ondragstart="walkDragStart(event,'${esc(c.id)}')" ondragend="walkDragEnd(event)" onclick="event.stopPropagation()">⋮⋮</button><span><strong>${esc(label(c))}</strong>${codeLine(c)}</span></span>
-      <span class="walkMeta">${badges}</span>
-      <span class="smallText">${esc(countLine)}</span>
+      <span class="walkCardHead">
+        <button class="walkDragHandle" draggable="true" aria-label="${esc(label(c))} ziehen" title="Reihenfolge ändern" ondragstart="walkDragStart(event,'${esc(c.id)}')" ondragend="walkDragEnd(event)" onclick="event.stopPropagation()">⋮⋮</button>
+        <span class="walkCardTitle"><span class="walkType">${esc(normalizedType(c))}</span><strong>${esc(label(c))}</strong>${codeLine(c)}</span>
+        <span class="walkOrder" onclick="event.stopPropagation()"><button class="walkOrderBtn" title="Nach oben" aria-label="Nach oben" ${canUp?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx-1})">↑</button><button class="walkOrderBtn" title="Nach unten" aria-label="Nach unten" ${canDown?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx+1})">↓</button></span>
+      </span>
+      <span class="walkStats"><span><b>${childCount}</b>Untereinträge</span><span><b>${anlagen}</b>Anlagen</span><span><b>${docs}</b>Dokumente</span><span><b>${tickets}</b>Tickets</span></span>
       <span class="walkCardActions" onclick="event.stopPropagation()">
-        <button class="btn small secondary" ${canUp?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx-1})">Nach oben</button>
-        <button class="btn small secondary" ${canDown?'':'disabled'} onclick="reorderSibling('${esc(c.id)}',${idx+1})">Nach unten</button>
-        <button class="btn small secondary" onclick="openEntry('${esc(c.id)}')">Öffnen</button>
         <button class="btn small secondary" onclick="editSelected('${esc(c.id)}')">Bearbeiten</button>
+        <button class="btn small" onclick="openEntry('${esc(c.id)}')">Öffnen</button>
       </span>
     </div>`;
   }).join('');
