@@ -2361,7 +2361,14 @@ function logout(){
   setSessionEmployee(null);
   showLoginScreen();
 }
+// Gespeicherten Login beim Neuladen weiterverwenden; ist er abgelaufen, meldet der Server 401
+// und handleExpiredSession() zeigt wieder die Anmeldung.
 function initDesktopSession(){
+  if(storedSessionToken()&&storedSessionEmployee()){
+    showDesktopApp();
+    loadState();
+    return;
+  }
   setSessionEmployee(null);
   showLoginScreen();
 }
