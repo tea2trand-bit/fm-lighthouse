@@ -778,6 +778,11 @@ label.btn{font-size:13px;font-family:var(--font-button)}
 .projectKpi::before,.controlKpi::before,.docWalkStat::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,#3f7692,#3f7692 60%,transparent)}
 .projectKpi b,.controlKpi b,.docWalkStat b{display:inline;font-family:var(--font-ui);font-size:20px;line-height:1;font-weight:700;letter-spacing:-.02em;color:#2f6494;white-space:nowrap;font-variant-numeric:tabular-nums}
 .projectKpi span,.controlKpi span,.docWalkStat span{display:inline;margin-top:0;font-family:var(--font-button);font-size:12px;font-weight:500;line-height:1.2;color:#6b8393;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* Rundgang- und Dokumentenpool-Kacheln: 4 pro Zeile */
+.walkGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:1280px){.walkGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.walkGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.walkGrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
