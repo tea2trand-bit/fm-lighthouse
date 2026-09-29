@@ -639,6 +639,27 @@ label,.field label{color:#4d6474;font-weight:600}
 @media(max-width:1100px){.appHeader{grid-template-columns:auto minmax(260px,1fr)}.appHeaderSearch{width:100%}}
 /* Weichere Schriftfarbe statt Schwarz, auch für Knöpfe und Felder (niedrige Priorität) */
 :where(button,input,select,textarea){color:var(--text)}
+
+/* TD-Feinschliff 2: Knöpfe überall gleich, auch in Dialogen */
+button{font-family:var(--font-button);font-size:13px}
+.modalBack .btn,.modalBack button{font-size:13px}
+label.btn{font-size:13px;font-family:var(--font-button)}
+.btn.ghost{background:#fff;color:var(--td-btn-ink);border:1px solid var(--td-line-2);box-shadow:0 1px 2px rgba(37,78,104,.05)}
+.btn.blue{background:linear-gradient(135deg,var(--td-petrol),var(--td-petrol-dark));color:#fff}
+/* Aktionsknöpfe an Anlagen, Räumen, Etagen: eine ruhige TD-Farbe statt Regenbogen */
+.assetAction.master,.assetAction.document,.assetAction.qr,.assetAction.photo,.assetAction.ticket{--asset-bg:#fff;--asset-hover:#eef5fa;--asset-text:#2f5468;--asset-border:#d5e1ea;--asset-ring:rgba(63,118,146,.14)}
+.assetAction{font-weight:600}
+/* FM-Code unter dem Titel ruhiger */
+.systemCode{font-weight:500;color:#5f7380;letter-spacing:0;text-transform:none}
+
+/* Piket-Banner hell wie die übrigen TD-Karten */
+.piketBanner{background:linear-gradient(180deg,#e9f1f9 0%,#fff 85%);color:var(--text);border-color:var(--td-line)}
+.piketBanner::before{background:linear-gradient(90deg,var(--td-petrol),var(--td-petrol) 60%,transparent)}
+.piketBanner h3{color:var(--td-petrol)}
+.piketBanner h2{color:var(--td-ink)}
+.piketBanner span[style]{color:#5f7380!important}
+.piketBanner b{color:var(--td-ink-2)}
+.piketBannerBadge{color:#fff;background:linear-gradient(135deg,var(--td-petrol),var(--td-petrol-dark));border:0;box-shadow:0 8px 18px -10px rgba(47,95,120,.7)}
 </style>
 </head>
 <body>
@@ -674,8 +695,8 @@ label,.field label{color:#4d6474;font-weight:600}
 </div>
 <div class="app" id="desktopApp" style="display:none">
 <aside class="sidebar">
-  <div class="brand" aria-label="Aktiver Kunde">
-    <div class="brandText"><span class="brandKicker">KUNDE</span><span class="brandTitle">FUST Oberbüren</span></div>
+  <div class="brand" aria-label="FUST Oberbüren">
+    <div class="brandText"><span class="brandTitle">FUST Oberbüren</span></div>
   </div>
   <div class="nav">
     <div class="navGroup">
@@ -902,7 +923,7 @@ label,.field label{color:#4d6474;font-weight:600}
       <h3 id="activePiketTodayLabel" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; margin: 0 0 6px 0;">Aktueller Piketdienst Heute</h3>
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div>
-          <h2 id="activePiketName" style="color:white; font-size:24px; margin:0 0 4px 0;">Hans Müller</h2>
+          <h2 id="activePiketName" style="font-size:24px; margin:0 0 4px 0;">Hans Müller</h2>
           <span style="font-size:13px; color:#c9d8e3;">Bereitschaft: <b id="activePiketTime">17:00 - 08:00 Uhr</b> · Tel: <b id="activePiketPhone">+41 79 123 45 67</b></span>
         </div>
         <div class="piketBannerBadge">AKTIV IM EINSATZ</div>
@@ -1426,7 +1447,6 @@ label,.field label{color:#4d6474;font-weight:600}
         <div class="adminBlockContent">
           <div class="adminEmployeeLayout">
             <div class="adminEmployeePanel">
-              <h3>Mitarbeiter anlegen</h3>
               <p class="smallText" style="margin:0 0 14px;">Mitarbeiter anlegen, Stammdaten pflegen und Piket-Fähigkeit verwalten.</p>
               <div class="adminEmployeeForm">
                 <div class="field wide">
@@ -2312,7 +2332,7 @@ function renderDocPoolTreeHTML() {
     let subtreeDocs = docPoolSubtreeDocCount(c.id);
     let childCount = children(c.id).length;
     let meta=[esc(normalizedType(c))];
-    if(displayCode(c))meta.push(`FM-Code ${esc(displayCode(c))}`);
+    
     meta.push(`${childCount} Untereinträge`);
     let badges=`<span class="badge">${meta.join('</span><span class="badge">')}</span>`;
     return `<div class="walkCard" role="button" tabindex="0" data-id="${esc(c.id)}" onclick="docPoolOpen(this.dataset.id)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();docPoolOpen(this.dataset.id)}">
@@ -4252,7 +4272,7 @@ function renderWalkthrough(){
   let cards=direct.map((c,idx)=>{
     let counts=localCountsFor(c.id);
     let meta=[esc(normalizedType(c))];
-    if(displayCode(c))meta.push(`FM-Code ${esc(displayCode(c))}`);
+    
     meta.push(`${children(c.id).length} direkt`);
     let badges=`<span class="badge">${meta.join('</span><span class="badge">')}</span>`;
     let countLine=`${counts.anlagen} Anlagen · ${counts.docs} Dokumente · ${counts.tickets} erstellte Tickets`;
@@ -4418,7 +4438,7 @@ function showKpi(type){
   else if(type==='Dokument')html=kpiDocumentBreakdown();
   else if(type==='Ticket')html=kpiTicketBreakdown();
   else html=kpiNodeList(state.nodes.filter(n=>normalizedType(n)===type));
-  showKpiBreakdown(kpiTitle(type),`${type==='Ticket'?'Ticketverlauf mit Offen, In Arbeit und Abgeschlossen':'Breakdown aus der bestehenden fm360_nodes Hierarchie'}. Jeder Eintrag öffnet den digitalen Rundgang an der passenden Stelle.`,html);
+  showKpiBreakdown(kpiTitle(type),`${type==='Ticket'?'Ticketverlauf mit Offen, In Arbeit und Abgeschlossen':'Aufschlüsselung nach Standort'}. Jeder Eintrag öffnet den digitalen Rundgang an der passenden Stelle.`,html);
 }
 function saveNotes(){let n=node(selected);if(n){n.notes=$('nodeNotes').value;save()}}
 const FLOOR_SECTIONS=[
@@ -5990,7 +6010,7 @@ function renderCalendar() {
       `;
 
       weekGroups.forEach(g => {
-        html += `<th colspan="${esc(g.span)}" style="background: #e2e8f0; font-weight:700; border-bottom: 2px solid #94a3b8; color: #c2410c; text-align: center;" title="Kalenderwoche ${esc(g.week)}">KW ${esc(g.week)}</th>`;
+        html += `<th colspan="${esc(g.span)}" style="background: #e2e8f0; font-weight:700; border-bottom: 2px solid #b9c7d3; color: #2f5f78; text-align: center;" title="Kalenderwoche ${esc(g.week)}">KW ${esc(g.week)}</th>`;
       });
 
       html += `
