@@ -2125,11 +2125,11 @@ button.walkLocalKpi{cursor:pointer}
     <p id="inspectionPlanError" class="workError" role="alert"></p><button id="inspectionPlanSave" type="submit" class="btn">Im Kalender einplanen</button>
   </form>
 </div></div></div>
-<div class="modalBack" id="workOrderDetail" role="dialog" aria-modal="true" aria-label="Arbeitsauftrag"><div class="modal workOrderModal"><div class="modalHead"><b id="workOrderHeading">Arbeitsauftrag</b><button id="workOrderClose" class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody"><div id="workOrderContent"></div><div id="workOrderActions" class="workActions"></div></div></div></div>
+<div class="modalBack" id="workOrderDetail" role="dialog" aria-modal="true" aria-label="Arbeitsauftrag"><div class="modal workOrderModal workOrderView"><div class="modalHead"><b id="workOrderHeading">Arbeitsauftrag</b><button id="workOrderClose" class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody"><div id="workOrderContent"></div><div id="workOrderActions" class="workActions"></div></div></div></div>
 <div class="modalBack" id="workDayModal" role="dialog" aria-modal="true" aria-labelledby="workDayTitle"><div class="modal workOrderModal"><div class="modalHead"><b id="workDayTitle">Aufträge</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody workDayList" id="workDayList"></div></div></div>
 <div class="modalBack" id="workReminderModal" role="dialog" aria-modal="true" aria-label="Benachrichtigungen"><div class="modal workOrderModal"><div class="modalHead"><b>Benachrichtigungen &amp; anstehende Kontrollen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody list" id="workReminderList"></div></div></div>
 
-<div class="modalBack" id="photoModal"><div class="modal"><div class="modalHead"><b>Foto hinzufügen</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody">
+<div class="modalBack" id="photoModal"><div class="modal"><div class="modalHead"><b>Foto hinzufügen</b><button class="btn secondary" onclick="closeOverWorkOrder('photoModal')">Schließen</button></div><div class="modalBody">
   <p class="smallText" id="photoPath"></p>
   <div class="formGrid">
     <div class="field full">
@@ -2152,7 +2152,7 @@ button.walkLocalKpi{cursor:pointer}
   <button class="btn" onclick="savePhoto()">Foto hochladen</button>
 </div></div></div>
 
-<div class="modalBack" id="photoViewModal" onclick="closeModals()"><div class="modal" onclick="event.stopPropagation()"><div class="modalHead"><b>Foto Ansicht</b><button class="btn secondary" onclick="closeModals()">Schließen</button></div><div class="modalBody" style="text-align:center; padding:10px;">
+<div class="modalBack" id="photoViewModal" onclick="closeOverWorkOrder('photoViewModal')"><div class="modal" onclick="event.stopPropagation()"><div class="modalHead"><b>Foto Ansicht</b><button class="btn secondary" onclick="closeOverWorkOrder('photoViewModal')">Schließen</button></div><div class="modalBody" style="text-align:center; padding:10px;">
   <img id="largePhotoViewer" style="max-width:100%; max-height:75vh; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
   <p id="largePhotoDescription" style="margin-top:12px; font-weight:600; font-size:15px;"></p>
   <p id="largePhotoMeta" class="smallText" style="margin-top:4px;"></p>
@@ -4355,30 +4355,28 @@ async function closeTicket(id){
 function listDoc(d){let parentNode=node(d.parent);let folderText=isAssetNode(parentNode)?'Anlagen-Unterlage':esc(d.folder||'kein Ordner');let fileAction=d.blobKey?`<a class="btn small secondary" href="/api/fm360?docId=${encodeURIComponent(d.id)}" target="_blank" style="text-decoration:none;">Öffnen</a>`:'';return `<div class=item><div><strong>${esc(d.title)}</strong><span>${esc(d.type)} · ${folderText} · ${d.fileName?esc(d.fileName)+' · ':''}${d.parent?esc(path(d.parent)):'kein Ort'}</span></div><div class="itemActions">${fileAction}<button class="btn small secondary" onclick="openEntry('${escJsArg(d.parent)}')">Zum Ort</button></div></div>`}
 function ticketDate(v){let m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}.${m[2]}.${m[1]}`:(v||'')}
 // Kompakte Auftragszeile: Titel und Status, eine Infozeile, Aktionen. Details im Auftragsfenster.
+// Ruhige Auftragszeile: Titel, Status, eine Infozeile. Alle Arbeitsschritte (Zeit, Foto, Abschluss) im Auftrag.
 function listTicket(t){
-  const photos=(state.photos||[]).filter(p=>p.ticketId===t.id);
   const closed=isClosedTicketStatus(t.status);
   const group=ticketStatusGroup(t.status);
   const prioKey=({Kritisch:'crit',Hoch:'high',Mittel:'mid',Niedrig:'low'})[t.prio]||'mid';
   const place=node(t.parent);
-  const today=toLocalDateString(getTodayDate());
-  const late=!closed&&t.due&&t.due<today;
-  const inspection=workItemKind(t)==='inspection';
+  const late=!closed&&t.due&&t.due<toLocalDateString(getTodayDate());
+  const minutes=workOrderMinutes(t),photos=(state.photos||[]).filter(p=>p.ticketId===t.id).length;
   const meta=[
-    `<span class="woKind">${inspection?'↻ Inspektion':esc(t.type||'Arbeitsauftrag')}</span>`,
-    place?`<span class="woPlace" title="${esc(path(place.id))}">${esc(place.name)}</span>`:'<span class="woPlace">kein Ort</span>',
+    workItemKind(t)==='inspection'?'<span class="woKind">↻ Kontrolle</span>':'',
+    `<span class="woPlace"${place?` title="${esc(path(place.id))}"`:''}>${esc(place?.name||'kein Ort')}</span>`,
     t.due?`<span class="woDue${late?' late':''}">${late?'Überfällig ':''}${esc(ticketDate(t.due))}</span>`:'',
     `<span class="woWho">${esc(workOrderAssignee(t))}</span>`,
-    prioKey==='crit'||prioKey==='high'?`<span class="woPrio ${prioKey}">${esc(t.prio)}</span>`:'',
-    t.costChf?`<span>CHF ${esc(t.costChf)}</span>`:'',
+    minutes?`<span>${esc(formatWorkMinutes(minutes))}</span>`:'',
+    photos?`<span>${photos} ${photos===1?'Foto':'Fotos'}</span>`:'',
   ].filter(Boolean).join('');
-  const thumbs=photos.length?`<div class="woPhotos">${photos.map(p=>`<button type="button" class="woPhoto" onclick="showLargePhoto('${escJsArg(p.id)}')" title="${esc(p.description||'Foto')}"><img src="/api/fm360?photoId=${esc(p.id)}" alt=""></button>`).join('')}</div>`:'';
   return `<div class="woCard prio-${prioKey}${closed?' closed':''}">
     <div class="woMain">
-      <div class="woTop"><button type="button" class="woTitle" onclick="openWorkOrder('${escJsArg(t.id)}')" title="Auftrag öffnen">${esc(t.title||t.type||'Auftrag')}</button><span class="woStatus status-${group}">${esc(t.status)}</span></div>
-      <div class="woMeta">${meta}</div>${thumbs}
+      <div class="woTop"><button type="button" class="woTitle" onclick="openWorkOrder('${escJsArg(t.id)}')">${esc(t.title||t.type||'Auftrag')}</button><span class="woStatus status-${group}">${esc(t.status)}</span></div>
+      <div class="woMeta">${meta}</div>
     </div>
-    <div class="woActions"><button class="btn small" onclick="openWorkOrder('${escJsArg(t.id)}')">Öffnen</button>${t.parent?`<button class="btn small secondary" onclick="openEntry('${escJsArg(t.parent)}')">Zum Ort</button>`:''}<button class="btn small secondary" onclick="openPhotoModal('${escJsArg(t.id)}')">+ Foto</button>${closed?'':`<button class="btn small secondary" onclick="closeTicket('${escJsArg(t.id)}')">Abschließen</button>`}</div>
+    <div class="woActions"><button class="btn small secondary" onclick="openWorkOrder('${escJsArg(t.id)}')">Öffnen</button></div>
   </div>`;
 }
 function delDoc(id){let d=state.docs.find(x=>x.id===id);let parentId=d?.parent||selected||null;state.docs=state.docs.filter(d=>d.id!==id);selected=parentId;save()}function delTicket(id){let t=state.tickets.find(x=>x.id===id);let parentId=t?.parent||selected||null;state.tickets=state.tickets.filter(t=>t.id!==id);selected=parentId;save()}
@@ -8045,7 +8043,8 @@ async function savePhoto() {
   try {
     state = await api('PATCH', { collection: 'photos', item: item });
     render();
-    closeModals();
+    closeOverWorkOrder('photoModal');
+    if (ticketId) refreshWorkOrderPhotos(ticketId);
   } catch (err) {
     alert('Fehler beim Hochladen des Fotos.');
   }

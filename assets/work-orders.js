@@ -231,30 +231,112 @@ function workOrderDetailsHtml(t){
   return `<p class="smallText">FM Lighthouse 360° · ${esc(workItemLabel(t))} ${esc(t.id)}</p><h2>${esc(t.title)}</h2><div class="workDetailGrid">${facts.map(([key,value])=>`<div><span>${key}</span><strong>${esc(value)}</strong></div>`).join('')}</div><section class="workDetailSection"><h3>Aufgabe / Kontrollpunkte</h3><div class="workText">${esc(t.text||'Keine zusätzliche Beschreibung.')}</div></section>${t.materialNeeded?`<section class="workDetailSection"><h3>Materialbedarf</h3><div class="workText">${esc(t.materialNeeded)}</div></section>`:''}${r?`<section class="workDetailSection"><h3>Regelmäßige Kontrolle</h3><p>${esc(workOrderInterval(r))} · Hinweis ${esc(r.remindBefore)} ${esc(workOrderUnit(r.remindUnit,r.remindBefore))} vorher an ${esc((state.employees||[]).find(e=>e.id===r.managerId)?.name||'Chef')}.</p><p class="smallText">Nach „Erledigt“ folgt der nächste Kontrolltermin im festgelegten Intervall. Diese Kontrolle bleibt mit ihrem Ergebnis als Nachweis erhalten.</p></section>`:''}`;
 }
 function workOrderMobileUrl(t){const url=new URL('field.html',location.href);url.searchParams.set('node',t.parent);url.searchParams.set('ticket',t.id);return url.toString();}
+// Arbeitsansicht: zuerst Aufgabe und Ort, dann Arbeit erfassen. Verwaltungsdaten liegen unter „Details“.
+function workArg(value){return typeof escJsArg==='function'?escJsArg(value):esc(value);}
+function workLogs(t){return Array.isArray(t?.workLogs)?t.workLogs:[];}
+function workOrderLegacyNote(t){
+  let note=String(t.completionNote||'');
+  for(const log of workLogs(t)){
+    const report=`${log.date} · ${log.employeeName} (${log.minutes} Min.):\n${log.note}`;
+    note=note.replace(report,'');
+  }
+  return note.replace(/\n{3,}/g,'\n\n').trim();
+}
+function workOrderMinutes(t){return workLogs(t).reduce((sum,l)=>sum+(Number(l.minutes)||0),0);}
+function formatWorkMinutes(total){const h=Math.floor(total/60),m=total%60;return h&&m?`${h} h ${m} min`:h?`${h} h`:`${m} min`;}
+function workTodayString(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function workOrderPhotos(t){return (state.photos||[]).filter(p=>p.ticketId===t.id);}
+function workOrderPhotosHtml(t,opts){
+  const thumbs=workOrderPhotos(t).map(p=>opts.photoViewer?`<button type="button" class="woThumb" onclick="showLargePhoto('${workArg(p.id)}')" title="${esc(p.description||'Foto')}"><img src="/api/fm360?photoId=${esc(p.id)}" alt=""></button>`:`<a class="woThumb" href="/api/fm360?photoId=${esc(p.id)}" target="_blank" rel="noopener" title="${esc(p.description||'Foto')}"><img src="/api/fm360?photoId=${esc(p.id)}" alt=""></a>`).join('');
+  return thumbs+(opts.photoAdd||'');
+}
+function refreshWorkOrderPhotos(id){
+  const t=(state.tickets||[]).find(t=>t.id===id),root=$('woPhotos');
+  if(t&&root&&root.dataset.ticketId===id&&workOrderViewOptions)root.innerHTML=workOrderPhotosHtml(t,workOrderViewOptions);
+}
+let workOrderViewOptions=null;
+function workOrderViewHtml(t,opts){
+  workOrderViewOptions=opts;
+  const adminHtml=opts.adminHtml||'',legacyNote=workOrderLegacyNote(t); // von der Seite gebaut, Werte dort bereits maskiert
+  const inspection=workItemKind(t)==='inspection',closed=isClosedTicketStatus(t.status),place=node(t.parent),r=t.recurrence,schedule=workOrderSchedule(t);
+  const today=workTodayString(),late=!closed&&t.due&&t.due<today,logs=[...workLogs(t)].sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||String(y.createdAt||'').localeCompare(String(x.createdAt||''))),total=workOrderMinutes(t);
+  const photos=`<div class="woPhotoRow" id="woPhotos" data-ticket-id="${esc(t.id)}">${workOrderPhotosHtml(t,opts)}</div>`;
+  const facts=[['Mitarbeiter',workOrderAssignee(t)],[inspection?'Fällig am':'Termin',ticketDate(t.due)||'Nicht geplant'],['Status',t.status||'Offen'],['Priorität',t.prio||'—'],['Auftragsart',t.type||'—'],['Ausführung',t.executionBy||'—'],['FM-Code',displayCode(place)||'—'],['Nummer',t.id]];
+  if(inspection)facts.splice(2,0,['Im Kalender',schedule.length?schedule.map(a=>ticketDate(a.date)).join(', '):'Noch nicht eingeplant']);
+  const recurrence=r?`<p class="woAdminNote">${esc(workOrderInterval(r))} · Hinweis ${esc(r.remindBefore)} ${esc(workOrderUnit(r.remindUnit,r.remindBefore))} vorher an ${esc((state.employees||[]).find(e=>e.id===r.managerId)?.name||'Chef')}. Nach „Erledigt“ folgt die nächste Kontrolle; diese bleibt als Nachweis erhalten.</p>`:'';
+  const form=opts.canWork?`<form class="woWork" id="woWorkForm" onsubmit="event.preventDefault();submitWorkEntry('${workArg(t.id)}',false,this)">
+    <h3>${inspection?'Kontrolle erfassen':'Arbeit erfassen'}</h3>
+    <textarea id="woWorkNote" rows="3" aria-label="Erledigte Arbeit" placeholder="${inspection?'Was wurde geprüft? Ergebnis, Mängel':'Was wurde gemacht?'}"></textarea>
+    <div class="woWorkRow">
+      <label class="woField"><span>Datum</span><input id="woWorkDate" type="date" value="${esc(today)}" required></label>
+      <div class="woField"><span id="woWorkTimeLabel">Arbeitszeit</span><div class="woTime" role="group" aria-labelledby="woWorkTimeLabel"><input id="woWorkHours" type="number" min="0" max="24" step="1" inputmode="numeric" placeholder="0" aria-label="Stunden"><em>h</em><input id="woWorkMins" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="0" aria-label="Minuten"><em>min</em></div></div>
+    </div>
+    ${photos}
+    <details class="woMaterialEdit"><summary>Material</summary><textarea id="woWorkMaterial" rows="2" aria-label="Material" placeholder="Benötigtes oder verbrauchtes Material">${esc(t.materialNeeded||'')}</textarea></details>
+    <p id="woWorkError" class="workError" role="alert"></p>
+    <div class="woWorkActions"><button type="submit" class="${esc(opts.secondaryClass)}">Speichern</button><button type="button" class="${esc(opts.primaryClass)}" onclick="submitWorkEntry('${workArg(t.id)}',true,this)">Abschließen</button></div>
+  </form>`:(workOrderPhotos(t).length||opts.photoAdd?photos:'');
+  const history=logs.length?`<section class="woLog"><div class="woLogHead"><h3>Erfasste Arbeit</h3><strong>${esc(formatWorkMinutes(total))}</strong></div><ul>${logs.map(l=>`<li><span>${esc(ticketDate(l.date))} · ${esc(l.employeeName||'')} · ${esc(formatWorkMinutes(Number(l.minutes)||0))}</span>${l.note?`<p>${esc(l.note)}</p>`:''}</li>`).join('')}</ul></section>`:'';
+  return `<div class="woView${closed?' closed':''}">
+    <div class="woHeadInfo"><span class="woStatus status-${closed?'closed':/arbeit/i.test(t.status||'')?'progress':'open'}">${esc(t.status||'Offen')}</span>${t.due?`<span class="woDue${late?' late':''}">${late?'Überfällig · ':''}${esc(ticketDate(t.due))}</span>`:''}${inspection?'<span>↻ Kontrolle</span>':''}</div>
+    <h2 class="woViewTitle">${esc(t.title||t.type||'Auftrag')}</h2>
+    <p class="woWhere"><strong>${esc(place?.name||'Ort nicht mehr vorhanden')}</strong>${place?`<span>${esc(path(place.id))}</span>`:''}</p>
+    ${t.text?`<div class="workText woTask">${esc(t.text)}</div>`:''}
+    ${t.materialNeeded?`<p class="woMaterial"><span>Material</span>${esc(t.materialNeeded)}</p>`:''}
+    ${form}${history}
+    ${legacyNote?`<section class="woLog"><h3>Frühere Rückmeldungen</h3><div class="workText">${esc(legacyNote)}</div></section>`:''}
+    <details class="woAdmin"><summary>Details</summary><div class="workDetailGrid">${facts.map(([key,value])=>`<div><span>${esc(key)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>${recurrence}${adminHtml}</details>
+  </div>`;
+}
+// Seiten-spezifisch: Desktop zeichnet neu und öffnet den Auftrag wieder; field-work-orders.js überschreibt dies.
+function refreshWorkOrderView(id){render();openWorkOrder(id);}
+const workEntryDrafts={};
+async function submitWorkEntry(id,finish,source){
+  const ticket=(state.tickets||[]).find(t=>t.id===id);if(!ticket)return false;
+  const form=$('woWorkForm'),buttons=form?.querySelectorAll?[...form.querySelectorAll('button')]:[];
+  if(buttons.some(b=>b.disabled))return false;
+  const fail=message=>{$('woWorkError').textContent=message;return false;};
+  const note=$('woWorkNote').value.trim(),date=$('woWorkDate').value,hours=Number($('woWorkHours').value||0),mins=Number($('woWorkMins').value||0);
+  const minutes=hours*60+mins;
+  if(!Number.isInteger(hours)||!Number.isInteger(mins)||hours<0||mins<0||mins>59||minutes>24*60)return fail('Bitte ganze Stunden und Minuten eingeben (höchstens 24 h pro Eintrag).');
+  const hasEntry=minutes>0||!!note;
+  if(hasEntry&&(!minutes||!note||!date))return fail('Bitte Arbeitszeit, Datum und erledigte Arbeit eintragen.');
+  if(finish&&!hasEntry&&!(workOrderMinutes(ticket)>0&&workLogs(ticket).some(l=>String(l.note||'').trim())))return fail('Zum Abschließen bitte Arbeitszeit und erledigte Arbeit eintragen.');
+  if(!finish&&!hasEntry&&ticket.status==='In Arbeit')return fail('Bitte Arbeitszeit und erledigte Arbeit eintragen.');
+  const payload={action:'recordWork',ticketId:id};
+  if(hasEntry){
+    // Gleiche Eingabe = gleiche ID, damit ein erneuter Versuch nach einem Fehler nichts doppelt bucht.
+    const signature=JSON.stringify([date,minutes,note]),draft=workEntryDrafts[id];
+    if(!draft||draft.signature!==signature)workEntryDrafts[id]={signature,entryId:'wl-'+uid()+Date.now().toString(36)};
+    payload.entry={id:workEntryDrafts[id].entryId,date,minutes,note};
+  }
+  if(finish)payload.status='Erledigt';else if(ticket.status!=='In Arbeit')payload.status='In Arbeit';
+  const material=$('woWorkMaterial')?.value;
+  buttons.forEach(b=>b.disabled=true);$('woWorkError').textContent='';
+  try{
+    if(material!==undefined&&material.trim()!==String(ticket.materialNeeded||'').trim())state=await api('PATCH',{collection:'tickets',item:{...ticket,materialNeeded:material.trim()}});
+    state=await api('PATCH',payload);
+    delete workEntryDrafts[id];
+    refreshWorkOrderView(id);return true;
+  }catch(error){if(error.sessionExpired)return false;return fail(error.serverMessage||'Speichern fehlgeschlagen. Die Eingaben bleiben erhalten.');}
+  finally{buttons.forEach(b=>b.disabled=false);}
+}
+function closeOverWorkOrder(id){if($('workOrderDetail')?.style.display==='flex')$(id).style.display='none';else closeModals();}
 function openWorkOrder(id){
   const t=(state.tickets||[]).find(t=>t.id===id);if(!t)return;
   closeModals();$('workOrderDetail').dataset.ticketId=id;
+  const closed=isClosedTicketStatus(t.status),inspection=workItemKind(t)==='inspection';
   $('workOrderHeading').textContent=workItemLabel(t);
   $('workOrderDetail').setAttribute?.('aria-label',workItemLabel(t));
-  $('workOrderContent').innerHTML=workOrderDetailsHtml(t);
-  if(t.completionNote)$('workOrderContent').innerHTML+=`<section class="workDetailSection"><h3>Rückmeldung / Prüfergebnis</h3><div class="workText">${esc(t.completionNote)}</div></section>`;
-  if(!isClosedTicketStatus(t.status))$('workOrderContent').innerHTML+='<section class="workDetailSection"><label for="workCompletionInput">Rückmeldung / Prüfergebnis</label><textarea id="workCompletionInput" rows="2" placeholder="Ergebnis oder Hinweis zur Ausführung"></textarea></section>';
-  if(t.nextTicketId)$('workOrderContent').innerHTML+=`<button class="btn small secondary" onclick="openWorkOrder('${escJsArg(t.nextTicketId)}')">Nächste Kontrolle öffnen</button>`;
-  $('workOrderActions').innerHTML=`<button class="btn secondary" onclick="openWorkOrderEditor('${escJsArg(id)}')">Bearbeiten</button>${workItemKind(t)==='inspection'&&!isClosedTicketStatus(t.status)?`<button class="btn" onclick="openInspectionPlanning('${escJsArg(id)}')">${workOrderSchedule(t).length?'Plan ändern':'Einplanen'}</button>`:''}<button class="btn secondary" onclick="printWorkOrder('${escJsArg(id)}')">Drucken / PDF</button><a class="btn secondary" target="_blank" rel="noopener" href="${esc(workOrderMobileUrl(t))}">Telefon / Tablet</a>${!isClosedTicketStatus(t.status)?`<button class="btn secondary" onclick="setWorkOrderStatus('${escJsArg(id)}','In Arbeit',this)">In Arbeit</button><button class="btn" onclick="setWorkOrderStatus('${escJsArg(id)}','Erledigt',this)">Als erledigt markieren</button>`:''}`;
+  const adminHtml=`<div class="woAdminActions"><a class="btn small secondary" target="_blank" rel="noopener" href="${esc(workOrderMobileUrl(t))}">Auf Telefon / Tablet öffnen</a>${t.nextTicketId?`<button class="btn small secondary" onclick="openWorkOrder('${escJsArg(t.nextTicketId)}')">Nächste Kontrolle</button>`:''}</div>`;
+  $('workOrderContent').innerHTML=workOrderViewHtml(t,{canWork:!closed,primaryClass:'btn',secondaryClass:'btn secondary',photoViewer:true,photoAdd:`<button type="button" class="woThumb woPhotoAdd" onclick="openPhotoModal('${escJsArg(id)}')">+ Foto</button>`,adminHtml});
+  $('workOrderActions').innerHTML=`<button class="btn secondary small" onclick="openWorkOrderEditor('${escJsArg(id)}')">Bearbeiten</button><button class="btn secondary small" onclick="printWorkOrder('${escJsArg(id)}')">Drucken</button>${inspection&&!closed?`<button class="btn secondary small" onclick="openInspectionPlanning('${escJsArg(id)}')">${workOrderSchedule(t).length?'Plan ändern':'Einplanen'}</button>`:''}`;
   $('workOrderDetail').style.display='flex';$('workOrderClose').focus();
-}
-async function setWorkOrderStatus(id,status,btn){
-  const ticket=(state.tickets||[]).find(t=>t.id===id);if(!ticket||btn?.disabled)return;
-  if(btn)btn.disabled=true;
-  const note=$('workCompletionInput')?.value?.trim();
-  const completionNote=[ticket.completionNote,note?`${new Date().toLocaleString('de-CH')} · ${storedSessionEmployee()?.name||''}:\n${note}`:''].filter(Boolean).join('\n\n');
-  try{state=await api('PATCH',{collection:'tickets',item:{...ticket,status,completionNote}});render();openWorkOrder(id);}
-  catch(error){alert(error.serverMessage||'Status konnte nicht gespeichert werden.');}
-  finally{if(btn)btn.disabled=false;}
 }
 function printWorkOrder(id){
   const t=(state.tickets||[]).find(t=>t.id===id);if(!t)return;
-  $('workOrderPrint').innerHTML=workOrderDetailsHtml(t)+(t.completionNote?`<section class="workDetailSection"><h3>Prüfergebnis</h3><div class="workText">${esc(t.completionNote)}</div></section>`:'')+'<section class="workDetailSection"><h3>Ausführung / Unterschrift</h3><p>Datum: ____________________ &nbsp; Mitarbeiter: ____________________</p></section>';
+  const logs=workLogs(t),legacyNote=workOrderLegacyNote(t),log=logs.length?`<section class="workDetailSection"><h3>Erfasste Arbeit · ${esc(formatWorkMinutes(workOrderMinutes(t)))}</h3>${logs.map(l=>`<p>${esc(ticketDate(l.date))} · ${esc(l.employeeName||'')} · ${esc(formatWorkMinutes(Number(l.minutes)||0))}<br>${esc(l.note||'')}</p>`).join('')}</section>`:'';
+  $('workOrderPrint').innerHTML=workOrderDetailsHtml(t)+log+(legacyNote?`<section class="workDetailSection"><h3>Frühere Rückmeldungen</h3><div class="workText">${esc(legacyNote)}</div></section>`:'')+'<section class="workDetailSection"><h3>Ausführung / Unterschrift</h3><p>Datum: ____________________ &nbsp; Mitarbeiter: ____________________</p></section>';
   document.body.classList.add('printing-work-order');
   try{window.print();}finally{document.body.classList.remove('printing-work-order');}
 }

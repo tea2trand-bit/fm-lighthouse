@@ -24,7 +24,8 @@ import {
   fm360TaskAssignments,
   fm360VacationEntries,
   fm360Notifications,
-  fm360LoginAttempts
+  fm360LoginAttempts,
+  type WorkLog
 } from "../../db/schema.js";
 import { getStore } from "@netlify/blobs";
 import { hashPassword, needsRehash, verifyPassword } from "../../server/password.js";
@@ -942,6 +943,8 @@ async function upsertTicket(item: any, db: DbClient = getDb(), { restore = false
     previousTicketId: existingById ? existingById.previousTicketId : restore && item.previousTicketId ? String(item.previousTicketId) : null,
     nextTicketId: existingById ? existingById.nextTicketId : restore && item.nextTicketId ? String(item.nextTicketId) : null,
     completedAt: closed ? (existingById?.completedAt ?? (restore && item.completedAt ? new Date(item.completedAt) : new Date())) : null,
+    // Normale Ticket-Updates dürfen keine Rapporte aus einem veralteten Client überschreiben.
+    ...(restore ? { workLogs: restoredWorkLogs(item.workLogs) } : {}),
     updatedAt: new Date(),
   };
 
@@ -1004,6 +1007,67 @@ async function upsertTicket(item: any, db: DbClient = getDb(), { restore = false
   }
   if (!restore && row.recurrence && isClosedStatus(row.status)) return await ensureNextOccurrence(row, db);
   return row;
+}
+
+function workLogInput(raw: any) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new HttpError(400, "Ungültiger Arbeitsrapport.");
+  const id = String(raw.id || "");
+  const date = String(raw.date || "");
+  const minutes = raw.minutes;
+  const note = String(raw.note || "").trim();
+  if (!SAFE_ID.test(id)) throw new HttpError(400, "Der Arbeitsrapport braucht eine gültige ID.");
+  if (!isIsoDate(date)) throw new HttpError(400, "Bitte ein gültiges Arbeitsdatum wählen.");
+  if (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) throw new HttpError(400, "Bitte eine Arbeitszeit von 1 Minute bis 24 Stunden eintragen.");
+  if (note.length > 10000) throw new HttpError(400, "Der Arbeitsbericht darf höchstens 10000 Zeichen enthalten.");
+  return { id, date, minutes, note };
+}
+
+function restoredWorkLogs(raw: any): WorkLog[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new HttpError(400, "Ungültige Arbeitsrapporte im Import.");
+  const seen = new Set<string>();
+  return raw.map((log) => {
+    const input = workLogInput(log);
+    if (seen.has(input.id)) throw new HttpError(400, "Doppelte Arbeitsrapport-ID im Import.");
+    seen.add(input.id);
+    return { ...input, employeeId: String(log.employeeId || ""), employeeName: String(log.employeeName || ""), createdAt: String(log.createdAt || "") };
+  });
+}
+
+// Ein Formularschritt speichert Zeit, Bericht und optional Abschluss gemeinsam. Die Zeilensperre
+// verhindert verlorene Zeiten bei mehreren Bearbeitern; eine stabile ID macht Wiederholen sicher.
+async function recordWork(actor: Actor, body: any) {
+  const ticketId = String(body.ticketId || "");
+  if (!SAFE_ID.test(ticketId)) throw new HttpError(400, "Bitte einen gültigen Auftrag wählen.");
+  const requestedStatus = body.status === undefined ? null : String(body.status);
+  if (requestedStatus !== null && !["In Arbeit", "Erledigt"].includes(requestedStatus)) throw new HttpError(400, "Ungültiger Auftragsstatus.");
+  const input = body.entry === undefined || body.entry === null ? null : workLogInput(body.entry);
+  if (!input && !requestedStatus) throw new HttpError(400, "Bitte Arbeitszeit und Bericht eintragen.");
+  await getDb().transaction(async (tx) => {
+    await tx.execute(sql`select id from ${fm360Tickets} where id = ${ticketId} for update`);
+    const [ticket] = await tx.select().from(fm360Tickets).where(eq(fm360Tickets.id, ticketId)).limit(1);
+    if (!ticket) throw new HttpError(404, "Dieser Auftrag ist nicht mehr vorhanden.");
+    const assignments = await tx.select({ employeeId: fm360TaskAssignments.employeeId }).from(fm360TaskAssignments).where(eq(fm360TaskAssignments.ticketId, ticketId));
+    const employeeIds = assignments.length ? assignments.map(a => a.employeeId) : [ticket.assignedEmployeeId];
+    if (!actor.isAdmin && !employeeIds.includes(actor.id)) throw new HttpError(403, "Dieser Auftrag ist Ihnen nicht zugeteilt.");
+    const [employee] = await tx.select({ name: fm360Employees.name }).from(fm360Employees).where(eq(fm360Employees.id, actor.id)).limit(1);
+    const logs: WorkLog[] = [...(ticket.workLogs || [])];
+    const existing = input ? logs.find(log => log.id === input.id) : null;
+    if (existing && (existing.employeeId !== actor.id || existing.date !== input!.date || existing.minutes !== input!.minutes || existing.note !== input!.note)) throw new HttpError(409, "Dieser Arbeitsrapport wurde bereits mit anderen Angaben gespeichert. Bitte den Auftrag neu öffnen.");
+    if (isClosedStatus(ticket.status)) {
+      if (input && !existing) throw new HttpError(409, "Dieser Auftrag ist bereits abgeschlossen.");
+      if (requestedStatus === "In Arbeit") throw new HttpError(409, "Dieser Auftrag ist bereits abgeschlossen.");
+      return;
+    }
+    const added: WorkLog | null = input && !existing ? { ...input, employeeId: actor.id, employeeName: employee?.name || "", createdAt: new Date().toISOString() } : null;
+    if (added) logs.push(added);
+    const status = requestedStatus || (input && ticket.status === "Offen" ? "In Arbeit" : ticket.status);
+    if (status === "Erledigt" && (!logs.length || !logs.some(log => log.note.trim()) && !ticket.completionNote.trim())) throw new HttpError(400, "Zum Abschließen bitte Arbeitszeit und einen Bericht über die erledigte Arbeit eintragen.");
+    const completionNote = [ticket.completionNote, added?.note ? `${added.date} · ${added.employeeName} (${added.minutes} Min.):\n${added.note}` : ""].filter(Boolean).join("\n\n");
+    if (added) await tx.update(fm360Tickets).set({ workLogs: logs, updatedAt: new Date() }).where(eq(fm360Tickets.id, ticketId));
+    await upsertTicket({ ...ticket, status, completionNote }, tx);
+    if (status === "Erledigt") await tx.update(fm360TaskAssignments).set({ status: "done", completedAt: new Date(), updatedAt: new Date() }).where(eq(fm360TaskAssignments.ticketId, ticketId));
+  });
 }
 
 // Legt nach Abschluss eines wiederkehrenden Auftrags genau einen Folgeauftrag an. Der Termin richtet
@@ -1700,6 +1764,11 @@ async function replaceAll(state: any) {
   // Everything runs in one transaction: if any insert fails, the previous data stays intact
   // instead of being left half-deleted.
   const { photoBlobsToDelete, docBlobsToDelete } = await db.transaction(async (tx) => {
+    // Alte, noch offene Clients kennen workLogs nicht. Ihre Gesamtspeicherung darf neue Rapporte
+    // nicht löschen. Aktuelle Rapporte gewinnen auch gegenüber einem veralteten Backup-Eintrag.
+    await tx.execute(sql`select id from ${fm360Tickets} for update`);
+    const currentTicketLogs = await tx.select({ id: fm360Tickets.id, workLogs: fm360Tickets.workLogs }).from(fm360Tickets);
+    const savedLogs = new Map(currentTicketLogs.map(ticket => [ticket.id, ticket.workLogs]));
     const currentPhotos = await tx.select().from(fm360Photos);
     const nextPhotoIds = new Set((state.photos || []).map((p: any) => String(p.id)));
     const currentDocs = await tx.select().from(fm360Documents);
@@ -1746,7 +1815,11 @@ async function replaceAll(state: any) {
     for (const item of state.docs || []) await upsertDocument(item, tx);
     for (const item of state.floorRecords || []) await upsertFloorRecord(item, tx);
     for (const item of state.roomRecords || []) await upsertRoomRecord(item, tx);
-    for (const item of state.tickets || []) await upsertTicket(item, tx, { restore: true });
+    for (const item of state.tickets || []) {
+      const logs = new Map(restoredWorkLogs(item.workLogs).map(log => [log.id, log]));
+      for (const log of savedLogs.get(String(item.id)) || []) logs.set(log.id, log);
+      await upsertTicket({ ...item, workLogs: [...logs.values()] }, tx, { restore: true });
+    }
     for (const item of state.templates || []) await upsertTemplate(item, tx);
     for (const item of state.photos || []) await upsertPhoto(item, tx);
     for (const item of state.shifts || []) await upsertShift(item, tx);
@@ -2014,6 +2087,10 @@ export default async (req: Request) => {
     if (req.method === "PATCH") {
       const actor = await authenticate(req);
       const body = await req.json();
+      if (body?.action === "recordWork") {
+        await recordWork(actor, body);
+        return json(await readState());
+      }
       if (body?.action === "batch") {
         await applyChanges(actor, body.changes);
         return json(await readState());

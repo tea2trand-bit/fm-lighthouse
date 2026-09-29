@@ -101,3 +101,51 @@
 .woActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .woActions .btn{white-space:nowrap}
 @media(max-width:900px){.woCard{grid-template-columns:1fr}.woActions{justify-content:flex-start}}
+/* Auftragsliste: ein ruhiges „Öffnen“ pro Zeile */
+@media(max-width:900px){.woCard{grid-template-columns:minmax(0,1fr) auto;align-items:center}.woActions{justify-content:flex-end}}
+/* Arbeitsansicht (PC, Tablet, Telefon) */
+.workOrderView{width:min(680px,96vw)}
+.woView{display:grid;gap:12px;color:var(--ink,#18202a)}
+.woHeadInfo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12.5px;color:var(--muted)}
+.woHeadInfo .woDue.late{color:#b42318;font-weight:700}
+.woViewTitle{margin:0;font-size:22px;line-height:1.2;overflow-wrap:anywhere}
+.woWhere{margin:0;display:grid;gap:2px}.woWhere strong{font-size:15px}.woWhere span{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.woTask{background:#f5f9fc;border-radius:10px;padding:10px 12px;font-size:14.5px}
+.woMaterial{margin:0;font-size:13.5px}.woMaterial span{display:inline-block;margin-right:8px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.woWork{display:grid;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+.woWork h3,.woLog h3{margin:0;font-size:14px}
+.woWork textarea{width:100%;min-height:78px;margin:0;font:inherit}
+.woWorkRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end}
+.woField{display:grid;gap:4px;min-width:0}.woField>span{font-size:12px;font-weight:700;color:var(--muted)}
+.woField input{min-height:42px;width:100%}
+.woTime{display:flex;align-items:center;gap:6px}.woTime input{width:100%;min-width:0;text-align:center}.woTime em{font-style:normal;font-size:13px;color:var(--muted)}
+.woPhotoRow{display:flex;flex-wrap:wrap;gap:8px}.woPhotoRow:empty{display:none}
+.woThumb{width:56px;height:56px;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+.woThumb img{width:100%;height:100%;object-fit:cover;display:block}
+.woPhotoAdd{border-style:dashed;color:var(--accent,#3f7692);font-size:12.5px;font-weight:700;text-align:center;line-height:1.1}
+.woPhotoAdd input{display:none}.woPhotoAdd.busy{opacity:.5;pointer-events:none}
+.woMaterialEdit summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--muted)}.woMaterialEdit textarea{margin-top:6px;min-height:56px}
+.woWork .workError:empty{display:none}
+.woWorkActions{display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:-1px;background:#fff;padding-top:4px}
+.woWorkActions>*{min-width:120px;justify-content:center;text-align:center}
+.woLog{display:grid;gap:6px}.woLogHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.woLogHead strong{font-size:15px}
+.woLog ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}.woLog li{border-left:3px solid var(--line);padding:2px 0 2px 10px}.woLog li span{font-size:12px;color:var(--muted)}.woLog li p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13.5px}
+.woAdmin{border-top:1px solid var(--line);padding-top:8px}.woAdmin summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--muted)}
+.woAdmin .workDetailGrid{margin:10px 0 0}.woAdminNote{font-size:12.5px;color:var(--muted);margin:8px 0 0}.woAdminActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.woAdminActions a{text-decoration:none}
+.workOrderView #workOrderActions{margin-top:12px;justify-content:flex-end}
+/* Telefon */
+@media(max-width:600px){
+  .workOrderView{width:100vw;max-height:100vh;border-radius:0}
+  .woViewTitle{font-size:20px}
+  .woWorkActions>*{flex:1;min-width:0}
+  #fieldWorkOrderModal{padding:0;align-items:stretch}
+  #fieldWorkOrderModal .fieldOrderDialog{border-radius:0;max-height:100vh;height:100%}
+}
+/* Mobile Aufgabenliste: ganze Karte öffnet den Auftrag */
+.taskCard.taskOpen{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.taskCard .taskMeta{font-size:13px;color:var(--muted)}.taskCard .taskMeta b{color:var(--danger,#b42318)}
+#fieldWorkOrderModal .woWork textarea{margin:0}
+#fieldWorkOrderModal .woWorkActions .action{min-height:48px}
+#fieldWorkOrderModal .woAdminActions .action{min-height:40px}
+#fieldWorkOrderModal .woField,#fieldWorkOrderModal .woPhotoAdd{text-transform:none;letter-spacing:0}
+#fieldWorkOrderModal .woField>span{font-size:12px}

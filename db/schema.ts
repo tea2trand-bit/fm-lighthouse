@@ -58,6 +58,8 @@ export const fm360RoomRecords = pgTable("fm360_room_records", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export type WorkLog = { id: string; employeeId: string; employeeName: string; date: string; minutes: number; note: string; createdAt: string };
+
 export const fm360Tickets = pgTable("fm360_tickets", {
   id: text().primaryKey(),
   parent: text().notNull(),
@@ -85,6 +87,7 @@ export const fm360Tickets = pgTable("fm360_tickets", {
   completedAt: timestamp("completed_at"),
   materialNeeded: text("material_needed").notNull().default(""),
   completionNote: text("completion_note").notNull().default(""),
+  workLogs: jsonb("work_logs").$type<WorkLog[]>().notNull().default([]),
   planningKind: text("planning_kind").notNull().default("work_order"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

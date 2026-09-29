@@ -90,3 +90,52 @@ test('failed scheduling keeps input; scheduling and replanning update one assign
   assert.equal(await a.saveInspectionPlanning(),true);assert.equal(a.state.taskAssignments.length,1);assert.equal(a.state.taskAssignments[0].id,'plan-t');assert.equal(a.state.taskAssignments[0].dueDate,'2026-10-02');
   assert.equal(a.state.tickets[0].due,'2026-10-10');assert.equal(a.state.tickets[0].recurrence.every,12);
 });
+
+function workForm(a){
+  a.state.tickets=[{id:'work',parent:'room',status:'Offen',title:'Türgriff ersetzen'}];
+  a.$('woWorkDate').value='2026-09-30';a.$('woWorkHours').value='1';a.$('woWorkMins').value='7';a.$('woWorkNote').value='Griff ersetzt';
+}
+
+test('failed work report retains the draft and retries with the same id, then clears the successful draft',async()=>{
+  const a=app();workForm(a);const calls=[];
+  a.api=async(method,payload)=>{calls.push(payload);throw new Error('offline');};
+  assert.equal(await a.submitWorkEntry('work',false),false);
+  assert.equal(a.$('woWorkNote').value,'Griff ersetzt');assert.equal(a.$('woWorkMins').value,'7');
+  a.api=async(method,payload)=>{calls.push(payload);return {...a.state,tickets:[{...a.state.tickets[0],status:'In Arbeit',workLogs:[{...payload.entry,employeeName:'Anna'}]}]};};
+  assert.equal(await a.submitWorkEntry('work',false),true);
+  assert.equal(calls[0].entry.id,calls[1].entry.id);assert.equal(calls[1].entry.minutes,67);
+  assert.equal(calls[1].action,'recordWork');assert.equal(calls[1].status,'In Arbeit');
+  assert.equal(Object.hasOwn(calls[1].entry,'employeeId'),false);
+});
+
+test('work report validates hours and minutes before both save and completion',async()=>{
+  const a=app();workForm(a);let requests=0;a.api=async()=>{requests++;return a.state;};
+  for(const [hours,mins] of [['-1','0'],['1','60'],['24','1'],['0','0.5'],['0.5','0'],['bad','0']]){
+    a.$('woWorkHours').value=hours;a.$('woWorkMins').value=mins;
+    assert.equal(await a.submitWorkEntry('work',true),false);
+  }
+  assert.equal(requests,0);
+});
+
+test('completion can use already recorded work without sending it a second time',async()=>{
+  const a=app();workForm(a);a.state.tickets[0].workLogs=[{id:'past',minutes:30,note:'Befestigung geprüft'}];
+  a.$('woWorkHours').value='';a.$('woWorkMins').value='';a.$('woWorkNote').value='';let sent;
+  a.api=async(method,payload)=>{sent=payload;return {...a.state,tickets:[{...a.state.tickets[0],status:'Erledigt'}]};};
+  assert.equal(await a.submitWorkEntry('work',true),true);assert.equal(sent.status,'Erledigt');assert.equal(Object.hasOwn(sent,'entry'),false);
+});
+
+test('recorded work appears once in the order and print while older feedback remains visible',()=>{
+  const a=app();const log={id:'l1',date:'2026-09-30',employeeName:'Anna',minutes:67,note:'Griff ersetzt\nFunktion geprüft'};
+  a.state.tickets=[{id:'work',parent:'room',title:'Türgriff ersetzen',status:'Erledigt',workLogs:[log],completionNote:`Alter Hinweis\n\n${log.date} · ${log.employeeName} (${log.minutes} Min.):\n${log.note}`}];
+  a.openWorkOrder('work');a.printWorkOrder('work');
+  for(const id of ['workOrderContent','workOrderPrint']){
+    const html=a.$(id).innerHTML;assert.equal((html.match(/Griff ersetzt/g)||[]).length,1);assert.match(html,/Alter Hinweis/);assert.match(html,/1 h 7 min/);
+  }
+});
+
+test('photo refresh leaves unsaved work fields and the open order intact',()=>{
+  const a=app();workForm(a);a.openWorkOrder('work');a.$('woPhotos').dataset.ticketId='work';
+  a.state.photos=[{id:'p1',ticketId:'work',description:'Neuer Griff'}];a.refreshWorkOrderPhotos('work');
+  assert.match(a.$('woPhotos').innerHTML,/p1/);assert.equal(a.$('woWorkNote').value,'Griff ersetzt');assert.equal(a.$('woWorkMins').value,'7');
+  a.closeOverWorkOrder('photoModal');assert.equal(a.$('photoModal').style.display,'none');assert.equal(a.$('workOrderDetail').style.display,'flex');
+});

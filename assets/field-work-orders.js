@@ -3,25 +3,34 @@ function canUpdateFieldOrder(ticket){
   const employee=loggedEmployee();
   return !!employee&&(isAdminEmployee(employee)||workOrderEmployeeIds(ticket).includes(employee.id));
 }
+// Mobile Arbeitsansicht: dieselbe Darstellung wie am PC, Fotos direkt mit der Kamera.
 function openFieldWorkOrder(id){
   const ticket=(state.tickets||[]).find(t=>t.id===id);if(!ticket)return;
-  const root=$('fieldWorkOrderContent');
+  const canUpdate=canUpdateFieldOrder(ticket);
   $('fieldWorkOrderKind').textContent=workItemLabel(ticket);
   $('fieldWorkOrderModal').setAttribute('aria-label',workItemLabel(ticket));
-  root.innerHTML=workOrderDetailsHtml(ticket)+`<div class="workActions"><button class="action" onclick="printWorkOrder('${esc(id)}')">Drucken / PDF</button></div>`;
-  if(ticket.completionNote)root.innerHTML+=`<section class="workDetailSection"><h3>Rückmeldung / Prüfergebnis</h3><div class="workText">${esc(ticket.completionNote)}</div></section>`;
-  if(canUpdateFieldOrder(ticket)&&!isClosedTicketStatus(ticket.status))root.innerHTML+=`<section class="workDetailSection"><label for="fieldOrderResult">Rückmeldung / Prüfergebnis</label><textarea id="fieldOrderResult" rows="3" placeholder="Was wurde geprüft oder erledigt? Mängel und Hinweise."></textarea><details class="workMaterialToggle"><summary class="action ghost">Materialbedarf</summary><label for="fieldOrderMaterial">Benötigtes Material</label><textarea id="fieldOrderMaterial" rows="2">${esc(ticket.materialNeeded||'')}</textarea></details><p id="fieldOrderError" class="workError" role="alert"></p><div class="workActions"><button class="action ghost" onclick="saveFieldWorkOrder('${esc(id)}','In Arbeit',this)">In Arbeit</button><button class="action" onclick="saveFieldWorkOrder('${esc(id)}','Erledigt',this)">Als erledigt markieren</button></div></section>`;
+  $('fieldWorkOrderContent').innerHTML=workOrderViewHtml(ticket,{
+    canWork:canUpdate&&!isClosedTicketStatus(ticket.status),primaryClass:'action',secondaryClass:'action ghost',
+    photoAdd:canUpdate?`<label class="woThumb woPhotoAdd" role="button" tabindex="0" aria-label="Foto hinzufügen" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.querySelector('input').click()}">+ Foto<input type="file" accept="image/*" capture="environment" onchange="uploadFieldOrderPhoto('${esc(id)}',this)"></label>`:'',
+    adminHtml:`<div class="woAdminActions"><button type="button" class="action ghost" onclick="printWorkOrder('${esc(id)}')">Drucken / PDF</button></div>`
+  });
   $('fieldWorkOrderModal').hidden=false;$('fieldWorkOrderClose').focus();
 }
 function closeFieldWorkOrder(){$('fieldWorkOrderModal').hidden=true;}
-async function saveFieldWorkOrder(id,status,button){
-  const ticket=(state.tickets||[]).find(t=>t.id===id);
-  if(!ticket||!canUpdateFieldOrder(ticket)||button.disabled)return;
-  const result=$('fieldOrderResult').value.trim();
-  if(status==='Erledigt'&&!result){$('fieldOrderError').textContent='Bitte das Ergebnis der Arbeit oder Kontrolle eintragen.';return;}
-  const buttons=[...$('fieldWorkOrderContent').querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
-  const item={...ticket,status,materialNeeded:$('fieldOrderMaterial').value,completionNote:[ticket.completionNote,result?`${new Date().toLocaleString('de-CH')} · ${loggedEmployee()?.name||''}:\n${result}`:''].filter(Boolean).join('\n\n')};
-  try{state=await api('PATCH',{collection:'tickets',item});renderTasks();renderNotifications();updateBell();openFieldWorkOrder(id);}
-  catch(error){$('fieldOrderError').textContent=error.message||'Speichern fehlgeschlagen. Die Eingaben bleiben erhalten.';}
-  finally{buttons.forEach(b=>b.disabled=false);}
+function refreshWorkOrderView(id){
+  renderTasks();renderNotifications();updateBell();
+  if(current&&!isNavigationNode(current)){renderTicket();renderHistory();}
+  openFieldWorkOrder(id);
+}
+async function uploadFieldOrderPhoto(id,input){
+  const ticket=(state.tickets||[]).find(t=>t.id===id),file=input.files&&input.files[0];
+  if(!ticket||!file)return;
+  const label=input.closest('label');label?.classList.add('busy');
+  try{
+    const base64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(file);});
+    const photoId=uid();
+    state=normalizeState(await api('PATCH',{collection:'photos',item:{id:photoId,parent:ticket.parent,description:`Foto zu Auftrag: ${ticket.title||''}`,blobKey:`photos/${photoId}`,contentType:file.type||'image/jpeg',ticketId:id,base64}}));
+    refreshWorkOrderPhotos(id);
+  }catch(error){if($('woWorkError'))$('woWorkError').textContent=error.serverMessage||'Foto konnte nicht gespeichert werden.';else alert('Foto konnte nicht gespeichert werden.');}
+  finally{label?.classList.remove('busy');input.value='';}
 }

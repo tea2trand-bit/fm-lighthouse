@@ -577,6 +577,82 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     assert.equal((await getState(admin)).tickets.find((t) => t.id === "ctl1").planningKind, "inspection");
   });
 
+  async function workFixture(extra = {}) {
+    const admin = await adminToken();
+    const worker = await login("worker", "worker");
+    const ticket = { id:"work-log-order",parent:"room-1",type:"Reparatur",status:"Offen",prio:"Mittel",title:"Türgriff ersetzen",due:"2026-09-30",assignedEmployeeId:worker.employee.id,...extra };
+    assert.equal((await batch(admin,{tickets:{upsert:[ticket]}})).status,200);
+    return {admin,worker,ticket};
+  }
+  function report(token, ticketId, entry, status) {
+    return call("PATCH",{token,body:{action:"recordWork",ticketId,...(entry?{entry}:{}),...(status?{status}:{})}});
+  }
+  const workEntry = (extra = {}) => ({id:"rapport-1",date:"2026-09-30",minutes:90,note:"Türgriff ersetzt und Funktion geprüft.",...extra});
+
+  test("work reports save the authenticated author, duration and result exactly once", async () => {
+    const {admin,worker,ticket}=await workFixture();
+    assert.equal((await report(worker.token,ticket.id,null,"In Arbeit")).status,200,"starting work does not require a duration yet");
+    const entry=workEntry({employeeId:"emp-admin",employeeName:"Forged name"});
+    assert.equal((await report(worker.token,ticket.id,entry,"In Arbeit")).status,200);
+    assert.equal((await report(worker.token,ticket.id,entry,"In Arbeit")).status,200,"retry succeeds without a second report");
+    const saved=(await getState(admin)).tickets.find(t=>t.id===ticket.id);
+    assert.equal(saved.workLogs.length,1);assert.equal(saved.workLogs[0].employeeId,worker.employee.id);assert.equal(saved.workLogs[0].employeeName,worker.employee.name);
+    assert.equal(saved.workLogs[0].minutes,90);assert.equal(saved.workLogs[0].date,entry.date);assert.equal(saved.workLogs[0].note,entry.note);assert.ok(saved.workLogs[0].createdAt);
+    assert.equal(saved.completionNote.split(entry.note).length,2,"result is appended once");
+    assert.equal((await report(worker.token,ticket.id,{...entry,minutes:100},"In Arbeit")).status,409,"a used ID cannot silently change reported hours");
+  });
+
+  test("work report authorization follows calendar assignments over the old direct assignee", async () => {
+    const {admin,worker,ticket}=await workFixture();
+    assert.equal((await batch(admin,{taskAssignments:{upsert:[{id:"new-owner",ticketId:ticket.id,employeeId:"emp-admin",dueDate:"2026-09-30"}]}})).status,200);
+    assert.equal((await report(worker.token,ticket.id,workEntry(),"In Arbeit")).status,403);
+    assert.equal((await report(admin,ticket.id,workEntry(),"In Arbeit")).status,200);
+    assert.equal((await report(worker.token,"missing-order",workEntry(),"In Arbeit")).status,404);
+    assert.equal((await report(undefined,ticket.id,workEntry(),"In Arbeit")).status,401);
+  });
+
+  test("invalid work durations, dates and empty completions leave the order unchanged", async () => {
+    const {admin,worker,ticket}=await workFixture();
+    for(const minutes of [0,-1,1.5,1441,"90",null])assert.equal((await report(worker.token,ticket.id,workEntry({minutes}),"In Arbeit")).status,400);
+    for(const date of ["2026-02-30","30.09.2026",""])assert.equal((await report(worker.token,ticket.id,workEntry({date}),"In Arbeit")).status,400);
+    assert.equal((await report(worker.token,ticket.id,null,"Erledigt")).status,400);
+    assert.equal((await report(worker.token,ticket.id,workEntry({note:""}),"Erledigt")).status,400,"time without a result must not partially save on completion");
+    const saved=(await getState(admin)).tickets.find(t=>t.id===ticket.id);assert.equal(saved.status,"Offen");assert.deepEqual(saved.workLogs,[]);
+  });
+
+  test("concurrent work reports preserve both entries and concurrent retries are idempotent", async () => {
+    const {admin,worker,ticket}=await workFixture();
+    const entries=[workEntry(),workEntry({id:"rapport-2",date:"2026-10-01",minutes:30,note:"Nachkontrolle"})];
+    const responses=await Promise.all(entries.map(entry=>report(worker.token,ticket.id,entry,"In Arbeit")));
+    assert.deepEqual(responses.map(r=>r.status),[200,200]);
+    const retries=await Promise.all([report(worker.token,ticket.id,entries[0],"In Arbeit"),report(worker.token,ticket.id,entries[0],"In Arbeit")]);
+    assert.deepEqual(retries.map(r=>r.status),[200,200]);
+    const saved=(await getState(admin)).tickets.find(t=>t.id===ticket.id);assert.equal(saved.workLogs.length,2);assert.equal(saved.workLogs.reduce((sum,x)=>sum+x.minutes,0),120);
+  });
+
+  test("closing with a report is atomic and the next inspection starts without old work logs", async () => {
+    const {admin,worker,ticket}=await workFixture({planningKind:"inspection",recurrence:{every:12,unit:"days",remindBefore:7,remindUnit:"days",managerId:"emp-admin"}});
+    const entry=workEntry();
+    assert.equal((await report(worker.token,ticket.id,entry,"Erledigt")).status,200);
+    assert.equal((await report(worker.token,ticket.id,entry,"Erledigt")).status,200);
+    const state=await getState(admin),saved=state.tickets.find(t=>t.id===ticket.id),next=state.tickets.find(t=>t.previousTicketId===ticket.id);
+    assert.equal(saved.status,"Erledigt");assert.equal(saved.workLogs.length,1);assert.match(saved.completionNote,/Türgriff ersetzt/);
+    assert.ok(next);assert.deepEqual(next.workLogs,[]);assert.equal(next.completionNote,"");assert.equal(next.assignedEmployeeId,null);assert.equal(next.due,"2026-10-12");assert.equal(state.tickets.length,2);
+    assert.equal((await report(worker.token,ticket.id,workEntry({id:"too-late"}),"Erledigt")).status,409);
+  });
+
+  test("ordinary ticket edits and a stale full-state save cannot erase work logs", async () => {
+    const {admin,worker,ticket}=await workFixture();const stale=await getState(admin);
+    assert.equal((await report(worker.token,ticket.id,workEntry(),"In Arbeit")).status,200);
+    assert.equal((await batch(admin,{tickets:{upsert:[{...stale.tickets[0],prio:"Hoch",workLogs:[]}]}})).status,200);
+    assert.equal((await getState(admin)).tickets[0].workLogs.length,1);
+    assert.equal((await putState(admin,stale)).status,200);
+    assert.equal((await getState(admin)).tickets[0].workLogs.length,1);
+    const fresh=await getState(admin);
+    assert.equal((await putState(admin,fresh)).status,200);
+    assert.equal((await getState(admin)).tickets[0].workLogs[0].employeeId,worker.employee.id);
+  });
+
   test("older clients keep planningKind and the next control stays an inspection", async () => {
     const admin = await adminToken();
     assert.equal((await batch(admin, { tickets: { upsert: [recurring({ planningKind: "inspection" })] } })).status, 200);

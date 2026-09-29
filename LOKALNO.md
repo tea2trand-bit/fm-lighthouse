@@ -38,9 +38,9 @@ Lokalni testovi ne koriste produkcionu bazu. Objava ide preko postojeće GitHub 
 .\fm-local.ps1 test-api
 ```
 
-`check` pokreće TypeScript proveru i 44 testa koji ne koriste bazu.
+`check` pokreće TypeScript proveru i 49 testova koji ne koriste bazu.
 `test-api` za svaki poziv pravi novu bazu u memoriji, primenjuje postojeće
-migracije i pokreće 33 API testa. Ta baza se gasi po završetku; razvojna
+migracije i pokreće 39 API testova. Ta baza se gasi po završetku; razvojna
 i produkciona baza se ne koriste za testove.
 
 Postojeći API testovi brišu sve `fm360_*` tabele u svojoj testnoj bazi.
@@ -49,9 +49,9 @@ Za njih koristiti pripremljenu komandu `test-api`, koja sama bira izolovanu bazu
 Rezultat pripreme:
 
 - TypeScript: uspešno.
-- Testovi bez baze: 44/44 uspešno.
-- API testovi: 33/33 uspešno.
-- Migracije: svih 26 uspešno primenjeno i u razvojnoj i u privremenoj testnoj bazi.
+- Testovi bez baze: 49/49 uspešno.
+- API testovi: 39/39 uspešno.
+- Migracije: svih 27 uspešno primenjeno i u razvojnoj i u privremenoj testnoj bazi.
 - JavaScript unutar oba HTML fajla: uspešna sintaksna provera.
 - Desktop prijava i obnova sesije posle učitavanja: uspešno u pregledaču.
 - Produkcionu objavu potvrditi statusom `ready` i odgovarajućim Git commitom u Netlify-ju.
@@ -131,3 +131,19 @@ Pregled na portu 8891 koristi samo privremene primere, odvojene od lokalne i pro
 - Dokumentenpool podvlači trenutni nivo u putanji. Umesto Zum Ort prikazuje Dokument öffnen ili Datei hinzufügen i jasno označava kada fajl nije priložen. Klik na naziv otvara podatke dokumenta.
 - Dodavanje fajla postojećem dokumentu zadržava ID, mesto, naziv i beleške. Provereno čuvanje i preuzimanje probnog fajla bez duplikata; automatske provere pokrivaju i neuspešno čuvanje, otkazivanje i očuvanje postojećeg priloga.
 - Lokalno vizuelno provereni Arbeitsplan, Absenzen, Schichtplan/Piketdienst, formular i kartice naloga, Brandschutz i Dokumentenpool. Sve probne izmene izvršene su samo u privremenoj bazi na portu 8891.
+
+## Radni nalog i evidencija rada, 30.09.2026
+
+- Lista naloga ima samo Öffnen, a i naslov otvara nalog. Zum Ort, dodavanje fotografije i završavanje posla više nisu akcije na listi.
+- Otvoren nalog prvo prikazuje zadatak i mesto. Unutra su izveštaj, datum, sati i minuti, fotografije, materijal po potrebi, Speichern i Abschließen. Administrativni podaci su pod Details.
+- Evidencija rada se čuva u work_logs na tiketu, sa radnikom iz prijavljene sesije. PATCH action recordWork zajedno čuva unos rada i promenu statusa. Istovremeni unosi se ne prepisuju, a ponovljen zahtev sa istom ID ne pravi duplikat.
+- Nalog se završava uz upisano vreme i izveštaj. Kod kontrole se sledeći termin stvara jednom, bez prethodnih sati i rezultata. Istorija i štampa prikazuju pojedinačne unose i zbir vremena.
+- Obične izmene naloga i stari administrativni klijenti ne mogu obrisati nove radne unose. Dodata je migracija 20260930110000_add_fm360_work_logs.
+- Stvarni lokalni UI tok proverio je fotografiju uz nesačuvan nacrt, čuvanje 1 h 7 min i završetak naloga; radnik Roland završio je probnu kontrolu sa 20 min, a novi neraspoređeni termin nastao je za 12.10.2026. Produkcioni podaci nisu menjani radi provere.
+
+## Telefonska navigacija po uzoru na TD Lighthouse, 30.09.2026
+
+- Na širini do 640 px glavni meni je jedna fiksna donja traka: Start, Meine Arbeit, QR i Menü. Vrh prikazuje logo i zvonce. Stara druga donja traka uklonjena je.
+- Menü otvara Mitarbeiterportal, obaveštenja, aktuelni objekat kada postoji i profil/odjavu. Šef ima i pristup Arbeitsplanung. Na tabletu i desktopu ostaje postojeći gornji meni.
+- Korisnik i odjava pomereni su samo u telefonskom rasporedu. Desktop heder nije menjan.
+- Provereno na 390 px: radni nalog iz Meine Arbeit, sačuvano vreme, portal, meni i odjava. Sadržaj ima prostor iznad donje trake; posle odjave traka i sadržaj aplikacije nisu prikazani. Meni podržava zatvaranje tasterom Escape i vraća fokus na dugme Menü.
