@@ -200,6 +200,156 @@ describe("fm360 API", { skip: DATABASE_URL ? false : "TEST_DATABASE_URL is not s
     assert.equal((await call("GET", { cookie: session.cookie, query: "?photoId=p1" })).status, 404);
   });
 
+  async function batch(token, changes) {
+    return call("PATCH", { token, body: { action: "batch", changes } });
+  }
+
+  async function createLogin(adminTokenValue, { id, loginName, password, role }) {
+    const res = await batch(adminTokenValue, { employees: { upsert: [{ id, name: loginName, loginName, loginEnabled: true, password, role }] } });
+    assert.equal(res.status, 200);
+    const session = await login(loginName, password);
+    assert.ok(session, `${loginName} can log in`);
+    return session.token;
+  }
+
+  test("batch saves only touch the records that changed", async () => {
+    const admin = await adminToken();
+    assert.equal((await batch(admin, { nodes: { upsert: [{ id: "a", parent: null, type: "Standort", name: "A" }] } })).status, 200);
+
+    // Two people save at the same time from the same starting point: both changes survive.
+    const other = await createLogin(admin, { id: "emp-fm", loginName: "fm", password: "fm-pass", role: "FM Internal" });
+    assert.equal((await batch(admin, { nodes: { upsert: [{ id: "a", parent: null, type: "Standort", name: "A neu" }] } })).status, 200);
+    assert.equal((await batch(other, { nodes: { upsert: [{ id: "b", parent: null, type: "Standort", name: "B" }] } })).status, 200);
+    const state = await getState(admin);
+    assert.deepEqual(state.nodes.map((n) => [n.id, n.name]).sort(), [["a", "A neu"], ["b", "B"]]);
+    assert.ok(state.nodes.find((n) => n.id === "b").sortOrder > state.nodes.find((n) => n.id === "a").sortOrder, "new nodes go after their siblings");
+
+    assert.equal((await batch(admin, { nodes: { delete: ["b"] } })).status, 200);
+    assert.deepEqual((await getState(admin)).nodes.map((n) => n.id), ["a"]);
+  });
+
+  test("new nodes get an FM code from the tree", async () => {
+    const admin = await adminToken();
+    const res = await batch(admin, { nodes: { upsert: [
+      { id: "s", parent: null, type: "Standort", name: "Haslen" },
+      { id: "g", parent: "s", type: "Objekt / Gebäude", name: "Neubau", code: "NEU" },
+      { id: "e", parent: "g", type: "Etage", name: "UG", code: "UG" },
+    ] } });
+    assert.equal(res.status, 200);
+    const nodes = (await res.json()).nodes;
+    assert.match(nodes.find((n) => n.id === "e").objectCode, /UG/);
+  });
+
+  test("saving an unchanged assigned ticket does not notify again", async () => {
+    const admin = await adminToken();
+    const worker = (await getState(admin)).employees.find((employee) => employee.loginName === "worker");
+    const ticket = { id: "t1", parent: "room", type: "Störung", status: "Offen", prio: "Hoch", title: "Pumpe", assignedEmployeeId: worker.id };
+    assert.equal((await batch(admin, { tickets: { upsert: [ticket] } })).status, 200);
+    const saved = (await getState(admin)).tickets[0];
+    assert.equal((await batch(admin, { tickets: { upsert: [saved] } })).status, 200);
+    assert.equal((await batch(admin, { tickets: { upsert: [saved] } })).status, 200);
+    assert.equal((await getState(admin)).notifications.length, 1);
+
+    assert.equal((await batch(admin, { tickets: { upsert: [{ ...saved, prio: "Mittel" }] } })).status, 200);
+    assert.equal((await getState(admin)).notifications.length, 2, "a real change still notifies");
+  });
+
+  test("field roles can only create and update field records", async () => {
+    const admin = await adminToken();
+    const worker = (await login("worker", "worker")).token;
+    assert.equal((await getState(worker)).nodes.length, 0, "workers can read");
+    assert.equal((await call("PATCH", { token: worker, body: { collection: "tickets", item: { id: "t1", parent: "x", type: "Störung", title: "Leck" } } })).status, 200);
+    assert.equal((await batch(worker, { tickets: { upsert: [{ id: "t2", parent: "x", type: "Störung", title: "Zweites" }] } })).status, 200);
+
+    assert.equal((await batch(worker, { nodes: { upsert: [{ id: "n", parent: null, type: "Standort", name: "X" }] } })).status, 403);
+    assert.equal((await call("DELETE", { token: worker, body: { collection: "tickets", ids: ["t1"] } })).status, 403);
+    assert.equal((await batch(worker, { employees: { upsert: [{ id: "emp-roland", name: "Roland", role: "Admin / Chef" }] } })).status, 403);
+    assert.equal((await putState(worker, await getState(worker))).status, 403);
+    assert.equal((await call("POST", { token: worker, query: "?seed=true" })).status, 403);
+    assert.equal((await call("GET", { token: worker, query: "?debugTickets=true" })).status, 403);
+    assert.equal((await getState(admin)).tickets.length, 2);
+  });
+
+  test("FM Internal cannot change logins, passwords or roles", async () => {
+    const admin = await adminToken();
+    const internal = await createLogin(admin, { id: "emp-fm", loginName: "fm", password: "fm-pass", role: "FM Internal" });
+    const worker = (await getState(admin)).employees.find((employee) => employee.loginName === "worker");
+
+    const res = await batch(internal, { employees: { upsert: [{ ...worker, availability: "Ferien", password: "gehackt", role: "Admin / Chef", loginName: "chef" }] } });
+    assert.equal(res.status, 200);
+    const updated = (await getState(admin)).employees.find((employee) => employee.id === worker.id);
+    assert.equal(updated.availability, "Ferien", "master data can be maintained");
+    assert.equal(updated.role, worker.role);
+    assert.equal(updated.loginName, "worker");
+    assert.equal(await login("worker", "gehackt"), null);
+    assert.ok(await login("worker", "worker"));
+
+    assert.equal((await batch(internal, { employees: { delete: [worker.id] } })).status, 403);
+    assert.equal((await batch(internal, { roles: { upsert: [{ id: "r1", name: "Neu" }] } })).status, 403);
+    assert.equal((await batch(internal, { nodes: { upsert: [{ id: "n", parent: null, type: "Standort", name: "X" }] } })).status, 200);
+  });
+
+  test("the last admin login cannot be removed", async () => {
+    const admin = await adminToken();
+    const me = (await getState(admin)).employees.find((employee) => employee.loginName === "admin");
+    assert.equal((await batch(admin, { employees: { upsert: [{ ...me, loginEnabled: false }] } })).status, 409);
+    assert.equal((await batch(admin, { employees: { delete: [me.id] } })).status, 409);
+    assert.ok(await login("admin", "admin"), "admin is unchanged");
+
+    // The seeded admin account keeps its rights even if its role text gets lost.
+    assert.equal((await batch(admin, { employees: { upsert: [{ ...me, role: "" }] } })).status, 200);
+    assert.equal((await batch(admin, { roles: { upsert: [{ id: "r1", name: "Rolle" }] } })).status, 200);
+
+    const chef = await createLogin(admin, { id: "emp-chef2", loginName: "chef2", password: "chef2-pass", role: "Admin / Chef" });
+    assert.equal((await batch(admin, { employees: { upsert: [{ ...me, loginEnabled: false }] } })).status, 200, "fine once another admin exists");
+    const demoteLast = { id: "emp-chef2", name: "chef2", loginName: "chef2", loginEnabled: true, role: "FM Internal" };
+    assert.equal((await batch(chef, { employees: { upsert: [demoteLast] } })).status, 409, "the remaining admin cannot demote itself");
+  });
+
+  test("a disabled login loses access immediately", async () => {
+    const admin = await adminToken();
+    const workerSession = await login("worker", "worker");
+    const worker = (await getState(admin)).employees.find((employee) => employee.loginName === "worker");
+    assert.equal((await batch(admin, { employees: { upsert: [{ ...worker, loginEnabled: false }] } })).status, 200);
+    assert.equal((await call("GET", { token: workerSession.token })).status, 401);
+  });
+
+  test("ids that could break out of HTML attributes are rejected", async () => {
+    const admin = await adminToken();
+    assert.equal((await batch(admin, { nodes: { upsert: [{ id: "x');alert(1);('", parent: null, type: "Standort", name: "X" }] } })).status, 400);
+    assert.equal((await batch(admin, { tickets: { upsert: [{ id: "t", parent: "<img>", type: "Störung", title: "X" }] } })).status, 400);
+    assert.equal((await batch(admin, { nodes: { upsert: [{ id: "ok-1_2.3:4", parent: null, type: "Standort", name: "<b>Name darf alles</b>" }] } })).status, 200);
+  });
+
+  test("repeated wrong passwords block further login attempts", async () => {
+    await adminToken();
+    for (let i = 0; i < 10; i++) assert.equal(await login("worker", `falsch-${i}`), null);
+    const res = await call("POST", { body: { action: "login", loginName: "worker", password: "worker" } });
+    assert.equal(res.status, 429, "even the right password is refused while blocked");
+    assert.ok(await login("admin", "admin"), "other accounts are not affected");
+    await pool.query("update fm360_login_attempts set window_start = now() - interval '16 minutes'");
+    assert.ok(await login("worker", "worker"), "the block ends after 15 minutes");
+  });
+
+  test("uploaded files that could run scripts are downloaded, not shown", async () => {
+    const session = await login("admin", "admin");
+    const upload = (id, contentType, text) => call("PATCH", {
+      token: session.token,
+      body: { collection: "docs", item: { id, parent: "x", type: "Dokument", title: id, blobKey: `doc-${id}`, contentType, fileName: `${id}.bin`, base64: Buffer.from(text).toString("base64") } },
+    });
+    assert.equal((await upload("html", "text/html", "<script>alert(1)</script>")).status, 200);
+    assert.equal((await upload("pdf", "application/pdf", "%PDF-1.4")).status, 200);
+
+    const html = await call("GET", { cookie: session.cookie, query: "?docId=html" });
+    assert.equal(html.headers.get("content-type"), "application/octet-stream");
+    assert.match(html.headers.get("content-disposition"), /^attachment/);
+    assert.equal(html.headers.get("x-content-type-options"), "nosniff");
+
+    const pdf = await call("GET", { cookie: session.cookie, query: "?docId=pdf" });
+    assert.equal(pdf.headers.get("content-type"), "application/pdf");
+    assert.match(pdf.headers.get("content-disposition"), /^inline/);
+  });
+
   test("logout clears the session cookie", async () => {
     const res = await call("POST", { body: { action: "logout" } });
     assert.equal(res.status, 200);

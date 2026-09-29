@@ -153,7 +153,7 @@ function uid(){return Math.random().toString(36).slice(2,9)}
 function showStatus(text,type=''){let el=$('status');el.textContent=text;el.className='status show '+type}
 function clearStatus(){let el=$('status');el.textContent='';el.className='status'}
 function storedSessionToken(){return localStorage.getItem('fm360AuthToken')||''}
-async function api(method='GET',body){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;let res=await fetch(API,{method,headers,body:body?JSON.stringify(body):undefined});if(res.status===401&&body?.action!=='login'){handleExpiredSession();let err=new Error('Sitzung abgelaufen');err.sessionExpired=true;throw err}if(!res.ok)throw new Error('Request failed');return res.json()}
+async function api(method='GET',body){let headers={'content-type':'application/json'};let token=storedSessionToken();if(token)headers.authorization=`Bearer ${token}`;let res=await fetch(API,{method,headers,body:body?JSON.stringify(body):undefined});if(res.status===401&&body?.action!=='login'){handleExpiredSession();let err=new Error('Sitzung abgelaufen');err.sessionExpired=true;throw err}if(!res.ok){let data=await res.json().catch(()=>null);let err=new Error(data?.error||'Request failed');err.status=res.status;err.serverMessage=data?.error||'';throw err}return res.json()}
 function handleExpiredSession(){stopQrScan();setSessionEmployee(null);$('loginScreen').style.display='grid';let err=$('loginError');if(err){err.textContent='Sitzung abgelaufen. Bitte erneut einloggen.';err.classList.add('show')}}
 function storedSessionEmployee(){
   try{return JSON.parse(localStorage.getItem('fm360EmployeeSession')||'null')}catch(e){return null}
@@ -192,7 +192,7 @@ async function login(event){
     $('loginScreen').style.display='none';
     await loadState();
   }catch(e){
-    err.textContent='Login fehlgeschlagen. Bitte Benutzername und Passwort prüfen.';
+    err.textContent=e.status===429?e.serverMessage:'Login fehlgeschlagen. Bitte Benutzername und Passwort prüfen.';
     err.classList.add('show');
   }finally{
     btn.disabled=false;btn.textContent='Einloggen';
